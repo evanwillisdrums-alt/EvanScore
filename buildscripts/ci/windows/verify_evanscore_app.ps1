@@ -53,6 +53,9 @@ try {
 
 $relativeApp = [System.IO.Path]::GetRelativePath((Resolve-Path build.install).Path, $app.FullName)
 $source = "https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA"
+if (-not (Get-ChildItem build.install -Filter 'EvanScoreNoteInput.qml' -Recurse)) {
+    throw 'The floating note-input plugin was not installed'
+}
 @"
 EvanScore Windows development app
 
@@ -61,7 +64,11 @@ $relativeApp
 
 Keep the DLLs, plugins, fonts, and other supplied folders together.
 This is the native MuseScore fork with the implemented gray styling and rounded controls.
-The marimba visualization and floating keypad shown in the HTML preview are still preview concepts.
+Use the Regular / Percussion button in the top toolbar to select a saved workspace mode.
+Percussion applies the supplied score style (Arial text / Arial Black headings) and places accents above.
+In Preferences > Shortcuts, search Flam, Diddle, or Roll, or record side/middle mouse-button bindings.
+The optional floating keypad is bundled as the EvanScore Note Input plugin: enable it in Extensions > Manage plugins, then run it from the Extensions menu.
+The marimba visualization is still a preview concept.
 The internal executable and application name remain MuseScore.
 
 Build checks passed: Windows x64 executable header, native process exit, and score-to-PDF export.

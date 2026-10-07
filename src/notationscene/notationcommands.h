@@ -58,6 +58,9 @@ inline static const muse::rcommand::Command SELECT_SIMILAR_IN_RANGE_COMMAND("com
 inline static const muse::rcommand::Command SELECT_NOTES_IN_CHORD_COMMAND("command://notation/select-notes-in-chord");
 inline static const muse::rcommand::Command SELECT_ALL_COMMAND("command://notation/select-all");
 inline static const muse::rcommand::Command SELECT_SECTION_COMMAND("command://notation/select-section");
+inline static const muse::rcommand::Command ADD_FLAM_COMMAND("command://notation/add-flam");
+inline static const muse::rcommand::Command ADD_DIDDLE_COMMAND("command://notation/add-diddle");
+inline static const muse::rcommand::Command ADD_ROLL_COMMAND("command://notation/add-roll");
 // ------------------------------------------------------------
 inline static const muse::rcommand::Command GET_LOCATION_COMMAND("command://notation/get-location");
 

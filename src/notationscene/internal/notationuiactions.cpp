@@ -861,6 +861,9 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "Insert fretboard diagram legend at end of score"),
              IconCode::Code::FRET_FRAME
              ),
+    UiAction("add-flam", mu::context::UiCtxProjectOpened, mu::context::CTX_NOTATION_OPENED, TranslatableString("action", "Flam"), TranslatableString("action", "Add percussion flam"), IconCode::Code::ACCIACCATURA),
+    UiAction("add-diddle", mu::context::UiCtxProjectOpened, mu::context::CTX_NOTATION_OPENED, TranslatableString("action", "Diddle"), TranslatableString("action", "Add percussion diddle (double stroke)")),
+    UiAction("add-roll", mu::context::UiCtxProjectOpened, mu::context::CTX_NOTATION_OPENED, TranslatableString("action", "Roll"), TranslatableString("action", "Add percussion roll (three slashes)")),
     UiAction("acciaccatura",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,

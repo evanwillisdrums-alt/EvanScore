@@ -153,7 +153,7 @@ public:
     System* system() const;
     Page* page() const;
 
-    ArticulationAnchor anchor() const { return m_anchor; }
+    ArticulationAnchor anchor() const;
     void setAnchor(ArticulationAnchor v) { m_anchor = v; }
 
     OrnamentStyle ornamentStyle() const { return m_ornamentStyle; }

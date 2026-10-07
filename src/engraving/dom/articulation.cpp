@@ -135,6 +135,8 @@ int Articulation::subtype() const
 void Articulation::setUp(bool val)
 {
     Articulation::LayoutData* ldata = mutldata();
+    const bool percussionAccent = style().styleB(Sid::percussionAccentsAbove) && (isAccent() || isMarcato());
+    val = percussionAccent || val;
     ldata->up = val;
 
     //! NOTE member of Articulation m_symId - this is `given` data
@@ -144,7 +146,7 @@ void Articulation::setUp(bool val)
     //! it would be better if there was some type,
     //! and from it we would already figure out how (with what symbol) to display it
 
-    bool dup = m_direction == DirectionV::AUTO ? val : m_direction == DirectionV::UP;
+    bool dup = percussionAccent || (m_direction == DirectionV::AUTO ? val : m_direction == DirectionV::UP);
     String s = String::fromAscii(SymNames::nameForSymId(m_symId).ascii());
     if (s.endsWith(!dup ? u"Above" : u"Below")) {
         String s2 = s.left(s.size() - 5) + (dup ? u"Above" : u"Below");
@@ -290,7 +292,7 @@ PropertyValue Articulation::getProperty(Pid propertyId) const
     switch (propertyId) {
     case Pid::SYMBOL:              return PropertyValue::fromValue(m_symId);
     case Pid::DIRECTION:           return PropertyValue::fromValue<DirectionV>(direction());
-    case Pid::ARTICULATION_ANCHOR: return int(anchor());
+    case Pid::ARTICULATION_ANCHOR: return int(m_anchor);
     case Pid::ORNAMENT_STYLE:      return ornamentStyle();
     case Pid::PLAY:                return playArticulation();
     default:
@@ -958,4 +960,12 @@ double Articulation::LayoutData::opticalCenter() const
         return 0.5 * bbox().width();
     }
 }
+}
+
+ArticulationAnchor Articulation::anchor() const
+{
+    if (style().styleB(Sid::percussionAccentsAbove) && (isAccent() || isMarcato())) {
+        return ArticulationAnchor::TOP;
+    }
+    return m_anchor;
 }

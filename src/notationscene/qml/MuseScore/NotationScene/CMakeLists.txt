@@ -76,6 +76,8 @@ qt_add_qml_module(notationscene_qml
         notationruler.h
         notationswitchlistmodel.cpp
         notationswitchlistmodel.h
+        percussionworkspacemodel.cpp
+        percussionworkspacemodel.h
         notationtoolbarmodel.cpp
         notationtoolbarmodel.h
         notationviewinputcontroller.cpp

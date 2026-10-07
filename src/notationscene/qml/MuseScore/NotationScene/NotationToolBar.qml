@@ -21,35 +21,52 @@
  */
 import QtQuick
 
-import QtQuick
+import Muse.Ui
 
 import Muse.UiComponents
 
 import MuseScore.NotationScene
 
-StyledToolBarView {
+Row {
+    id: root
     property alias isCompactMode: toolBarModel.isCompactMode
-
-    navigationPanel.name: "NotationToolBar"
-    navigationPanel.accessible.name: qsTrc("notation", "Notation toolbar")
-
-    spacing: 2
-
-    NotationToolBarModel {
-        id: toolBarModel
+    property alias navigationPanel: toolBar.navigationPanel
+    spacing: 4
+    PercussionWorkspaceModel {
+        id: workspace
+        Component.onCompleted: load(true)
     }
-
-    model: toolBarModel
-
-    sourceComponentCallback: function(type) {
-        return type === ToolBarItemType.ACTION ? roundedActionComponent : null
+    FlatButton {
+        text: workspace.percussionMode ? qsTrc("notation", "Percussion") : qsTrc("notation", "Regular")
+        backgroundRadius: 8
+        navigation.panel: toolBar.navigationPanel
+        navigation.order: 0
+        onClicked: workspace.percussionMode = !workspace.percussionMode
     }
+    StyledToolBarView {
+        id: toolBar
 
-    Component {
-        id: roundedActionComponent
+        navigationPanel.name: "NotationToolBar"
+        navigationPanel.accessible.name: qsTrc("notation", "Notation toolbar")
 
-        StyledToolBarItem {
-            backgroundRadius: 8
+        spacing: 2
+
+        NotationToolBarModel {
+            id: toolBarModel
+        }
+
+        model: toolBarModel
+
+        sourceComponentCallback: function (type) {
+            return type === ToolBarItemType.ACTION ? roundedActionComponent : null;
+        }
+
+        Component {
+            id: roundedActionComponent
+
+            StyledToolBarItem {
+                backgroundRadius: 8
+            }
         }
     }
 }

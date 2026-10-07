@@ -42,13 +42,13 @@ Item {
     signal selected(string uri)
 
     function select(uri) {
-        root.selected(uri)
+        root.selected(uri);
     }
 
     function focusOnFirst() {
-        var btn = radioButtonList.itemAtIndex(0) as PageTabButton
+        var btn = radioButtonList.itemAtIndex(0) as RadioDelegate;
         if (btn) {
-            btn.navigation.requestActive()
+            btn.navigation.requestActive();
         }
     }
 
@@ -57,7 +57,7 @@ Item {
     }
 
     Component.onCompleted: {
-        toolBarModel.load()
+        toolBarModel.load();
     }
 
     NavigationPanel {
@@ -76,10 +76,11 @@ Item {
         width: Math.max(1, contentItem.childrenRect.width)
         height: Math.max(1, contentItem.childrenRect.height)
 
-        delegate: PageTabButton {
+        delegate: RadioDelegate {
+            id: tabButton
             required property bool isTitleBold
             required property bool isChecked
-            required title
+            required property string title
             required property string uri
             required property int index
 
@@ -89,17 +90,47 @@ Item {
             leftPadding: 12
             rightPadding: 12
 
-            normalStateFont: isTitleBold ? ui.theme.bodyBoldFont : ui.theme.bodyFont
-            selectedStateFont: ui.theme.bodyBoldFont
-
-            navigation.name: title
-            navigation.panel: navPanel
-            navigation.order: index
+            property alias navigation: tabNavigation
+            height: 36
+            indicator: Item {}
+            contentItem: StyledTextLabel {
+                text: tabButton.title
+                font: tabButton.checked || tabButton.isTitleBold ? ui.theme.bodyBoldFont : ui.theme.bodyFont
+                color: tabButton.checked ? ui.theme.accentColor : ui.theme.fontPrimaryColor
+            }
+            background: Rectangle {
+                color: "transparent"
+                radius: 8
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 24
+                    height: tabNavigation.highlight ? 3 : 2
+                    color: ui.theme.accentColor
+                    visible: tabButton.checked || tabButton.hovered || tabNavigation.highlight
+                }
+            }
+            NavigationControl {
+                id: tabNavigation
+                name: title
+                panel: navPanel
+                order: index
+                enabled: root.enabled && root.visible
+                accessible.role: MUAccessible.RadioButton
+                accessible.name: title
+                accessible.checked: tabButton.checked
+                onActiveChanged: {
+                    if (active)
+                        tabButton.forceActiveFocus();
+                }
+                onTriggered: tabButton.toggled()
+            }
 
             checked: isChecked
 
             onToggled: {
-                root.selected(uri)
+                tabNavigation.requestActiveByInteraction();
+                root.selected(uri);
             }
         }
     }

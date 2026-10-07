@@ -1962,6 +1962,9 @@ static const std::vector<CommandInfo> s_commandInfos = {
         Decoration()
     },
 
+    CommandInfo { ADD_FLAM_COMMAND, TranslatableString("action", "Flam"), TranslatableString("action", "Add percussion flam"), InputSchema(), Decoration(IconCode::Code::ACCIACCATURA) },
+    CommandInfo { ADD_DIDDLE_COMMAND, TranslatableString("action", "Diddle"), TranslatableString("action", "Add percussion diddle (double stroke)"), InputSchema(), Decoration() },
+    CommandInfo { ADD_ROLL_COMMAND, TranslatableString("action", "Roll"), TranslatableString("action", "Add percussion roll (three slashes)"), InputSchema(), Decoration() },
     // add grace notes commands
     CommandInfo{
         ADD_ACCIACCATURA_COMMAND,

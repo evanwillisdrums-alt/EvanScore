@@ -32,6 +32,8 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/chord.h"
+#include "engraving/dom/factory.h"
+#include "engraving/dom/tremolosinglechord.h"
 #include "engraving/dom/text.h"
 #include "engraving/dom/sig.h"
 #include "engraving/editing/noteinput.h"
@@ -354,6 +356,17 @@ void NotationActionController::init()
     registerCommand(ADD_FIGURED_BASS_COMMAND, [this]() { addFiguredBass(); });
 
     // add grace notes commands
+    registerCommand(ADD_FLAM_COMMAND, &Interaction::addGraceNotesToSelectedNotes, GraceNoteType::ACCIACCATURA);
+    const auto addTremolo = [this](engraving::TremoloType type) {
+        auto interaction = currentNotationInteraction();
+        if (!interaction || !currentNotationScore()) return;
+        auto tremolo = engraving::Factory::createTremoloSingleChord(currentNotationScore()->dummy());
+        tremolo->setTremoloType(type);
+        interaction->applyPaletteElement(tremolo);
+        delete tremolo;
+    };
+    registerCommand(ADD_DIDDLE_COMMAND, [addTremolo]() { addTremolo(engraving::TremoloType::R8); });
+    registerCommand(ADD_ROLL_COMMAND, [addTremolo]() { addTremolo(engraving::TremoloType::R32); });
     registerCommand(ADD_ACCIACCATURA_COMMAND, &Interaction::addGraceNotesToSelectedNotes, GraceNoteType::ACCIACCATURA);
     registerCommand(ADD_APPOGGIATURA_COMMAND, &Interaction::addGraceNotesToSelectedNotes, GraceNoteType::APPOGGIATURA);
     registerCommand(ADD_GRACE4_COMMAND, &Interaction::addGraceNotesToSelectedNotes, GraceNoteType::GRACE4);
@@ -933,6 +946,9 @@ void NotationActionController::init()
             { "explode", STAFF_EXPLODE_COMMAND, {} },
             { "implode", STAFF_IMPLODE_COMMAND, {} },
             { "concert-pitch", TOGGLE_CONCERT_PITCH_COMMAND, {} },
+            { "add-flam", ADD_FLAM_COMMAND, {} },
+            { "add-diddle", ADD_DIDDLE_COMMAND, {} },
+            { "add-roll", ADD_ROLL_COMMAND, {} },
             { "acciaccatura", ADD_ACCIACCATURA_COMMAND, {} },
             { "appoggiatura", ADD_APPOGGIATURA_COMMAND, {} },
             { "grace4", ADD_GRACE4_COMMAND, {} },

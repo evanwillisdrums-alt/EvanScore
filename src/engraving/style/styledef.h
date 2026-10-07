@@ -326,6 +326,7 @@ enum class Sid : short {
     articulationAnchorOther,
     articulationStemHAlign,
     articulationKeepTogether,
+    percussionAccentsAbove,
     trillAlwaysShowCueNote,
     lastSystemFillLimit,
 

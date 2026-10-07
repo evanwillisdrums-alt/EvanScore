@@ -49,28 +49,28 @@ Item {
     }
 
     function resizePanelToContentHeight() {
-        var newHeight = (Math.min(padGrid.numRows, 2) * padGrid.cellHeight) + (soundTitleLabel.height * 2)
-        root.resizeRequested(root.width, newHeight)
+        var newHeight = padGrid.cellHeight + (soundTitleLabel.height * 2);
+        root.resizeRequested(root.width, newHeight);
     }
 
     Component.onCompleted: {
-        padGrid.model.init()
-        root.resizePanelToContentHeight()
+        padGrid.model.init();
+        root.resizePanelToContentHeight();
     }
 
     PercussionPanelModel {
         id: percModel
 
         Component.onCompleted: {
-            percModel.init()
+            percModel.init();
         }
 
         onCurrentPanelModeChanged: {
             // Cancel any active keyboard swaps when the panel mode changes
             if (padGrid.isKeyboardSwapActive) {
-                padGrid.swapOriginPad = null
-                padGrid.isKeyboardSwapActive = false
-                padGrid.model.endPadSwap(-1)
+                padGrid.swapOriginPad = null;
+                padGrid.isKeyboardSwapActive = false;
+                padGrid.model.endPadSwap(-1);
             }
         }
     }
@@ -113,41 +113,47 @@ Item {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: Math.min(rowLayout.width, parent.width)
+        width: parent.width
 
         contentWidth: rowLayout.width
         contentHeight: rowLayout.height + rowLayout.anchors.topMargin
 
-        StyledScrollBar.vertical: verticalScrollBar
+        clip: true
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        StyledScrollBar.horizontal: horizontalScrollBar
 
-        function goToBottom() {
-            var endY = flickable.contentHeight * (1.0 - flickable.visibleArea.heightRatio)
-            flickable.contentY = endY
+        WheelHandler {
+            target: null
+            onWheel: function (event) {
+                let delta = event.pixelDelta.x || event.pixelDelta.y || (event.angleDelta.x || event.angleDelta.y) / 3;
+                flickable.contentX = Math.max(0, Math.min(flickable.contentWidth - flickable.width, flickable.contentX - delta));
+                event.accepted = true;
+            }
         }
 
         RowLayout {
             id: rowLayout
 
-            // side columns being the "delete row" buttons on the left, and the "add row" button on the right
+            // Keep layout-edit controls at the end of the horizontal strip.
             readonly property int sideColumnsWidth: addRowButton.width
 
             QtObject {
                 id: navigationPrv
 
-                // This variable ensures we stay within a given pad when tabbing back-and-forth between "main" and
-                // "footer" controls. It's also used to tab to the associated delete button for a given empty row
+                // Keep navigation on the same pad when moving between its main and footer controls.
                 property var currentPadNavigationIndex: [0, 0]
 
                 function onPadNavigationEvent(event) {
-                    var navigationRow = navigationPrv.currentPadNavigationIndex[0]
-                    var navigationColumn = navigationPrv.currentPadNavigationIndex[1]
+                    var navigationRow = navigationPrv.currentPadNavigationIndex[0];
+                    var navigationColumn = navigationPrv.currentPadNavigationIndex[1];
 
                     if (navigationRow >= padGrid.numRows || navigationColumn >= padGrid.numColumns) {
-                        navigationPrv.currentPadNavigationIndex = [0, 0]
+                        navigationPrv.currentPadNavigationIndex = [0, 0];
                     }
 
                     if (event.type === NavigationEvent.AboutActive) {
-                        event.setData("controlIndex", navigationPrv.currentPadNavigationIndex)
+                        event.setData("controlIndex", navigationPrv.currentPadNavigationIndex);
                     }
                 }
             }
@@ -157,93 +163,24 @@ Item {
             anchors.topMargin: Math.max((flickable.height - height) / 2, 0)
             spacing: padGrid.spacing / 2
 
-            NavigationPanel {
-                id: deleteButtonsPanel
-
-                name: "PercussionPanelDeleteRowButtons"
-                section: root.navigationSection
-                order: padFootersNavPanel.order + 1
-
-                enabled: deleteButtonsColumn.visible
-
-                onNavigationEvent: function(event) {
-                    // Use the last known "pad navigation row" and tab to the associated delete button if it exists
-                    var padNavigationRow = navigationPrv.currentPadNavigationIndex[0]
-                    if (padGrid.numRows > 1) {
-                        event.setData("controlIndex", [padNavigationRow, 0])
-                    }
-                }
-            }
-
-            Column {
-                id: deleteButtonsColumn
-
-                Layout.alignment: Qt.AlignTop
-                Layout.fillHeight: true
-
-                width: rowLayout.sideColumnsWidth
-
-                visible: percModel.currentPanelMode === PanelMode.EDIT_LAYOUT
-                enabled: !padGrid.isKeyboardSwapActive
-
-                Repeater {
-                    id: deleteRepeater
-
-                    model: padGrid.numRows
-
-                    delegate: Item {
-                        id: deleteButtonArea
-
-                        required property int index
-
-                        width: parent.width
-                        height: padGrid.cellHeight
-
-                        FlatButton {
-                            id: deleteButton
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-
-                            visible: padGrid.numRows > 1
-
-                            icon: IconCode.DELETE_TANK
-                            backgroundRadius: deleteButton.width / 2
-
-                            navigation {
-                                panel: deleteButtonsPanel
-                                row: deleteButtonArea.index
-                                column: 0
-                            }
-
-                            onClicked: {
-                                padGrid.model.deleteRow(deleteButtonArea.index)
-                            }
-                        }
-                    }
-                }
-            }
-
-            GridView {
+            Item {
                 id: padGrid
 
-                readonly property int numRows: Math.floor(model.numPads / numColumns)
-                readonly property int numColumns: model.numColumns
+                readonly property int numRows: 1
+                readonly property int numColumns: model.numPads
                 readonly property int spacing: 12
 
                 property PercussionPanelPad swapOriginPad: null
                 property bool isKeyboardSwapActive: false
 
-                width: cellWidth * numColumns
+                width: padRow.width
                 Layout.fillHeight: true
                 Layout.preferredWidth: width
 
-                interactive: false
+                property int cellWidth: 104
+                property int cellHeight: 88
 
-                cellWidth: 100 + padGrid.spacing
-                cellHeight: 100 + padGrid.spacing
-
-                model: percModel.padListModel
+                property alias model: padRepeater.model
 
                 NavigationPanel {
                     id: padsNavPanel
@@ -252,8 +189,8 @@ Item {
                     section: root.navigationSection
                     order: root.contentNavigationPanelOrderStart + 2 // +2 for toolbar
 
-                    onNavigationEvent: function(event) {
-                        navigationPrv.onPadNavigationEvent(event)
+                    onNavigationEvent: function (event) {
+                        navigationPrv.onPadNavigationEvent(event);
                     }
                 }
 
@@ -266,143 +203,155 @@ Item {
 
                     enabled: percModel.currentPanelMode !== PanelMode.EDIT_LAYOUT
 
-                    onNavigationEvent: function(event) {
-                        navigationPrv.onPadNavigationEvent(event)
+                    onNavigationEvent: function (event) {
+                        navigationPrv.onPadNavigationEvent(event);
                     }
                 }
 
-                delegate: Item {
-                    id: padArea
+                Row {
+                    id: padRow
+                    spacing: padGrid.spacing
+                    Repeater {
+                        id: padRepeater
+                        model: percModel.padListModel
+                        delegate: Item {
+                            id: padArea
 
-                    required property PercussionPanelPadModel padModel
-                    required property int index
+                            required property PercussionPanelPadModel padModel
+                            required property int index
 
-                    width: padGrid.cellWidth
-                    height: padGrid.cellHeight
+                            visible: Boolean(padModel) || percModel.currentPanelMode === PanelMode.EDIT_LAYOUT
+                            width: padGrid.cellWidth
+                            height: padGrid.cellHeight
 
-                    PercussionPanelPad {
-                        id: pad
+                            PercussionPanelPad {
+                                id: pad
 
-                        anchors.centerIn: parent
+                                anchors.centerIn: parent
 
-                        width: parent.width + pad.totalBorderWidth - padGrid.spacing
-                        height: parent.height + pad.totalBorderWidth - padGrid.spacing
+                                width: parent.width + pad.totalBorderWidth - padGrid.spacing
+                                height: parent.height + pad.totalBorderWidth - padGrid.spacing
 
-                        padModel: padArea.padModel
-                        panelEnabled: percModel.enabled
-                        panelMode: percModel.currentPanelMode
-                        useNotationPreview: percModel.useNotationPreview
-                        notationPreviewNumStaffLines: percModel.notationPreviewNumStaffLines
-                        notationPreviewBackgroundColor: percModel.notationPreviewBackgroundColor
+                                padModel: padArea.padModel
+                                panelEnabled: percModel.enabled
+                                panelMode: percModel.currentPanelMode
+                                useNotationPreview: percModel.useNotationPreview
+                                notationPreviewNumStaffLines: percModel.notationPreviewNumStaffLines
+                                notationPreviewBackgroundColor: percModel.notationPreviewBackgroundColor
 
-                        // When swapping, only show the outline for the swap origin  and the swap target...
-                        showEditOutline: percModel.currentPanelMode === PanelMode.EDIT_LAYOUT
-                                         && (!Boolean(padGrid.swapOriginPad) || padGrid.swapOriginPad === pad)
-                        showOriginBackground: pad.containsDrag || (pad === padGrid.swapOriginPad && !padGrid.isKeyboardSwapActive)
+                                // When swapping, only show the outline for the swap origin  and the swap target...
+                                showEditOutline: percModel.currentPanelMode === PanelMode.EDIT_LAYOUT && (!Boolean(padGrid.swapOriginPad) || padGrid.swapOriginPad === pad)
+                                showOriginBackground: pad.containsDrag || (pad === padGrid.swapOriginPad && !padGrid.isKeyboardSwapActive)
 
-                        panelHasActiveKeyboardSwap: padGrid.isKeyboardSwapActive
-                        dragParent: root
+                                panelHasActiveKeyboardSwap: padGrid.isKeyboardSwapActive
+                                dragParent: root
 
-                        navigationRow: padArea.index / padGrid.numColumns
-                        navigationColumn: padArea.index % padGrid.numColumns
-                        padNavigation.panel: padsNavPanel
-                        footerNavigation.panel: padFootersNavPanel
+                                navigationRow: 0
+                                navigationColumn: padArea.index
+                                padNavigation.panel: padsNavPanel
+                                footerNavigation.panel: padFootersNavPanel
 
-                        onStartPadSwapRequested: function(isKeyboardSwap) {
-                            padGrid.swapOriginPad = pad
-                            padGrid.isKeyboardSwapActive = isKeyboardSwap
-                            padGrid.model.startPadSwap(padArea.index)
-                            if (isKeyboardSwap) {
-                                pad.padNavigation.requestActive()
-                            }
-                        }
-
-                        onEndPadSwapRequested: {
-                            padGrid.swapOriginPad = null
-                            padGrid.isKeyboardSwapActive = false
-                            padGrid.model.endPadSwap(padArea.index)
-                        }
-
-                        onCancelPadSwapRequested: {
-                            padGrid.swapOriginPad = null
-                            padGrid.isKeyboardSwapActive = false
-                            padGrid.model.endPadSwap(-1)
-                        }
-
-                        onHasActiveControlChanged: {
-                            if (!pad.hasActiveControl) {
-                                return;
-                            }
-                            navigationPrv.currentPadNavigationIndex = [pad.navigationRow, pad.navigationColumn]
-                        }
-
-                        Connections {
-                            target: padGrid.model
-
-                            function onPadFocusRequested(padIndex) {
-                                if (padArea.index !== padIndex) {
-                                    return
+                                onStartPadSwapRequested: function (isKeyboardSwap) {
+                                    padGrid.swapOriginPad = pad;
+                                    padGrid.isKeyboardSwapActive = isKeyboardSwap;
+                                    padGrid.model.startPadSwap(padArea.index);
+                                    if (isKeyboardSwap) {
+                                        pad.padNavigation.requestActive();
+                                    }
                                 }
 
-                                // Focus pad only if keyboard navigation has started
-                                if (root.navigationSection.active) {
-                                    pad.padNavigation.requestActive()
+                                onEndPadSwapRequested: {
+                                    padGrid.swapOriginPad = null;
+                                    padGrid.isKeyboardSwapActive = false;
+                                    padGrid.model.endPadSwap(padArea.index);
+                                }
+
+                                onCancelPadSwapRequested: {
+                                    padGrid.swapOriginPad = null;
+                                    padGrid.isKeyboardSwapActive = false;
+                                    padGrid.model.endPadSwap(-1);
+                                }
+
+                                onHasActiveControlChanged: {
+                                    if (!pad.hasActiveControl) {
+                                        return;
+                                    }
+                                    navigationPrv.currentPadNavigationIndex = [pad.navigationRow, pad.navigationColumn];
+                                    let left = padArea.mapToItem(flickable.contentItem, 0, 0).x;
+                                    if (left < flickable.contentX)
+                                        flickable.contentX = left;
+                                    else if (left + padArea.width > flickable.contentX + flickable.width)
+                                        flickable.contentX = left + padArea.width - flickable.width;
+                                }
+
+                                Connections {
+                                    target: padGrid.model
+
+                                    function onPadFocusRequested(padIndex) {
+                                        if (padArea.index !== padIndex) {
+                                            return;
+                                        }
+
+                                        // Focus pad only if keyboard navigation has started
+                                        if (root.navigationSection.active) {
+                                            pad.padNavigation.requestActive();
+                                        }
+                                    }
+
+                                    function onNumPadsChanged() {
+                                        root.resizePanelToContentHeight();
+                                    }
                                 }
                             }
 
-                            function onNumPadsChanged() {
-                                root.resizePanelToContentHeight()
-                            }
+                            states: [
+                                // If this is the swap target - move the swappable area to the swap origin (preview the swap)
+                                State {
+                                    name: "SWAP_TARGET"
+                                    when: Boolean(padGrid.swapOriginPad) && (pad.containsDrag || pad.padNavigation.active) && padGrid.swapOriginPad !== pad
+
+                                    ParentChange {
+                                        target: pad.swappableArea
+                                        parent: padGrid.swapOriginPad
+                                    }
+                                    AnchorChanges {
+                                        target: pad.swappableArea
+                                        anchors.verticalCenter: padGrid.swapOriginPad.verticalCenter
+                                        anchors.horizontalCenter: padGrid.swapOriginPad.horizontalCenter
+                                    }
+                                    PropertyChanges {
+                                        target: pad
+                                        showEditOutline: true
+                                    }
+
+                                    // Origin background not needed for the dragged pad when a preview is taking place...
+                                    PropertyChanges {
+                                        target: padGrid.swapOriginPad
+                                        showOriginBackground: false
+                                    }
+
+                                    // In the case of a keyboard swap, we also need to move the origin pad
+                                    ParentChange {
+                                        target: padGrid.isKeyboardSwapActive && Boolean(padGrid.swapOriginPad) ? padGrid.swapOriginPad.swappableArea : null
+                                        parent: pad
+                                    }
+                                    AnchorChanges {
+                                        target: padGrid.isKeyboardSwapActive && Boolean(padGrid.swapOriginPad) ? padGrid.swapOriginPad.swappableArea : null
+                                        anchors.verticalCenter: pad.verticalCenter
+                                        anchors.horizontalCenter: pad.horizontalCenter
+                                    }
+                                }
+                            ]
                         }
                     }
-
-                    states: [
-                        // If this is the swap target - move the swappable area to the swap origin (preview the swap)
-                        State {
-                            name: "SWAP_TARGET"
-                            when: Boolean(padGrid.swapOriginPad) && (pad.containsDrag || pad.padNavigation.active) && padGrid.swapOriginPad !== pad
-
-                            ParentChange {
-                                target: pad.swappableArea
-                                parent: padGrid.swapOriginPad
-                            }
-                            AnchorChanges {
-                                target: pad.swappableArea
-                                anchors.verticalCenter: padGrid.swapOriginPad.verticalCenter
-                                anchors.horizontalCenter: padGrid.swapOriginPad.horizontalCenter
-                            }
-                            PropertyChanges {
-                                target: pad
-                                showEditOutline: true
-                            }
-
-                            // Origin background not needed for the dragged pad when a preview is taking place...
-                            PropertyChanges {
-                                target: padGrid.swapOriginPad
-                                showOriginBackground: false
-                            }
-
-                            // In the case of a keyboard swap, we also need to move the origin pad
-                            ParentChange {
-                                target: padGrid.isKeyboardSwapActive && Boolean(padGrid.swapOriginPad) ? padGrid.swapOriginPad.swappableArea : null
-                                parent: pad
-                            }
-                            AnchorChanges {
-                                target: padGrid.isKeyboardSwapActive && Boolean(padGrid.swapOriginPad) ? padGrid.swapOriginPad.swappableArea : null
-                                anchors.verticalCenter: pad.verticalCenter
-                                anchors.horizontalCenter: pad.horizontalCenter
-                            }
-                        }
-                    ]
                 }
             }
-
             NavigationPanel {
                 id: addRowButtonPanel
 
                 name: "PercussionPanelAddRowButton"
                 section: root.navigationSection
-                order: deleteButtonsPanel.order + 1
+                order: padFootersNavPanel.order + 1
 
                 enabled: addRowButton.visible
             }
@@ -418,15 +367,15 @@ Item {
                 enabled: !padGrid.isKeyboardSwapActive
 
                 icon: IconCode.PLUS
-                text: qsTrc("notation/percussion", "Add row")
+                text: qsTrc("notation/percussion", "Add slots")
                 orientation: Qt.Horizontal
 
                 navigation.panel: addRowButtonPanel
                 drawFocusBorderInsideRect: true
 
                 onClicked: {
-                    padGrid.model.addEmptyRow(/*focusFirstInNewRow*/ true)
-                    flickable.goToBottom()
+                    padGrid.model.addEmptyRow/*focusFirstInNewRow*/ (true);
+                    flickable.contentX = Math.max(0, flickable.contentWidth - flickable.width);
                 }
             }
         }
@@ -445,8 +394,10 @@ Item {
     }
 
     StyledScrollBar {
-        id: verticalScrollBar
-        height: root.height
-        anchors.right: root.right
+        id: horizontalScrollBar
+        orientation: Qt.Horizontal
+        width: flickable.width
+        anchors.horizontalCenter: flickable.horizontalCenter
+        anchors.bottom: root.bottom
     }
 }

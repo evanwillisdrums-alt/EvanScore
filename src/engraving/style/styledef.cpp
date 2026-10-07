@@ -322,6 +322,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(articulationAnchorOther,                    int(ArticulationAnchor::TOP)),
     styleDef(articulationStemHAlign,                     int(ArticulationStemSideAlign::AVERAGE)),
     styleDef(articulationKeepTogether,                   true),
+    styleDef(percussionAccentsAbove,                    false),
     styleDef(trillAlwaysShowCueNote,                  false),
     styleDef(lastSystemFillLimit,                        PropertyValue(0.3)),
 

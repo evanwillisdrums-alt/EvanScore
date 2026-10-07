@@ -1218,4 +1218,7 @@
     <key>grace-note-bend</key>
     <seq>Ctrl+Alt+B</seq>
     </SC>
-  </Shortcuts>
+    <SC><key>add-flam</key></SC>
+  <SC><key>add-diddle</key></SC>
+  <SC><key>add-roll</key></SC>
+</Shortcuts>

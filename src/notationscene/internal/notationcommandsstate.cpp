@@ -44,6 +44,7 @@ static inline auto commands(const Map& m) -> std::vector<typename Map::key_type>
 }
 
 static const std::vector<Command> HAS_SELECTION_REQUIRED_COMMANDS = {
+    ADD_FLAM_COMMAND, ADD_DIDDLE_COMMAND, ADD_ROLL_COMMAND,
     CUT_COMMAND,
     COPY_COMMAND,
     COPY_PASTE_SWAP_COMMAND,
