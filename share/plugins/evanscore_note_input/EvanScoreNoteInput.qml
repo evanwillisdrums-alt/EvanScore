@@ -9,7 +9,7 @@ MuseScore {
     title: "EvanScore Note Input"
     description: "A floating, nonmodal note-input keypad for EvanScore."
     version: "1.0"
-    category: "composing-arranging-tools"
+    categoryCode: "composing-arranging-tools"
     thumbnailName: ""
     pluginType: ""
     requiresScore: true
