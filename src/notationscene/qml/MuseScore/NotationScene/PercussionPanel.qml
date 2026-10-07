@@ -380,17 +380,14 @@ Item {
             }
         }
 
-        StyledTextLabel {
-            id: panelDisabledLabel
+    }
 
-            visible: !percModel.enabled
-
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: rowLayout.anchors.topMargin / 2
-
-            font: ui.theme.bodyFont
-            text: qsTrc("notation/percussion", "Select an unpitched percussion staff to see available sounds")
-        }
+    StyledTextLabel {
+        id: panelDisabledLabel
+        visible: !percModel.enabled
+        anchors.centerIn: flickable
+        font: ui.theme.bodyFont
+        text: qsTrc("notation/percussion", "Select an unpitched percussion staff to see available sounds")
     }
 
     StyledScrollBar {
