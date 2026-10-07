@@ -29,6 +29,8 @@ import MuseScore.PropertiesPanel
 FlatButton {
     id: root
 
+    backgroundRadius: 8
+
     readonly property bool isOpened: popupLoader.isOpened
     readonly property var popupNavigationPanel: popupLoader.popup ? popupLoader.popup.navigationPanel : null
 

@@ -40,6 +40,7 @@ MixerPanelSection {
 
         width: root.channelItemWidth
         height: 22
+        radius: 6
 
         function resolveLabelColor() {
             switch(channelItem.type) {

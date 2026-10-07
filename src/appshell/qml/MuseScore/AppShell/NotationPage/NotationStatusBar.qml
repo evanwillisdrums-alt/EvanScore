@@ -35,6 +35,19 @@ Item {
 
     property bool viewOnly: false
 
+    Rectangle {
+        anchors.fill: parent
+        color: ui.theme.backgroundSecondaryColor
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: ui.theme.strokeColor
+        }
+    }
+
     NotationStatusBarModel {
         id: model
     }

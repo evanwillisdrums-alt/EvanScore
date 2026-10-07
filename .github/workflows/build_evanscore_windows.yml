@@ -1,0 +1,95 @@
+name: EvanScore Windows app
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/rounded-ui-windows-preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evanscore-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+    steps:
+      - name: Check out the app and pinned dependencies
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install the repository's Qt version
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.2'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qt5compat qtnetworkauth qtshadertools qtwebsockets
+          cache: true
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git
+          py7zrversion: '@git+https://github.com/miurahr/py7zr.git'
+
+      - name: Set up Windows build tools
+        shell: cmd
+        run: buildscripts\ci\windows\setup.bat
+
+      - name: Install locked Python tools
+        shell: pwsh
+        run: |
+          python -m pip install pdm==2.26.1
+          if ($LASTEXITCODE -ne 0) { throw 'PDM installation failed' }
+          pdm install --frozen-lockfile --no-self
+          if ($LASTEXITCODE -ne 0) { throw 'Locked tool installation failed' }
+
+      - name: Configure development build
+        shell: bash
+        run: |
+          bash buildscripts/ci/tools/make_build_mode_env.sh -e "$GITHUB_EVENT_NAME" -m devel
+          bash buildscripts/ci/tools/make_build_number.sh "$GITHUB_RUN_NUMBER"
+          echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Generate English translations
+        shell: bash
+        env:
+          LUPDATE_ARGS: ''
+          POSTPROCESS_ARGS: --warn-only --generate-placeholder-translations
+          POSTPROCESS_LAUNCHER: pdm run python -X utf8
+        run: bash tools/translations/run_lupdate.sh
+
+      - name: Compile and deploy the native app
+        shell: cmd
+        run: buildscripts\ci\windows\build.bat -n %BUILD_NUMBER% --dockwidgets_v2 ON
+
+      - name: Verify executable and export a score
+        shell: pwsh
+        run: ./buildscripts/ci/windows/verify_evanscore_app.ps1
+
+      - name: Upload runnable Windows app
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-x64
+          path: build.install/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build checks and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-build-checks
+          path: build.artifacts/
+          if-no-files-found: ignore
+          retention-days: 14

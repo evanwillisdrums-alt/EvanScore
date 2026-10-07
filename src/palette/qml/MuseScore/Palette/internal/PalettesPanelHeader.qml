@@ -71,6 +71,7 @@ Item {
     PopupButton {
         id: addPalettesButton
         objectName: "AddPalettesBtn"
+        backgroundRadius: 8
 
         anchors.left: parent.left
         anchors.right: startSearchButton.left
@@ -115,6 +116,7 @@ Item {
     FlatButton {
         id: startSearchButton
         objectName: "SearchPalettesBtn"
+        backgroundRadius: 8
         anchors.right: parent.right
 
         navigation.panel: navPanel
@@ -136,6 +138,7 @@ Item {
     SearchField {
         id: searchField
         objectName: "SearchPalettesField"
+        background.radius: 8
         width: parent.width
 
         navigation.panel: navPanel

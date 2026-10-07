@@ -51,6 +51,7 @@ StyledToolBarView {
         StyledToolBarItem {
             width: 30
             height: width
+            backgroundRadius: 8
 
             navigation.panel: root.navigationPanel
             navigation.order: itemIndex

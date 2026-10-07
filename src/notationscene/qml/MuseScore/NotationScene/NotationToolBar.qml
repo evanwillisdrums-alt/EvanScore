@@ -21,6 +21,8 @@
  */
 import QtQuick
 
+import QtQuick
+
 import Muse.UiComponents
 
 import MuseScore.NotationScene
@@ -38,4 +40,16 @@ StyledToolBarView {
     }
 
     model: toolBarModel
+
+    sourceComponentCallback: function(type) {
+        return type === ToolBarItemType.ACTION ? roundedActionComponent : null
+    }
+
+    Component {
+        id: roundedActionComponent
+
+        StyledToolBarItem {
+            backgroundRadius: 8
+        }
+    }
 }

@@ -73,6 +73,7 @@ Item {
 
             width: 30
             height: width
+            backgroundRadius: 8
 
             icon: Boolean(item) ? item.icon : IconCode.NONE
 
@@ -215,6 +216,8 @@ Item {
 
             PopupButton {
                 id: playbackSpeedButton
+
+                backgroundRadius: 8
 
                 implicitWidth: tempoLoader.tempoViewWidth
                 implicitHeight: root.height

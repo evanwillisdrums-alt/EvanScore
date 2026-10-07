@@ -87,8 +87,10 @@ Item {
 
             spacing: 0
             leftPadding: 12
+            rightPadding: 12
 
-            normalStateFont: isTitleBold ? ui.theme.largeBodyBoldFont : ui.theme.largeBodyFont
+            normalStateFont: isTitleBold ? ui.theme.bodyBoldFont : ui.theme.bodyFont
+            selectedStateFont: ui.theme.bodyBoldFont
 
             navigation.name: title
             navigation.panel: navPanel

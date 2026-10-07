@@ -91,9 +91,9 @@ Item {
                 property real backgroundOpacity: ui.theme.buttonOpacityNormal
                 color: Utils.colorWithAlpha(writeButton.accentButton ? ui.theme.accentColor : ui.theme.buttonColor, backgroundOpacity)
 
-                topLeftRadius: 3
+                topLeftRadius: 8
                 topRightRadius: 0
-                bottomLeftRadius: 3
+                bottomLeftRadius: 8
                 bottomRightRadius: 0
 
                 NavigationFocusBorder {
@@ -165,9 +165,9 @@ Item {
                 color: Utils.colorWithAlpha(previewButton.accentButton ? ui.theme.accentColor : ui.theme.buttonColor, backgroundOpacity)
 
                 topLeftRadius: 0
-                topRightRadius: 3
+                topRightRadius: 8
                 bottomLeftRadius: 0
-                bottomRightRadius: 3
+                bottomRightRadius: 8
 
                 NavigationFocusBorder {
                     drawOutsideParent: false
