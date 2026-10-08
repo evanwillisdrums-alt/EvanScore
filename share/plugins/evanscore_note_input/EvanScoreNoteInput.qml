@@ -9,7 +9,7 @@ MuseScore {
     id: root
     title: "EvanScore Note Input"
     description: "A translucent floating keypad with notation controls and Windows window buttons."
-    version: "1.2"
+    version: "1.3"
     categoryCode: "composing-arranging-tools"
     thumbnailName: ""
     pluginType: ""
@@ -23,6 +23,8 @@ MuseScore {
 
     property url musicFontSource: "qrc:/fonts/leland/Leland.otf"
     property var elementTypes: typeof Element !== "undefined" ? Element : ({})
+    property var noteHeadTypes: typeof NoteHeadType !== "undefined" ? NoteHeadType : ({})
+    property bool openNoteheads: false
     property var symbolTypes: typeof SymId !== "undefined" ? SymId : ({})
     property int activePage: 0
     property int activeVoice: 0
@@ -948,7 +950,7 @@ MuseScore {
         ]]
     readonly property var tabs: [
         {
-            "label": "Notes",
+            "label": "Open noteheads (keep duration and playback)",
             "action": "",
             "col": 0,
             "row": 0,
@@ -1052,8 +1054,45 @@ MuseScore {
         objectName: "keypad-voices-filter"
     }
 
+    function selectedNotes() {
+        let notes = [];
+        if (!curScore || !curScore.selection)
+            return notes;
+        function append(note) {
+            if (!notes.some(function(existing) { return typeof existing.is === "function" ? existing.is(note) : existing === note; }))
+                notes.push(note);
+        }
+        for (let item of curScore.selection.elements) {
+            if (item.type === root.elementTypes.NOTE)
+                append(item);
+            else if (item.type === root.elementTypes.CHORD)
+                for (let note of item.notes)
+                    append(note);
+        }
+        return notes;
+    }
+
+    function toggleOpenNoteheads() {
+        let notes = selectedNotes();
+        if (!notes.length || root.noteHeadTypes.HEAD_HALF === undefined || root.noteHeadTypes.HEAD_AUTO === undefined)
+            return false;
+        let allOpen = notes.every(function(note) { return note.headType === root.noteHeadTypes.HEAD_HALF; });
+        let type = allOpen ? root.noteHeadTypes.HEAD_AUTO : root.noteHeadTypes.HEAD_HALF;
+        curScore.startCmd();
+        try {
+            for (let note of notes)
+                note.headType = type;
+        } finally {
+            curScore.endCmd();
+        }
+        openNoteheads = !allOpen;
+        return true;
+    }
+
     function syncSelection() {
         activeDuration = "";
+        let notes = selectedNotes();
+        openNoteheads = root.noteHeadTypes.HEAD_HALF !== undefined && notes.length > 0 && notes.every(function(note) { return note.headType === root.noteHeadTypes.HEAD_HALF; });
         if (!curScore || !curScore.selection)
             return;
         let selected = curScore.selection.elements;
@@ -1122,6 +1161,13 @@ MuseScore {
         return true;
     }
     function activate(spec) {
+        if (spec.action === "open-noteheads") {
+            if (!toggleOpenNoteheads()) {
+                notice = "Select notes to change their noteheads.";
+                noticeTimer.restart();
+            }
+            return;
+        }
         if (spec.action === "add-fermata") {
             if (!addFermata()) {
                 notice = "Select a note or rest first.";
@@ -1275,9 +1321,13 @@ MuseScore {
                             spec: modelData
                             width: (parent.width - 20) / 5
                             height: 42
-                            checked: root.activePage === index
+                            checked: index === 0 ? root.openNoteheads : root.activePage === index
                             objectName: "keypad-tab-" + index
-                            onClicked: root.activePage = index
+                            onClicked: {
+                                root.activePage = index;
+                                if (index === 0)
+                                    root.activate({ action: "open-noteheads" });
+                            }
                         }
                     }
                 }
