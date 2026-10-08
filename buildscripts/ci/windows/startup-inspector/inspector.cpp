@@ -1,5 +1,9 @@
 // Isolated CI diagnostic only. This plugin is never packaged with the app.
 #include <qpa/qplatformthemeplugin.h>
+#ifdef Q_OS_WIN
+#include <qpa/qplatformintegration.h>
+#include <private/qguiapplication_p.h>
+#endif
 #include <QCoreApplication>
 #include <QEvent>
 #include <QQuickWindow>
@@ -66,8 +70,14 @@ public:
         // can load the theme here while there is still no application object.
         if (QCoreApplication::instance()) install();
         else qAddPreRoutine(&install);
-        // Let Qt keep its normal Windows platform theme.
+        // Windows native-window creation requires QWindowsTheme's singleton.
+        // An explicit custom key with a null result falls back to the generic
+        // theme, not the normal Windows theme. Create the real platform theme.
+#ifdef Q_OS_WIN
+        return QGuiApplicationPrivate::platformIntegration()->createPlatformTheme(QStringLiteral("windows"));
+#else
         return nullptr;
+#endif
     }
 private:
     static void install() {
