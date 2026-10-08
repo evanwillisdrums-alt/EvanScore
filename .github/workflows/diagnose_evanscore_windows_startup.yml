@@ -37,11 +37,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v5
+        if: ${{ !startsWith(inputs.log_artifact, 'job:') }}
         with:
           name: ${{ inputs.log_artifact }}
           path: checks
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Retrieve a completed job log when requested
+        if: startsWith(inputs.log_artifact, 'job:')
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const jobId = Number('${{ inputs.log_artifact }}'.slice(4));
+            if (!Number.isSafeInteger(jobId)) throw new Error('Invalid job ID');
+            try {
+              const result = await github.rest.actions.downloadJobLogsForWorkflowRun({owner: context.repo.owner, repo: context.repo.repo, job_id: jobId});
+              const fs = require('fs');
+              fs.mkdirSync('checks', {recursive: true});
+              fs.writeFileSync('checks/job.log', result.data);
+            } catch (error) {
+              core.notice('Job log retrieval failed: ' + error.message);
+              throw error;
+            }
       - name: Report launch diagnostics through check annotations
         run: |
           python3 - <<'PY'
