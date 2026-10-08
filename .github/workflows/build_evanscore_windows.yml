@@ -27,6 +27,10 @@ jobs:
     timeout-minutes: 180
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: '4'
+      SCCACHE_GHA_ENABLED: 'on'
+      SCCACHE_GHA_VERSION: evanscore-msvc-v1
+      SCCACHE_IGNORE_SERVER_IO_ERROR: '1'
+      CMAKE_TOOLCHAIN_FILE: ${{ github.workspace }}/buildscripts/ci/windows/sccache-toolchain.cmake
     steps:
       - name: Check out the app and pinned dependencies
         uses: actions/checkout@v7
@@ -53,6 +57,11 @@ jobs:
       - name: Set up Windows build tools
         shell: cmd
         run: buildscripts\ci\windows\setup.bat
+
+      - name: Install the verified compiler cache
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+        with:
+          version: v0.18.0
 
       - name: Install locked Python tools
         shell: pwsh
