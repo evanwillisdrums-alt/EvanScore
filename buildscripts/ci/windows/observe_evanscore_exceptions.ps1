@@ -1,6 +1,9 @@
 param([Parameter(Mandatory=$true)][string]$InstallRoot)
 $ErrorActionPreference = 'Stop'
 $app = Get-ChildItem $InstallRoot -Filter '*.exe' -Recurse | Where-Object { $_.BaseName -like 'MuseScore*' } | Select-Object -First 1
+if (-not $app) { throw 'No MuseScore executable found' }
+Write-Host "Observer executable: $($app.FullName)"
+Get-ChildItem $app.DirectoryName -Filter '*.pdb' | ForEach-Object { Write-Host "Matching symbol candidate: $($_.Name), $($_.Length) bytes" }
 $env:QT_QPA_PLATFORM = 'windows'
 $env:QT_QUICK_BACKEND = 'software'
 Add-Type -TypeDefinition @'
@@ -24,6 +27,14 @@ public static class EvanScoreExceptionObserver {
     [DllImport("kernel32.dll")] static extern bool GetThreadContext(IntPtr thread,IntPtr context);
     [DllImport("dbghelp.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool SymInitializeW(IntPtr process,string path,bool invade);
     [DllImport("dbghelp.dll",SetLastError=true)] static extern bool SymFromAddr(IntPtr process,ulong address,out ulong displacement,IntPtr symbol);
+    [DllImport("dbghelp.dll")] static extern uint SymSetOptions(uint options);
+    [DllImport("dbghelp.dll")] static extern IntPtr SymFunctionTableAccess64(IntPtr process,ulong address);
+    [DllImport("dbghelp.dll")] static extern ulong SymGetModuleBase64(IntPtr process,ulong address);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate IntPtr FunctionTable(IntPtr process,ulong address);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate ulong ModuleBase(IntPtr process,ulong address);
+    [DllImport("dbghelp.dll",SetLastError=true)] static extern bool StackWalk64(uint machine,IntPtr process,IntPtr thread,IntPtr frame,IntPtr context,IntPtr readMemory,FunctionTable functions,ModuleBase modules,IntPtr translate);
+    static string symbolPath;
+    static bool symbolsInitialized;
     static byte[] Read(IntPtr process,ulong address,int size) {
         var data=new byte[size]; IntPtr read;
         if (!ReadProcessMemory(process,new IntPtr(unchecked((long)address)),data,new IntPtr(size),out read)) throw new Exception("Cannot read exception metadata");
@@ -54,8 +65,26 @@ public static class EvanScoreExceptionObserver {
             if(!GetThreadContext(thread,ptr))return;
             ulong rsp=unchecked((ulong)Marshal.ReadInt64(ptr,152));
             ulong rip=unchecked((ulong)Marshal.ReadInt64(ptr,248));
-            SymInitializeW(process,null,true);
+            if(!symbolsInitialized) {
+                SymSetOptions(0x2|0x4|0x10|0x200|0x8000);
+                symbolsInitialized=SymInitializeW(process,symbolPath,true);
+                Console.WriteLine("Symbol initialization: "+symbolsInitialized+", path="+symbolPath+", error="+Marshal.GetLastWin32Error());
+            }
             Console.WriteLine("Thread "+tid+" instruction 0x"+rip.ToString("x")+" "+Symbol(process,rip));
+            var frame=Marshal.AllocHGlobal(512);
+            try {
+                for(int i=0;i<512;i++)Marshal.WriteByte(frame,i,0);
+                Marshal.WriteInt64(frame,0,unchecked((long)rip));Marshal.WriteInt32(frame,12,3);
+                Marshal.WriteInt64(frame,32,Marshal.ReadInt64(ptr,160));Marshal.WriteInt32(frame,44,3);
+                Marshal.WriteInt64(frame,48,unchecked((long)rsp));Marshal.WriteInt32(frame,60,3);
+                FunctionTable functions=SymFunctionTableAccess64;ModuleBase modules=SymGetModuleBase64;
+                Console.WriteLine("Unwound main-thread trace:");
+                for(int i=0;i<40 && StackWalk64(0x8664,process,thread,frame,ptr,IntPtr.Zero,functions,modules,IntPtr.Zero);i++) {
+                    ulong address=unchecked((ulong)Marshal.ReadInt64(frame,0));
+                    if(address==0)break;
+                    Console.WriteLine("  0x"+address.ToString("x")+" "+Symbol(process,address));
+                }
+            } finally {Marshal.FreeHGlobal(frame);}
             var bytes=Read(process,rsp,4096);
             Console.WriteLine("Symbolized stack candidates (not an unwound trace):");
             int shown=0;
@@ -69,6 +98,7 @@ public static class EvanScoreExceptionObserver {
         finally {if(thread!=IntPtr.Zero)CloseHandle(thread);Marshal.FreeHGlobal(context);}
     }
     public static void Observe(string app,string cwd) {
+        symbolPath=cwd;
         var si=new StartupInfo();si.cb=Marshal.SizeOf(si); ProcessInfo pi;
         if(!CreateProcess(app,new StringBuilder("\""+app+"\" --debug --session-type start-empty"),IntPtr.Zero,IntPtr.Zero,false,2,IntPtr.Zero,cwd,ref si,out pi))throw new Exception("CreateProcess failed: "+Marshal.GetLastWin32Error());
         var ev=Marshal.AllocHGlobal(176);bool breakpointHandled=false;var deadline=DateTime.UtcNow.AddSeconds(45);
