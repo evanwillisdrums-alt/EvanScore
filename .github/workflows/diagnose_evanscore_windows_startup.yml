@@ -70,12 +70,14 @@ jobs:
           github-token: ${{ github.token }}
       - name: Open the downloaded Windows app beyond its splash screen
         shell: pwsh
-        run: ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -Renderer '${{ matrix.renderer }}'
+        run: |
+          ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory build.artifacts/gui-empty -Renderer '${{ matrix.renderer }}'
+          ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory build.artifacts/gui-score -Renderer '${{ matrix.renderer }}' -ScorePath src/engraving/tests/tuplet_data/tuplet1.mscx
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: startup-${{ matrix.renderer }}
-          path: build.artifacts/gui/
+          path: build.artifacts/gui-*/
           retention-days: 14
 
   exceptions:
