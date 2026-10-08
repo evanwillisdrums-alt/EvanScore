@@ -97,10 +97,6 @@ void StartupScenario::runOnSplashScreen()
         appUpdateScenario()->checkForUpdate(/*manual*/ false);
     }
 
-    if (museSoundsUpdateScenario() && museSoundsUpdateScenario()->needCheckForUpdate()) {
-        museSoundsUpdateScenario()->checkForUpdate(/*manual*/ false);
-    }
-
     registerAudioPlugins();
 }
 

@@ -4,6 +4,9 @@ $app = Get-ChildItem build.install -Filter '*.exe' -Recurse |
     Where-Object { $_.BaseName -like 'MuseScore*' } |
     Select-Object -First 1
 if (-not $app) { throw 'No MuseScore executable was installed' }
+if (Get-ChildItem build.install -Filter '*startup-inspector*' -Recurse) {
+    throw 'A diagnostic-only layout helper was included in the app package'
+}
 
 $bytes = [System.IO.File]::ReadAllBytes($app.FullName)
 if ($bytes.Length -lt 64 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
@@ -90,10 +93,10 @@ Make Default Dynamics persists for new scores, including templates and after res
 Apply Default Dynamics explicitly applies that profile to an existing score without restyling it.
 Mappings and curves save with the score; local edits support undo/redo and reset to inherited settings.
 Sound libraries determine the audible response to these values; patch-specific Virtual Drumline techniques still use the host's playback setup.
-The marimba visualization is still a preview concept.
+The optional mallet visualizer is still in planning and is not implemented in this build.
 The internal executable and application name remain MuseScore.
 
-Build checks passed: Windows x64 executable header, native process exit, score-to-PDF export, and desktop startup beyond the splash screen.
+Build checks passed: Windows x64 executable header, native process exit, score-to-PDF export, and sustained desktop response for an empty workspace and an opened score with both default and software rendering. Automatic startup dialogs are checked as well.
 Interactive playback has not been checked by this automated test.
 
 Corresponding source and its license information:

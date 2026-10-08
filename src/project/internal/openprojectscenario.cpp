@@ -475,13 +475,13 @@ Ret OpenProjectScenario::finishOpening()
 {
     const Uri pageUri = resolveNotationPageUri();
 
-    //! Show MuseSounds / MuseSampler update if need
+    // Opening a score must not display sound-library promotions. Keep the
+    // sound-engine compatibility check; promotions remain a manual action.
     auto showUpdateNotification = [this]() {
-        QTimer::singleShot(1000, [this]() {
-            if (museSoundsCheckUpdateScenario()->hasUpdate()) {
-                museSoundsCheckUpdateScenario()->showUpdate();
-            } else if (!museSamplerCheckUpdateScenario()->alreadyChecked()) {
-                museSamplerCheckUpdateScenario()->checkAndShowUpdateIfNeed();
+        std::weak_ptr<musesounds::IMuseSamplerCheckUpdateScenario> sampler = museSamplerCheckUpdateScenario();
+        QTimer::singleShot(1000, [sampler]() {
+            if (auto scenario = sampler.lock(); scenario && !scenario->alreadyChecked()) {
+                scenario->checkAndShowUpdateIfNeed();
             }
         });
     };

@@ -23,6 +23,8 @@
 #include <gmock/gmock.h>
 
 #include <QDir>
+#include <QEventLoop>
+#include <QTimer>
 
 #include "async/async.h"
 
@@ -1008,6 +1010,32 @@ TEST_F(OpenProjectScenarioTests, IsUrlSupported_OtherMuseScoreLink_IsRefused)
     //! [GIVEN] A musescore:// link that is not about opening a score...
     //! [WHEN] Asking about it...
     EXPECT_FALSE(m_scenario->isUrlSupported(QUrl("musescore://something-else/42")));
+}
+
+TEST_F(OpenProjectScenarioTests, FinishOpening_KeepsSoundEngineCheckWithoutLibraryPromotion)
+{
+    ON_CALL(*m_museSounds, hasUpdate()).WillByDefault(Return(true));
+    ON_CALL(*m_museSampler, alreadyChecked()).WillByDefault(Return(false));
+    EXPECT_CALL(*m_museSounds, showUpdate()).Times(0);
+    EXPECT_CALL(*m_museSampler, checkAndShowUpdateIfNeed()).Times(1);
+
+    EXPECT_TRUE(m_scenario->finishOpening());
+    QEventLoop loop;
+    QTimer::singleShot(1100, &loop, &QEventLoop::quit);
+    loop.exec();
+}
+
+TEST_F(OpenProjectScenarioTests, FinishOpening_DelayedCheckDoesNotRetainClosedContext)
+{
+    EXPECT_TRUE(m_scenario->finishOpening());
+    std::weak_ptr<musesounds::IMuseSamplerCheckUpdateScenario> sampler = m_museSampler;
+    m_scenario.reset();
+    m_museSampler.reset();
+    EXPECT_TRUE(sampler.expired());
+
+    QEventLoop loop;
+    QTimer::singleShot(1100, &loop, &QEventLoop::quit);
+    loop.exec();
 }
 
 TEST_F(OpenProjectScenarioTests, IsUrlSupported_ForeignScheme_IsRefused)

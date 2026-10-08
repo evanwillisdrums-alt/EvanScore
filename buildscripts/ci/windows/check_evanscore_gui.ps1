@@ -104,8 +104,11 @@ try {
         # initial window that can still freeze while startup tasks finish.
         if ($readyChecks -ge 10) {
             if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
-            $onboarding = $windows | Where-Object { $_.Title -match 'Welcome|First.?launch' }
-            if ($onboarding) { throw 'Automatic onboarding dialog appeared instead of the score workspace' }
+            $interruptions = $windows | Where-Object {
+                $_.Title -match 'Welcome|First.?launch|MuseScore Studio Development' -or
+                ($_.Class -match '^Qt[0-9]+QWindow$' -and $_.Handle -ne $main.Handle)
+            }
+            if ($interruptions) { throw 'An unexpected startup dialog covers the score workspace' }
             $ready = $true
             Add-Type -AssemblyName System.Drawing
             $bitmap = [System.Drawing.Bitmap]::new($main.Width, $main.Height)
