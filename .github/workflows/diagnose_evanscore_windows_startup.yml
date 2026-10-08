@@ -36,12 +36,13 @@ jobs:
           from pathlib import Path
           for file in Path('checks').rglob('*'):
               if file.is_file() and file.suffix in ('.log', '.json'):
-                  content = file.read_text(encoding='utf-8-sig', errors='replace')[-14000:]
-                  message = (str(file) + '\n' + content).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print('::notice title=Windows launch diagnostics::' + message)
+                  content = file.read_text(encoding='utf-8-sig', errors='replace')
+                  for offset in range(0, len(content), 2800):
+                      message = (str(file) + f' offset={offset}\n' + content[offset:offset + 2800]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                      print('::notice title=Windows launch diagnostics::' + message)
           PY
   startup:
-    if: inputs.mode == 'desktop' 
+    if: inputs.mode == 'desktop'
     runs-on: windows-2025
     timeout-minutes: 10
     strategy:
