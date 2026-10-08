@@ -36,7 +36,7 @@ jobs:
           from pathlib import Path
           for file in Path('checks').rglob('*'):
               if file.is_file() and file.suffix in ('.log', '.json'):
-                  content = file.read_text(encoding='utf-8-sig', errors='replace')
+                  content = file.read_text(encoding='utf-8-sig', errors='replace')[-6500:]
                   for offset in range(0, len(content), 2800):
                       message = (str(file) + f' offset={offset}\n' + content[offset:offset + 2800]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                       print('::notice title=Windows launch diagnostics::' + message)
