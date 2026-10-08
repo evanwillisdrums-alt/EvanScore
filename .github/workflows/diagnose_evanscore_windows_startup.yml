@@ -46,15 +46,25 @@ jobs:
       - name: Retrieve a completed job log when requested
         if: startsWith(inputs.log_artifact, 'job:')
         uses: actions/github-script@v8
+        env:
+          JOB_LOG_SELECTOR: ${{ inputs.log_artifact }}
         with:
           script: |
-            const jobId = Number('${{ inputs.log_artifact }}'.slice(4));
+            const jobId = Number(process.env.JOB_LOG_SELECTOR.slice(4));
             if (!Number.isSafeInteger(jobId)) throw new Error('Invalid job ID');
             try {
               const result = await github.rest.actions.downloadJobLogsForWorkflowRun({owner: context.repo.owner, repo: context.repo.repo, job_id: jobId});
               const fs = require('fs');
               fs.mkdirSync('checks', {recursive: true});
-              fs.writeFileSync('checks/job.log', result.data);
+              const log = typeof result.data === 'string' ? result.data : Buffer.from(result.data).toString();
+              fs.writeFileSync('checks/job.log', log);
+              const lines = log.split('\n'), selected = new Set();
+              lines.forEach((line, index) => {
+                if (/FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK/i.test(line)) {
+                  for (let i = Math.max(0, index-4); i <= Math.min(lines.length-1, index+8); i++) selected.add(i);
+                }
+              });
+              fs.writeFileSync('checks/compiler-errors.log', [...selected].sort((a,b)=>a-b).map(i=>lines[i]).join('\n'));
             } catch (error) {
               core.notice('Job log retrieval failed: ' + error.message);
               throw error;
