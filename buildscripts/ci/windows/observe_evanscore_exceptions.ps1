@@ -8,6 +8,7 @@ $env:QT_QPA_PLATFORM = 'windows'
 $env:QT_QUICK_BACKEND = 'software'
 Add-Type -TypeDefinition @'
 using System;
+using System.Diagnostics;
 using System.Text;
 using System.Runtime.InteropServices;
 public static class EvanScoreExceptionObserver {
@@ -24,6 +25,8 @@ public static class EvanScoreExceptionObserver {
     [DllImport("kernel32.dll")] static extern bool TerminateProcess(IntPtr process,uint code);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll")] static extern IntPtr OpenThread(uint access,bool inherit,uint tid);
+    [DllImport("kernel32.dll")] static extern int GetThreadDescription(IntPtr thread,out IntPtr description);
+    [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr memory);
     [DllImport("kernel32.dll")] static extern bool GetThreadContext(IntPtr thread,IntPtr context);
     [DllImport("dbghelp.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool SymInitializeW(IntPtr process,string path,bool invade);
     [DllImport("dbghelp.dll",SetLastError=true)] static extern bool SymFromAddr(IntPtr process,ulong address,out ulong displacement,IntPtr symbol);
@@ -35,6 +38,11 @@ public static class EvanScoreExceptionObserver {
     [DllImport("dbghelp.dll",SetLastError=true)] static extern bool StackWalk64(uint machine,IntPtr process,IntPtr thread,IntPtr frame,IntPtr context,IntPtr readMemory,FunctionTable functions,ModuleBase modules,IntPtr translate);
     static string symbolPath;
     static bool symbolsInitialized;
+    static string ThreadName(uint tid) {
+        var thread=OpenThread(0x40,false,tid);IntPtr name=IntPtr.Zero;
+        try{return GetThreadDescription(thread,out name)==0?Marshal.PtrToStringUni(name):"";}
+        finally{if(name!=IntPtr.Zero)LocalFree(name);if(thread!=IntPtr.Zero)CloseHandle(thread);}
+    }
     static byte[] Read(IntPtr process,ulong address,int size) {
         var data=new byte[size]; IntPtr read;
         if (!ReadProcessMemory(process,new IntPtr(unchecked((long)address)),data,new IntPtr(size),out read)) throw new Exception("Cannot read exception metadata");
@@ -101,8 +109,8 @@ public static class EvanScoreExceptionObserver {
         symbolPath=cwd;
         var si=new StartupInfo();si.cb=Marshal.SizeOf(si); ProcessInfo pi;
         if(!CreateProcess(app,new StringBuilder("\""+app+"\" --debug --session-type start-empty"),IntPtr.Zero,IntPtr.Zero,false,2,IntPtr.Zero,cwd,ref si,out pi))throw new Exception("CreateProcess failed: "+Marshal.GetLastWin32Error());
-        var ev=Marshal.AllocHGlobal(176);bool breakpointHandled=false;var deadline=DateTime.UtcNow.AddSeconds(45);
-        var nextSnapshot=DateTime.UtcNow.AddSeconds(20);bool snapshotRequested=false;int snapshots=0;
+        var ev=Marshal.AllocHGlobal(176);bool breakpointHandled=false;var deadline=DateTime.UtcNow.AddSeconds(165);
+        var nextSnapshot=DateTime.UtcNow.AddSeconds(90);bool snapshotRequested=false;int snapshots=0;
         try {
             while(DateTime.UtcNow<deadline) {
                 if(!snapshotRequested && snapshots<2 && DateTime.UtcNow>=nextSnapshot) {
@@ -118,7 +126,12 @@ public static class EvanScoreExceptionObserver {
                     if(exception==0x80000003 && snapshotRequested) {
                         Console.WriteLine("Main thread snapshot "+(snapshots+1)+":");
                         Stack(pi.process,pi.tid);
-                        snapshots++;snapshotRequested=false;nextSnapshot=DateTime.UtcNow.AddSeconds(10);status=0x10002;
+                        foreach(ProcessThread other in Process.GetProcessById((int)pi.pid).Threads) {
+                            var name=ThreadName((uint)other.Id);
+                            Console.WriteLine("Thread name: "+other.Id+" "+name);
+                            if((uint)other.Id!=pi.tid && name!=null && name.IndexOf("qml",StringComparison.OrdinalIgnoreCase)>=0)Stack(pi.process,(uint)other.Id);
+                        }
+                        snapshots++;snapshotRequested=false;nextSnapshot=DateTime.UtcNow.AddSeconds(30);status=0x10002;
                     }
                     else if(exception==0x80000003 && !breakpointHandled){breakpointHandled=true;status=0x10002;}
                     else {
