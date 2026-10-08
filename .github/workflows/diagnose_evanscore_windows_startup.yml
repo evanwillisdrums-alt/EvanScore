@@ -25,13 +25,35 @@ on:
           - desktop
           - exceptions
           - layout
+          - job-logs
         default: inspect-logs
+      job_id:
+        description: Job ID for bounded failure log inspection
+        default: ''
 
 permissions:
   actions: read
   contents: read
 
 jobs:
+  job-logs:
+    if: inputs.mode == 'job-logs'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the selected completed diagnostic job
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: ${{ inputs.job_id }}
+        run: |
+          if [[ ! "$JOB_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$JOB_ID/logs" > prior-job.log
+          python3 - <<'PY'
+          from pathlib import Path
+          content = Path('prior-job.log').read_text(errors='replace')[-22000:]
+          for offset in range(0, len(content), 2800):
+              chunk = content[offset:offset+2800].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              print('::notice title=Prior job log::'+chunk)
+          PY
   inspect:
     if: inputs.mode == 'inspect-logs'
     runs-on: ubuntu-latest
