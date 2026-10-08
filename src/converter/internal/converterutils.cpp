@@ -21,6 +21,7 @@
  */
 #include "converterutils.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
