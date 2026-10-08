@@ -23,6 +23,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
 
 import Muse.Ui
 import Muse.UiComponents
@@ -595,6 +596,50 @@ DockPage {
         isBraillePanelVisible: root.pageModel.isBraillePanelVisible
         isMainView: true
 
+        MainToolBarModel { id: workspaceFiles; Component.onCompleted: load() }
+        ColumnLayout {
+            objectName: "empty-score-workspace"
+            visible: !root.pageModel.hasNotation
+            anchors.centerIn: parent
+            spacing: 16
+            StyledTextLabel {
+                Layout.alignment: Qt.AlignHCenter
+                text: "EvanScore"
+                font: ui.theme.titleBoldFont
+                opacity: 0.8
+            }
+            RowLayout {
+                spacing: 10
+                FlatButton {
+                    Layout.preferredHeight: 38
+                    orientation: Qt.Horizontal
+                    text: qsTrc("appshell", "New score")
+                    icon: IconCode.NEW_FILE
+                    backgroundRadius: 10
+                    toolTipShortcut: "Ctrl+N"
+                    onClicked: workspaceFiles.fileAction("file-new")
+                }
+                FlatButton {
+                    Layout.preferredHeight: 38
+                    orientation: Qt.Horizontal
+                    text: qsTrc("appshell", "Open score")
+                    icon: IconCode.OPEN_FILE
+                    backgroundRadius: 10
+                    toolTipShortcut: "Ctrl+O"
+                    onClicked: workspaceFiles.fileAction("file-open")
+                }
+            }
+            FlatButton {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredHeight: 28
+                orientation: Qt.Horizontal
+                text: qsTrc("appshell", "Recent scores")
+                transparent: true
+                backgroundRadius: 10
+                onClicked: workspaceFiles.openRecentScores()
+            }
+        }
+
         Component.onCompleted: {
             root.notationView = notationView.paintView
 
@@ -616,34 +661,5 @@ DockPage {
         }
     }
 
-    tours: [
-        {
-            "eventCode": "online_sounds_added",
-            "tour": {
-                "id": "online-sounds-first-use",
-                "steps": [
-                    {
-                        "title": qsTrc("playback", "This sound processes online"),
-                        "description": qsTrc("playback", "Audio is processed in the background while you work. To trigger processing yourself, turn off automatic processing in Preferences > Audio & MIDI > Online sounds."),
-                        "controlUri": "control://NotationStatusBar/NotationStatusBar/OnlineSoundsStatusView",
-                        "previewImageOrGifUrl": "qrc:/resources/OnlineSoundsPreview.gif",
-                        "videoExplanationUrl": "https://youtu.be/hQ4YqmHM3BE?utm_source=mss-app-yt-4.6-cantai&utm_medium=mss-app-yt-4.6-cantai&utm_campaign=mss-app-yt-4.6-cantai"
-                    }
-                ]
-            }
-        },
-        {
-            "eventCode": "online_sounds_manual_processing_allowed",
-            "tour": {
-                "id": "online-sounds-manual-process",
-                "steps": [
-                    {
-                        "title": qsTrc("playback", "Online sounds"),
-                        "description": qsTrc("playback", "Click to manually process online sounds."),
-                        "controlUri": "control://NotationStatusBar/NotationStatusBar/OnlineSoundsStatusView",
-                    }
-                ]
-            }
-        },
-    ]
+    tours: []
 }

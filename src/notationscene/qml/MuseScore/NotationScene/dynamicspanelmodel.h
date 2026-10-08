@@ -17,7 +17,7 @@ class DynamicsPanelModel : public QObject, public muse::Contextable, public muse
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QVariantMap state READ state NOTIFY stateChanged)
-    Q_PROPERTY(QVariantList mappings READ mappings NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList mappings READ mappings NOTIFY mappingsChanged)
     Q_PROPERTY(QVariantList dynamicChoices READ dynamicChoices CONSTANT)
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::ContextInject<muse::IInteractive> interactive = { this };
@@ -46,8 +46,10 @@ public:
     Q_INVOKABLE void resetSelection();
 signals:
     void stateChanged();
+    void mappingsChanged();
 private:
     void onNotationChanged();
+    void refreshMappings();
     mu::engraving::Score* score() const;
     mu::engraving::Dynamic* dynamic() const;
     mu::engraving::Hairpin* hairpin() const;
@@ -60,6 +62,8 @@ private:
     void readPreset(const muse::io::path_t& path);
     QString m_notice;
     bool m_forceScore = true;
+    QVariantList m_mappings;
+    QStringList m_mappingSources;
     bool m_loaded = false;
     bool m_editing = false;
 };

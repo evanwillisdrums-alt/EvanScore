@@ -31,6 +31,8 @@
 #include "context/iglobalcontext.h"
 #include "iglobalconfiguration.h"
 #include "project/iopenprojectscenario.h"
+#include "actions/iactionsdispatcher.h"
+#include "interactive/iinteractive.h"
 
 namespace mu::appshell {
 class MainToolBarModel : public QAbstractListModel, public muse::Contextable, public muse::async::Asyncable
@@ -39,11 +41,16 @@ class MainToolBarModel : public QAbstractListModel, public muse::Contextable, pu
 
     Q_PROPERTY(QString currentUri READ currentUri WRITE setCurrentUri NOTIFY currentUriChanged)
 
+    Q_PROPERTY(bool hasProject READ hasProject NOTIFY hasProjectChanged)
+
     QML_ELEMENT
 
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
     muse::ContextInject<project::IOpenProjectScenario> openProjectScenario = { this };
+
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
 
 public:
     explicit MainToolBarModel(QObject* parent = nullptr);
@@ -53,12 +60,16 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void load();
+    Q_INVOKABLE void fileAction(const QString& action);
+    Q_INVOKABLE void openRecentScores();
+    bool hasProject() const;
 
     QString currentUri() const;
     void setCurrentUri(const QString& uri);
 
 signals:
     void currentUriChanged();
+    void hasProjectChanged();
 
 private:
     enum Roles {

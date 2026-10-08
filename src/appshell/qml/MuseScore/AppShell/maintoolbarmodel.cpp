@@ -29,8 +29,6 @@ using namespace mu::appshell;
 static const QString HOME_PAGE("musescore://home");
 static const QString NOTATION_PAGE("musescore://notation");
 static const QString NOTATION_REVIEW_PAGE("musescore://notation/review");
-static const QString PUBLISH_PAGE("musescore://publish");
-static const QString DEVTOOLS_PAGE("musescore://devtools");
 
 static const QString TITLE_KEY("title");
 static const QString URI_KEY("uri");
@@ -59,7 +57,7 @@ inline QVariantMap buildItem(const QString& title, const QString& uri, const QSt
 }
 
 MainToolBarModel::MainToolBarModel(QObject* parent)
-    : QAbstractListModel(parent), muse::Contextable(muse::iocCtxForQmlObject(this)), m_currentUri(HOME_PAGE)
+    : QAbstractListModel(parent), muse::Contextable(muse::iocCtxForQmlObject(this)), m_currentUri(NOTATION_PAGE)
 {
 }
 
@@ -102,13 +100,8 @@ void MainToolBarModel::load()
     beginResetModel();
 
     m_items.clear();
-    m_items << buildItem(muse::qtrc("appshell", "Home"), HOME_PAGE, m_currentUri);
     m_items << buildItem(muse::qtrc("appshell", "Score"), NOTATION_PAGE, m_currentUri);
-    m_items << buildItem(muse::qtrc("appshell", "Publish"), PUBLISH_PAGE, m_currentUri);
-
-    if (globalConfiguration()->devModeEnabled()) {
-        m_items << buildItem(muse::qtrc("appshell", "DevTools"), DEVTOOLS_PAGE, m_currentUri);
-    }
+    m_items << buildItem(muse::qtrc("appshell", "Files"), HOME_PAGE, m_currentUri);
 
     endResetModel();
 
@@ -116,6 +109,7 @@ void MainToolBarModel::load()
 
     context()->currentProjectChanged().onNotify(this, [this]() {
         updateNotationPageItem();
+        emit hasProjectChanged();
     });
 }
 
@@ -169,4 +163,21 @@ void MainToolBarModel::updateCheckedState()
         QModelIndex modelIndex = index(i);
         emit dataChanged(modelIndex, modelIndex, { IsCheckedRole });
     }
+}
+
+bool MainToolBarModel::hasProject() const
+{
+    return context()->currentProject() != nullptr;
+}
+
+void MainToolBarModel::fileAction(const QString& action)
+{
+    if (action == "file-new" || action == "file-open" || (action == "file-save" && hasProject())) {
+        dispatcher()->dispatch(action.toStdString());
+    }
+}
+
+void MainToolBarModel::openRecentScores()
+{
+    interactive()->open(muse::UriQuery("musescore://home?section=scores"));
 }

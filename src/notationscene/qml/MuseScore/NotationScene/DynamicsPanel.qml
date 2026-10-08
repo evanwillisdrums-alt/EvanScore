@@ -273,10 +273,13 @@ Item {
                     }
                     TextField { id: search; Layout.fillWidth: true; placeholderText: qsTrc("notation", "Find a dynamic, e.g. mp or ff"); Accessible.name: placeholderText }
                     Repeater {
-                        model: root.model.mappings
+                        // Stable row identities preserve focus while the velocity data changes.
+                        model: root.model.dynamicChoices.slice(1).map(function(choice) { return {name: choice.text, dynamic: choice.value}; })
                         Rectangle {
                             id: mapping
                             required property var modelData
+                            required property int index
+                            readonly property var values: root.model.mappings[index] || ({})
                             visible: search.text === "" || modelData.name.indexOf(search.text.toLowerCase()) >= 0
                             Layout.fillWidth: true
                             implicitHeight: mappingCard.implicitHeight + 20
@@ -311,7 +314,7 @@ Item {
                                             LevelSpin {
                                                 objectName: "dynamics-mapping-" + mapping.modelData.name + "-" + mappingValue.modelData.key
                                                 Layout.fillWidth: true
-                                                value: mapping.modelData[mappingValue.modelData.key]
+                                                value: mapping.values[mappingValue.modelData.key] || 0
                                                 onValueModified: root.model.setMapping(mapping.modelData.dynamic, mappingValue.modelData.role, value)
                                                 Accessible.name: mapping.modelData.name + " " + mappingValue.modelData.label + " " + qsTrc("notation", "velocity")
                                             }

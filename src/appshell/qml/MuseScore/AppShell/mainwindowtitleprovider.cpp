@@ -105,14 +105,14 @@ void MainWindowTitleProvider::update()
     project::INotationProjectPtr project = context()->currentProject();
 
     if (!project) {
-        setTitle(muse::qtrc("appshell", "MuseScore Studio"));
+        setTitle(QStringLiteral("EvanScore"));
         setFilePath("");
         setFileModified(false);
         return;
     }
 
     notation::INotationPtr notation = context()->currentNotation();
-    setTitle(notation->projectNameAndPartName());
+    setTitle(notation ? notation->projectNameAndPartName() + " — EvanScore" : QStringLiteral("EvanScore"));
 
     setFilePath((project->isNewlyCreated() || project->isCloudProject())
                 ? "" : project->path().toQString());

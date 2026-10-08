@@ -94,8 +94,11 @@ void AppShellModule::onInit(const IApplication::RunMode&)
     m_appShellConfiguration->init();
 }
 
-void AppShellModule::onAllInited(const IApplication::RunMode&)
+void AppShellModule::onAllInited(const IApplication::RunMode& mode)
 {
+    if (mode == IApplication::RunMode::GuiApp) {
+        m_appShellConfiguration->initWorkspaceAppearance();
+    }
     //! NOTE: process QEvent::FileOpen as early as possible if it was postponed
 #ifdef Q_OS_MACOS
     qApp->processEvents();

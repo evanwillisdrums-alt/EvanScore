@@ -32,8 +32,8 @@ import MuseScore.AppShell
 Item {
     id: root
 
-    width: radioButtonList.width
-    height: radioButtonList.height
+    width: fileControls.width + 10 + radioButtonList.width
+    height: 36
 
     property alias navigation: navPanel
 
@@ -67,9 +67,40 @@ Item {
         accessible.name: qsTrc("appshell", "Main toolbar") + " " + navPanel.directionInfo
     }
 
+    Row {
+        id: fileControls
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 2
+        Repeater {
+            model: [
+                {action: "file-new", title: qsTrc("appshell", "New score"), icon: IconCode.NEW_FILE, shortcut: "Ctrl+N"},
+                {action: "file-open", title: qsTrc("appshell", "Open score"), icon: IconCode.OPEN_FILE, shortcut: "Ctrl+O"},
+                {action: "file-save", title: qsTrc("appshell", "Save score"), icon: IconCode.SAVE, shortcut: "Ctrl+S"}
+            ]
+            FlatButton {
+                required property var modelData
+                required property int index
+                objectName: "workspace-" + modelData.action
+                width: 32; height: 32
+                transparent: true
+                backgroundRadius: 9
+                enabled: modelData.action !== "file-save" || toolBarModel.hasProject
+                icon: modelData.icon
+                toolTipTitle: modelData.title
+                toolTipShortcut: modelData.shortcut
+                navigation.panel: navPanel
+                navigation.name: modelData.action
+                navigation.order: index
+                accessible.name: modelData.title
+                onClicked: toolBarModel.fileAction(modelData.action)
+            }
+        }
+    }
     RadioButtonGroup {
         id: radioButtonList
-        spacing: 0
+        anchors.left: fileControls.right
+        anchors.leftMargin: 10
+        spacing: 2
 
         model: toolBarModel
 
@@ -91,7 +122,7 @@ Item {
             rightPadding: 12
 
             property alias navigation: tabNavigation
-            height: 36
+            height: 32
             indicator: Item {}
             contentItem: StyledTextLabel {
                 text: tabButton.title
@@ -99,22 +130,24 @@ Item {
                 color: tabButton.checked ? ui.theme.accentColor : ui.theme.fontPrimaryColor
             }
             background: Rectangle {
-                color: "transparent"
-                radius: 8
+                color: tabButton.checked ? Utils.colorWithAlpha(ui.theme.buttonColor, 0.35)
+                    : tabButton.hovered ? Utils.colorWithAlpha(ui.theme.buttonColor, 0.2) : "transparent"
+                radius: 9
                 Rectangle {
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: parent.width - 24
-                    height: tabNavigation.highlight ? 3 : 2
+                    width: 16
+                    height: 2
+                    radius: 1
                     color: ui.theme.accentColor
-                    visible: tabButton.checked || tabButton.hovered || tabNavigation.highlight
+                    visible: tabButton.checked || tabNavigation.highlight
                 }
             }
             NavigationControl {
                 id: tabNavigation
                 name: title
                 panel: navPanel
-                order: index
+                order: index + 10
                 enabled: root.enabled && root.visible
                 accessible.role: MUAccessible.RadioButton
                 accessible.name: title

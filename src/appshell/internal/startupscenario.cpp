@@ -26,7 +26,6 @@
 
 #include "appshelltypes.h"
 #include "translation.h"
-#include "types/version.h"
 
 #include "muse_framework_config.h"
 
@@ -35,9 +34,6 @@
 using namespace mu::appshell;
 using namespace muse;
 using namespace muse::actions;
-
-static const muse::UriQuery FIRST_LAUNCH_SETUP_URI("musescore://firstLaunchSetup?floating=true");
-static const muse::UriQuery WELCOME_DIALOG_URI("musescore://welcomedialog");
 
 static StartupModeType modeTypeTromString(const std::string& str)
 {
@@ -58,21 +54,6 @@ static StartupModeType modeTypeTromString(const std::string& str)
     }
 
     return StartupModeType::StartEmpty;
-}
-
-static const Uri& startupPageUri(StartupModeType modeType)
-{
-    switch (modeType) {
-    case StartupModeType::StartEmpty:
-    case StartupModeType::StartWithNewScore:
-    case StartupModeType::Recovery:
-        return HOME_URI;
-    case StartupModeType::StartWithScore:
-    case StartupModeType::ContinueLastSession:
-        return NOTATION_URI;
-    }
-
-    return HOME_URI;
 }
 
 void StartupScenario::setStartupType(const std::optional<std::string>& type)
@@ -155,7 +136,7 @@ void StartupScenario::runAfterSplashScreen()
         modeType = resolveStartupModeType();
     }
 
-    const Uri& startupUri = startupPageUri(modeType);
+    const Uri& startupUri = NOTATION_URI;
     auto promise = interactive()->open(startupUri);
     promise.onResolve(this, [this, modeType](const Val&) {
         onStartupPageOpened(modeType);
@@ -226,57 +207,11 @@ void StartupScenario::showStartupDialogsIfNeed(StartupModeType modeType)
         return;
     }
 
-    //! NOTE: The welcome dialog should not show if the first launch setup has not been completed, or if we're going
-    //! to show a MuseSounds update dialog (see ProjectActionsController::doFinishOpenProject). MuseSampler's update
-    //! dialog should be shown after the welcome dialog.
-    const auto showWelcomeDialogAndSamplerUpdateIfNeed = [this, modeType]() {
-        if (!configuration()->hasCompletedFirstLaunchSetup()) {
-            interactive()->open(FIRST_LAUNCH_SETUP_URI);
-            return;
-        }
-
-        const Version welcomeDialogLastShownVersion(configuration()->welcomeDialogLastShownVersion());
-        const Version currentMuseScoreVersion(configuration()->museScoreVersion());
-        if (welcomeDialogLastShownVersion < currentMuseScoreVersion) {
-            configuration()->setWelcomeDialogShowOnStartup(true); // override user preference
-            configuration()->setWelcomeDialogLastShownIndex(-1); // reset
-        }
-
-        const bool shouldCheckForMuseSamplerUpdate = modeType == StartupModeType::StartEmpty
-                                                     || modeType == StartupModeType::StartWithNewScore;
-
-        if (shouldShowWelcomeDialog(modeType)) {
-            interactive()->open(WELCOME_DIALOG_URI).onResolve(this, [this, shouldCheckForMuseSamplerUpdate](const Val&) {
-                configuration()->setWelcomeDialogLastShownVersion(configuration()->museScoreVersion());
-
-                if (shouldCheckForMuseSamplerUpdate) {
-                    checkAndShowMuseSamplerUpdateIfNeed();
-                }
-            });
-        } else if (shouldCheckForMuseSamplerUpdate) {
-            checkAndShowMuseSamplerUpdateIfNeed();
-        }
-    };
-
-    showWelcomeDialogAndSamplerUpdateIfNeed();
-}
-
-bool StartupScenario::shouldShowWelcomeDialog(StartupModeType modeType) const
-{
-    if (!configuration()->welcomeDialogShowOnStartup()) {
-        return false;
+    // EvanScore starts in the working score view without onboarding or promotional dialogs.
+    // Preserve required sound-engine update checks and recovery behavior.
+    if (modeType == StartupModeType::StartEmpty || modeType == StartupModeType::StartWithNewScore) {
+        checkAndShowMuseSamplerUpdateIfNeed();
     }
-
-    if (!multiwindowsProvider()->isFirstWindow()) {
-        return false;
-    }
-
-    if (museSoundsUpdateScenario() && museSoundsUpdateScenario()->hasUpdate()) {
-        return false;
-    }
-
-    const Uri& startupUri = startupPageUri(modeType);
-    return interactive()->currentUri().val == startupUri;
 }
 
 void StartupScenario::checkAndShowMuseSamplerUpdateIfNeed()

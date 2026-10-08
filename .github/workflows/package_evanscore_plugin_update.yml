@@ -18,13 +18,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - name: Find the latest verified Windows build
+        timeout-minutes: 80
         id: base
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          base_run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build_evanscore_windows.yml/runs?branch=codex%2Frounded-ui-windows-preview&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          # Native and plugin edits in one commit must use the matching native app.
+          # Publishing a keypad update against an older app could silently omit new dynamics/UI.
+          if git diff --name-only HEAD^ HEAD | rg -q '^(src/|muse/|CMakeLists|share/styles/|buildscripts/|.github/workflows/build_evanscore_windows)'; then
+            base_run=null
+            for attempt in $(seq 1 100); do
+              result=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build_evanscore_windows.yml/runs?branch=codex%2Frounded-ui-windows-preview&per_page=10" --jq '.workflow_runs[] | select(.head_sha == env.GITHUB_SHA) | [.id,.status,.conclusion] | @tsv' | head -1)
+              read -r run_id run_status run_conclusion <<< "$result"
+              if [ "$run_status" = completed ]; then
+                test "$run_conclusion" = success
+                base_run=$run_id
+                break
+              fi
+              sleep 45
+            done
+          else
+            base_run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build_evanscore_windows.yml/runs?branch=codex%2Frounded-ui-windows-preview&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          fi
           test "$base_run" != null
           echo "run=$base_run" >> "$GITHUB_OUTPUT"
 

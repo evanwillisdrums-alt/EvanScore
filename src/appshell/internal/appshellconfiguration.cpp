@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "appshellconfiguration.h"
+#include <QColor>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -70,9 +71,9 @@ static const std::string SESSION_RESOURCE_NAME("SESSION");
 
 void AppShellConfiguration::init()
 {
-    settings()->setDefaultValue(HAS_COMPLETED_FIRST_LAUNCH_SETUP, Val(false));
+    settings()->setDefaultValue(HAS_COMPLETED_FIRST_LAUNCH_SETUP, Val(true));
 
-    settings()->setDefaultValue(WELCOME_DIALOG_SHOW_ON_STARTUP_KEY, Val(true));
+    settings()->setDefaultValue(WELCOME_DIALOG_SHOW_ON_STARTUP_KEY, Val(false));
     settings()->valueChanged(WELCOME_DIALOG_SHOW_ON_STARTUP_KEY).onReceive(this, [this](const Val&) {
         m_welcomeDialogShowOnStartupChanged.notify();
     });
@@ -360,4 +361,26 @@ muse::io::paths_t AppShellConfiguration::parseSessionProjectsPaths(const QByteAr
     }
 
     return result;
+}
+
+void AppShellConfiguration::initWorkspaceAppearance()
+{
+    static const Settings::Key applied(module_name, "evanscore/ui/workspaceAppearanceV1");
+    if (settings()->value(applied).toBool()) return;
+    // Keep accessibility themes intact. This migration runs once, never on score opening.
+    if (!uiConfiguration()->isHighContrast()) {
+        uiConfiguration()->setFollowSystemTheme(false);
+        uiConfiguration()->setIsDarkMode(true);
+        using namespace muse::ui;
+        const std::pair<ThemeStyleKey, const char*> colors[] = {
+            {BACKGROUND_PRIMARY_COLOR, "#26292d"}, {BACKGROUND_SECONDARY_COLOR, "#30343a"},
+            {BACKGROUND_TERTIARY_COLOR, "#393e46"}, {BACKGROUND_QUARTERNARY_COLOR, "#424852"},
+            {POPUP_BACKGROUND_COLOR, "#333840"}, {PROJECT_TAB_COLOR, "#424954"},
+            {TEXT_FIELD_COLOR, "#252a31"}, {BUTTON_COLOR, "#66717f"},
+            {STROKE_COLOR, "#707b89"}, {STROKE_SECONDARY_COLOR, "#56606c"},
+            {ACCENT_COLOR, "#268ddd"}, {FONT_PRIMARY_COLOR, "#edf0f4"}, {FONT_SECONDARY_COLOR, "#b7c0cc"}
+        };
+        for (const auto& [key, color] : colors) uiConfiguration()->setCurrentThemeStyleValue(key, Val(QColor(color)));
+    }
+    settings()->setSharedValue(applied, Val(true));
 }

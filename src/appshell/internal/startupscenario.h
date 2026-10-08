@@ -77,7 +77,6 @@ private:
 
     void showStartupDialogsIfNeed(StartupModeType modeType);
     void checkAndShowMuseSamplerUpdateIfNeed();
-    bool shouldShowWelcomeDialog(StartupModeType modeType) const;
 
     void openScore(const project::ProjectFile& file);
 

@@ -71,6 +71,9 @@ try {
         # The startup splash is an 800x380 QWidget. It must disappear as well.
         $splash = $windows | Where-Object { $_.Class -like '*QWidget*' -and $_.Width -eq 800 -and $_.Height -eq 380 }
         if ($main -and -not $splash -and $process.Responding) {
+            if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
+            $onboarding = $windows | Where-Object { $_.Title -match 'Welcome|First.?launch' }
+            if ($onboarding) { throw 'Automatic onboarding dialog appeared instead of the score workspace' }
             $ready = $true
             Add-Type -AssemblyName System.Drawing
             $bitmap = [System.Drawing.Bitmap]::new($main.Width, $main.Height)

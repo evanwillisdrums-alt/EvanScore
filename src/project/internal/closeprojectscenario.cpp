@@ -152,18 +152,18 @@ Promise<Ret> CloseProjectScenario::doCloseProject(bool goToHome)
         globalContext()->setCurrentProject(nullptr);
 
         if (goToHome) {
-            openHomePageIfNeed();
+            openWorkspaceIfNeed();
         }
 
         return resolve(make_ok());
     });
 }
 
-void CloseProjectScenario::openHomePageIfNeed()
+void CloseProjectScenario::openWorkspaceIfNeed()
 {
-    if (interactive()->isOpened(HOME_PAGE_URI).val) {
+    if (interactive()->isOpened(NOTATION_PAGE_URI).val) {
         return;
     }
 
-    interactive()->open(HOME_PAGE_URI);
+    interactive()->open(NOTATION_PAGE_URI);
 }

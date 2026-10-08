@@ -57,6 +57,7 @@ public:
         : muse::Contextable(iocCtx) {}
 
     void init();
+    void initWorkspaceAppearance();
 
     bool hasCompletedFirstLaunchSetup() const override;
     void setHasCompletedFirstLaunchSetup(bool has) override;

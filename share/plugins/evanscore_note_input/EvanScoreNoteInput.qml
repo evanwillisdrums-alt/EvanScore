@@ -1,20 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import QtQuick.Window
 import MuseScore 3.0
 import MuseScore.NotationScene
+import Muse.Ui
+import "KeypadLayout.js" as Layouts
 
 MuseScore {
     id: root
     title: "EvanScore Note Input"
-    description: "A translucent floating keypad with notation controls and Windows window buttons."
-    version: "1.3"
+    description: "A customizable translucent keypad using native notation symbols."
+    version: "1.4"
     categoryCode: "composing-arranging-tools"
     thumbnailName: ""
     pluginType: ""
     requiresScore: true
     onRun: {
+        loadPreferences();
         voicesFilter.load();
         syncSelection();
         noteWindow.show();
@@ -22,1038 +26,203 @@ MuseScore {
     onScoreStateChanged: Qt.callLater(syncSelection)
 
     property url musicFontSource: "qrc:/fonts/leland/Leland.otf"
+    property url fallbackFontSource: "qrc:/fonts/bravura/Bravura.otf"
+    property url iconFontSource: "qrc:/ui/data/MusescoreIcon.ttf"
     property var elementTypes: typeof Element !== "undefined" ? Element : ({})
     property var noteHeadTypes: typeof NoteHeadType !== "undefined" ? NoteHeadType : ({})
-    property bool openNoteheads: false
     property var symbolTypes: typeof SymId !== "undefined" ? SymId : ({})
+    property var tremoloTypes: typeof TremoloType !== "undefined" ? TremoloType : ({})
+    property bool openNoteheads: false
     property int activePage: 0
     property int activeVoice: 0
     property string activeDuration: ""
-    property string activeTool: "escape"
+    property string activeTremolo: ""
     property string notice: ""
+    property bool customizeMode: false
+    property bool preferencesLoaded: false
+    property bool changingPage: false
+    property var layoutOverrides: ({})
+    property string editingSlot: ""
     readonly property color accentColor: typeof ui !== "undefined" ? ui.theme.accentColor : "#008edb"
-    readonly property var pages: [[
-            {
-                "label": "Selection tool",
-                "action": "escape",
-                "col": 0,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "pointer",
-                "shortcut": ""
-            },
-            {
-                "label": "Accent",
-                "action": "add-sforzato",
-                "col": 1,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a0",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 361, 235],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Staccato",
-                "action": "add-staccato",
-                "col": 2,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a2",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [-0.25, 0, 78.25, 78],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Tenuto",
-                "action": "add-tenuto",
-                "col": 3,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a4",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 316, 46],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Natural",
-                "action": "nat",
-                "col": 0,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue261",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -323, 171, 325],
-                "text": "",
-                "shortcut": "2"
-            },
-            {
-                "label": "Sharp",
-                "action": "sharp",
-                "col": 1,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue262",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -333, 244, 334],
-                "text": "",
-                "shortcut": "3"
-            },
-            {
-                "label": "Flat",
-                "action": "flat",
-                "col": 2,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue260",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -176, 203, 453],
-                "text": "",
-                "shortcut": "1"
-            },
-            {
-                "label": "Flip stem / direction",
-                "action": "flip",
-                "col": 3,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "flip",
-                "shortcut": ""
-            },
-            {
-                "label": "Quarter note",
-                "action": "pad-note-4",
-                "col": 0,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 325, 875],
-                "text": "",
-                "shortcut": "7"
-            },
-            {
-                "label": "Half note",
-                "action": "pad-note-2",
-                "col": 1,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d3",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -132, 325, 875],
-                "text": "",
-                "shortcut": "4"
-            },
-            {
-                "label": "Whole note",
-                "action": "pad-note-1",
-                "col": 2,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d2",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -134, 373, 136],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Double dot",
-                "action": "pad-dot2",
-                "col": 3,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue1e7",
-                        "x": 470,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue1e7",
-                        "x": 680,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 780, 875],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "32nd note",
-                "action": "pad-note-32",
-                "col": 0,
-                "row": 3,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1db",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 579, 1064],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "16th note",
-                "action": "pad-note-16",
-                "col": 1,
-                "row": 3,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d9",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 579, 887],
-                "text": "",
-                "shortcut": "9"
-            },
-            {
-                "label": "Eighth note",
-                "action": "pad-note-8",
-                "col": 2,
-                "row": 3,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d7",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 589, 888],
-                "text": "",
-                "shortcut": "8"
-            },
-            {
-                "label": "Tie",
-                "action": "tie",
-                "col": 3,
-                "row": 3,
-                "colSpan": 1,
-                "rowSpan": 2,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 750,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -340, 1075, 875],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Rest",
-                "action": "pad-rest",
-                "col": 0,
-                "row": 4,
-                "colSpan": 2,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4e5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -331, 235, 401],
-                "text": "",
-                "shortcut": "5"
-            },
-            {
-                "label": "Dot",
-                "action": "pad-dot",
-                "col": 2,
-                "row": 4,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue1e7",
-                        "x": 470,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 570, 875],
-                "text": "",
-                "shortcut": "6"
-            }
-        ], [
-            {
-                "label": "Flam",
-                "action": "acciaccatura",
-                "col": 0,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue560",
-                        "x": -450,
-                        "y": 120,
-                        "factor": 0.8
-                    },
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [-450.0, -131, 325, 875],
-                "text": "",
-                "shortcut": "0"
-            },
-            {
-                "label": "Diddle / double stroke",
-                "action": "add-diddle",
-                "col": 1,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue220",
-                        "x": 310,
-                        "y": 500,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 455, 875],
-                "text": "",
-                "shortcut": "."
-            },
-            {
-                "label": "Roll",
-                "action": "add-roll",
-                "col": 2,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    },
-                    {
-                        "symbol": "\ue222",
-                        "x": 310,
-                        "y": 500,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 455, 875],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Appoggiatura",
-                "action": "appoggiatura",
-                "col": 3,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue562",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -83, 370, 567],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Quarter grace note",
-                "action": "grace4",
-                "col": 0,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 325, 875],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "16th grace note",
-                "action": "grace16",
-                "col": 1,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d9",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 579, 887],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "32nd grace note",
-                "action": "grace32",
-                "col": 2,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1db",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 579, 1064],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Marcato",
-                "action": "add-marcato",
-                "col": 3,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4ac",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [1, 0, 296, 253],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Accent",
-                "action": "add-sforzato",
-                "col": 0,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a0",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 361, 235],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Staccato",
-                "action": "add-staccato",
-                "col": 1,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a2",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [-0.25, 0, 78.25, 78],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Tenuto",
-                "action": "add-tenuto",
-                "col": 2,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a4",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 316, 46],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Tie",
-                "action": "tie",
-                "col": 3,
-                "row": 2,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "tie",
-                "shortcut": ""
-            }
-        ], [
-            {
-                "label": "Automatic beaming",
-                "action": "beam-auto",
-                "col": 0,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "AUTO",
-                "shortcut": ""
-            },
-            {
-                "label": "Start beam",
-                "action": "beam-break-left",
-                "col": 1,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "Start",
-                "shortcut": ""
-            },
-            {
-                "label": "Continue beam",
-                "action": "beam-join",
-                "col": 2,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "Middle",
-                "shortcut": ""
-            },
-            {
-                "label": "Break secondary beam",
-                "action": "beam-break-inner-8th",
-                "col": 3,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "Break",
-                "shortcut": ""
-            },
-            {
-                "label": "Remove beam",
-                "action": "beam-none",
-                "col": 0,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "None",
-                "shortcut": ""
-            },
-            {
-                "label": "Quarter note",
-                "action": "pad-note-4",
-                "col": 1,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d5",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -131, 325, 875],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Eighth note",
-                "action": "pad-note-8",
-                "col": 2,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d7",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 589, 888],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "16th note",
-                "action": "pad-note-16",
-                "col": 3,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue1d9",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -133, 579, 887],
-                "text": "",
-                "shortcut": ""
-            }
-        ], [
-            {
-                "label": "Fermata",
-                "action": "add-fermata",
-                "col": 0,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4c0",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 622, 368],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Accent",
-                "action": "add-sforzato",
-                "col": 1,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a0",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 361, 235],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Staccato",
-                "action": "add-staccato",
-                "col": 2,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a2",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [-0.25, 0, 78.25, 78],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Tenuto",
-                "action": "add-tenuto",
-                "col": 3,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4a4",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, 0, 316, 46],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Marcato",
-                "action": "add-marcato",
-                "col": 0,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue4ac",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [1, 0, 296, 253],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Flip direction",
-                "action": "flip",
-                "col": 1,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [],
-                "bounds": [0, 0, 1, 1],
-                "text": "flip",
-                "shortcut": ""
-            }
-        ], [
-            {
-                "label": "Double flat",
-                "action": "flat2",
-                "col": 0,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue264",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -176, 371, 453],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Flat",
-                "action": "flat",
-                "col": 1,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue260",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -176, 203, 453],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Natural",
-                "action": "nat",
-                "col": 2,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue261",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -323, 171, 325],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Sharp",
-                "action": "sharp",
-                "col": 3,
-                "row": 0,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue262",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -333, 244, 334],
-                "text": "",
-                "shortcut": ""
-            },
-            {
-                "label": "Double sharp",
-                "action": "sharp2",
-                "col": 0,
-                "row": 1,
-                "colSpan": 1,
-                "rowSpan": 1,
-                "glyphs": [
-                    {
-                        "symbol": "\ue263",
-                        "x": 0,
-                        "y": 0,
-                        "factor": 1
-                    }
-                ],
-                "bounds": [0, -137, 275, 138],
-                "text": "",
-                "shortcut": ""
-            }
-        ]]
-    readonly property var tabs: [
-        {
-            "label": "Open noteheads (keep duration and playback)",
-            "action": "",
-            "col": 0,
-            "row": 0,
-            "colSpan": 1,
-            "rowSpan": 1,
-            "glyphs": [
-                {
-                    "symbol": "\ue1d2",
-                    "x": 0,
-                    "y": 0,
-                    "factor": 1
-                }
-            ],
-            "bounds": [0, -134, 373, 136],
-            "text": "",
-            "shortcut": ""
-        },
-        {
-            "label": "Grace notes and percussion",
-            "action": "",
-            "col": 1,
-            "row": 0,
-            "colSpan": 1,
-            "rowSpan": 1,
-            "glyphs": [
-                {
-                    "symbol": "\ue560",
-                    "x": -450,
-                    "y": 120,
-                    "factor": 0.8
-                },
-                {
-                    "symbol": "\ue1d5",
-                    "x": 0,
-                    "y": 0,
-                    "factor": 1
-                }
-            ],
-            "bounds": [-450.0, -131, 325, 875],
-            "text": "",
-            "shortcut": ""
-        },
-        {
-            "label": "Beaming",
-            "action": "",
-            "col": 2,
-            "row": 0,
-            "colSpan": 1,
-            "rowSpan": 1,
-            "glyphs": [],
-            "bounds": [0, 0, 1, 1],
-            "text": "AUTO",
-            "shortcut": ""
-        },
-        {
-            "label": "Articulations",
-            "action": "",
-            "col": 3,
-            "row": 0,
-            "colSpan": 1,
-            "rowSpan": 1,
-            "glyphs": [
-                {
-                    "symbol": "\ue4c0",
-                    "x": 0,
-                    "y": 0,
-                    "factor": 1
-                }
-            ],
-            "bounds": [0, 0, 622, 368],
-            "text": "",
-            "shortcut": ""
-        },
-        {
-            "label": "Accidentals",
-            "action": "",
-            "col": 4,
-            "row": 0,
-            "colSpan": 1,
-            "rowSpan": 1,
-            "glyphs": [
-                {
-                    "symbol": "\ue264",
-                    "x": 0,
-                    "y": 0,
-                    "factor": 1
-                }
-            ],
-            "bounds": [0, -176, 371, 453],
-            "text": "",
-            "shortcut": ""
-        }
+    readonly property var pages: Layouts.defaults()
+    readonly property var currentPage: pages[activePage]
+    readonly property var catalogById: Layouts.index(toolCatalog)
+    readonly property var currentKeys: Layouts.effective(currentPage, layoutOverrides, catalogById)
+    readonly property var tabIcons: [IconCode.NOTE_QUARTER, IconCode.ACCIACCATURA, IconCode.BEAM_JOIN, IconCode.ACCENT, IconCode.SHARP]
+    readonly property var toolCatalog: [
+        { id: "whole", label: "Whole note", action: "pad-note-1", category: "Durations", icon: IconCode.NOTE_WHOLE, shortcut: "7" },
+        { id: "half", label: "Half note", action: "pad-note-2", category: "Durations", icon: IconCode.NOTE_HALF, shortcut: "6" },
+        { id: "quarter", label: "Quarter note", action: "pad-note-4", category: "Durations", icon: IconCode.NOTE_QUARTER, shortcut: "5" },
+        { id: "eighth", label: "Eighth note", action: "pad-note-8", category: "Durations", icon: IconCode.NOTE_8TH, shortcut: "4" },
+        { id: "sixteenth", label: "16th note", action: "pad-note-16", category: "Durations", icon: IconCode.NOTE_16TH, shortcut: "3" },
+        { id: "thirtysecond", label: "32nd note", action: "pad-note-32", category: "Durations", icon: IconCode.NOTE_32ND, shortcut: "2" },
+        { id: "sixtyfourth", label: "64th note", action: "pad-note-64", category: "Durations", icon: IconCode.NOTE_64TH, shortcut: "1" },
+        { id: "breve", label: "Double whole note", action: "note-breve", category: "Durations", icon: IconCode.NOTE_WHOLE_DOUBLE },
+        { id: "dot", label: "Dot", action: "pad-dot", category: "Durations", icon: IconCode.NOTE_DOTTED },
+        { id: "dot2", label: "Double dot", action: "pad-dot2", category: "Durations", icon: IconCode.NOTE_DOTTED_2 },
+        { id: "dot3", label: "Triple dot", action: "pad-dot3", category: "Durations", icon: IconCode.NOTE_DOTTED_3 },
+        { id: "rest", label: "Rest", action: "pad-rest", category: "Durations", icon: IconCode.REST },
+        { id: "tie", label: "Tie", action: "tie", category: "Durations", icon: IconCode.NOTE_TIE },
+        { id: "slur", label: "Slur", action: "add-slur", category: "Durations", icon: IconCode.NOTE_SLUR },
+        { id: "noteinput", label: "Note input", action: "note-input", category: "Tools", icon: IconCode.DURATION_CURSOR },
+        { id: "openheads", label: "Open / automatic noteheads", action: "open-noteheads", category: "Tools", icon: IconCode.NOTE_HEAD_HALF },
+        { id: "natural", label: "Natural", action: "nat", category: "Pitch", icon: IconCode.NATURAL },
+        { id: "sharp", label: "Sharp", action: "sharp", category: "Pitch", icon: IconCode.SHARP },
+        { id: "flat", label: "Flat", action: "flat", category: "Pitch", icon: IconCode.FLAT },
+        { id: "flat2", label: "Double flat", action: "flat2", category: "Pitch", icon: IconCode.FLAT_DOUBLE },
+        { id: "sharp2", label: "Double sharp", action: "sharp2", category: "Pitch", icon: IconCode.SHARP_DOUBLE },
+        { id: "flip", label: "Flip stem / direction", action: "flip", category: "Pitch", icon: IconCode.NOTE_FLIP },
+        { id: "pitchup", label: "Raise pitch", action: "pitch-up", category: "Pitch", icon: IconCode.ARROW_UP },
+        { id: "pitchdown", label: "Lower pitch", action: "pitch-down", category: "Pitch", icon: IconCode.ARROW_DOWN },
+        { id: "octaveup", label: "Raise octave", action: "pitch-up-octave", category: "Pitch", icon: IconCode.SMALL_ARROW_UP, badge: "8" },
+        { id: "octavedown", label: "Lower octave", action: "pitch-down-octave", category: "Pitch", icon: IconCode.SMALL_ARROW_DOWN, badge: "8" },
+        { id: "accent", label: "Accent", action: "add-sforzato", category: "Articulations", icon: IconCode.ACCENT },
+        { id: "tenuto", label: "Tenuto", action: "add-tenuto", category: "Articulations", icon: IconCode.TENUTO },
+        { id: "marcato", label: "Marcato", action: "add-marcato", category: "Articulations", icon: IconCode.MARCATO },
+        { id: "staccato", label: "Staccato", action: "add-staccato", category: "Articulations", icon: IconCode.STACCATO },
+        { id: "fermata", label: "Fermata", action: "add-fermata", category: "Articulations", icon: IconCode.FERMATA },
+        { id: "staccatissimo", label: "Staccatissimo", action: "symbol:articStaccatissimoAbove", category: "Articulations", symbolName: "articStaccatissimoAbove", glyphs: [{"symbol": "\ue4a6", "x": 0, "y": 0, "factor": 1, "fallback": false}], bounds: [0, 0, 127, 248] },
+        { id: "accenttenuto", label: "Accent + tenuto", action: "symbol:articTenutoAccentAbove", category: "Articulations", symbolName: "articTenutoAccentAbove", glyphs: [{"symbol": "\ue4b4", "x": 0, "y": 0, "factor": 1, "fallback": false}], bounds: [0, 0, 361, 358] },
+        { id: "accentstaccato", label: "Accent + staccato", action: "symbol:articAccentStaccatoAbove", category: "Articulations", symbolName: "articAccentStaccatoAbove", glyphs: [{"symbol": "\ue4b0", "x": 0, "y": 0, "factor": 1, "fallback": false}], bounds: [0, 0, 361, 344] },
+        { id: "softaccent", label: "Soft accent", action: "symbol:articSoftAccentAbove", category: "Articulations", symbolName: "articSoftAccentAbove", glyphs: [{"symbol": "\ued40", "x": 0, "y": 0, "factor": 1, "fallback": true}], bounds: [0, 1, 708, 245] },
+        { id: "stress", label: "Stress", action: "symbol:articStressAbove", category: "Articulations", symbolName: "articStressAbove", glyphs: [{"symbol": "\ue4b6", "x": 0, "y": 0, "factor": 1, "fallback": false}], bounds: [0, 0, 212, 212] },
+        { id: "unstress", label: "Unstress", action: "symbol:articUnstressAbove", category: "Articulations", symbolName: "articUnstressAbove", glyphs: [{"symbol": "\ue4b8", "x": 0, "y": 0, "factor": 1, "fallback": false}], bounds: [0, -162, 342, 0] },
+        { id: "flam", label: "Flam / slashed grace note", action: "acciaccatura", category: "Grace & percussion", icon: IconCode.ACCIACCATURA, grace: true },
+        { id: "appoggiatura", label: "Appoggiatura", action: "appoggiatura", category: "Grace & percussion", icon: IconCode.APPOGGIATURA, grace: true },
+        { id: "grace4", label: "Quarter grace note", action: "grace4", category: "Grace & percussion", icon: IconCode.NOTE_QUARTER, grace: true },
+        { id: "grace16", label: "16th grace note", action: "grace16", category: "Grace & percussion", icon: IconCode.NOTE_16TH, grace: true },
+        { id: "grace32", label: "32nd grace note", action: "grace32", category: "Grace & percussion", icon: IconCode.NOTE_32ND, grace: true },
+        { id: "grace8after", label: "Eighth grace note after", action: "grace8after", category: "Grace & percussion", icon: IconCode.NOTE_8TH, grace: true, after: true },
+        { id: "grace16after", label: "16th grace note after", action: "grace16after", category: "Grace & percussion", icon: IconCode.NOTE_16TH, grace: true, after: true },
+        { id: "grace32after", label: "32nd grace note after", action: "grace32after", category: "Grace & percussion", icon: IconCode.NOTE_32ND, grace: true, after: true },
+        { id: "diddle", label: "Diddle / one-slash tremolo", action: "tremolo", category: "Grace & percussion", tremoloName: "R8", glyphs: [{"symbol": "\ue1d5", "x": 0, "y": 0, "factor": 1, "fallback": false}, {"symbol": "\ue220", "x": 309, "y": 390, "factor": 1, "fallback": false}], bounds: [0, -131, 454, 875] },
+        { id: "tremolo2", label: "Two-slash tremolo", action: "tremolo", category: "Grace & percussion", tremoloName: "R16", glyphs: [{"symbol": "\ue1d5", "x": 0, "y": 0, "factor": 1, "fallback": false}, {"symbol": "\ue221", "x": 309, "y": 390, "factor": 1, "fallback": false}], bounds: [0, -131, 454, 875] },
+        { id: "roll", label: "Three-slash tremolo", action: "tremolo", category: "Grace & percussion", tremoloName: "R32", glyphs: [{"symbol": "\ue1d5", "x": 0, "y": 0, "factor": 1, "fallback": false}, {"symbol": "\ue222", "x": 309, "y": 390, "factor": 1, "fallback": false}], bounds: [0, -131, 454, 875] },
+        { id: "tremolo4", label: "Four-slash tremolo", action: "tremolo", category: "Grace & percussion", tremoloName: "R64", glyphs: [{"symbol": "\ue1d5", "x": 0, "y": 0, "factor": 1, "fallback": false}, {"symbol": "\ue223", "x": 309, "y": 390, "factor": 1, "fallback": false}], bounds: [0, -131, 454, 875] },
+        { id: "buzz", label: "Buzz roll", action: "tremolo", category: "Grace & percussion", tremoloName: "BUZZ_ROLL", glyphs: [{"symbol": "\ue1d5", "x": 0, "y": 0, "factor": 1, "fallback": false}, {"symbol": "\ue22a", "x": 309, "y": 390, "factor": 1, "fallback": false}], bounds: [0, -131, 459, 875] },
+        { id: "beamauto", label: "Automatic beaming", action: "beam-auto", category: "Beaming", icon: IconCode.AUTO_TEXT },
+        { id: "beamstart", label: "Start beam", action: "beam-break-left", category: "Beaming", icon: IconCode.BEAM_BREAK_LEFT },
+        { id: "beamjoin", label: "Continue beam", action: "beam-join", category: "Beaming", icon: IconCode.BEAM_JOIN },
+        { id: "beamnone", label: "Remove beam", action: "beam-none", category: "Beaming", icon: IconCode.BEAM_NONE },
+        { id: "beambreak8", label: "Break secondary beam (8th)", action: "beam-break-inner-8th", category: "Beaming", icon: IconCode.BEAM_BREAK_INNER_8TH },
+        { id: "beambreak16", label: "Break secondary beam (16th)", action: "beam-break-inner-16th", category: "Beaming", icon: IconCode.BEAM_BREAK_INNER_16TH },
+        { id: "delete", label: "Delete", action: "delete", category: "Tools", icon: IconCode.DELETE_TANK },
+        { id: "undo", label: "Undo (Ctrl+Z)", action: "command://notation/undo", category: "Tools", icon: IconCode.UNDO },
+        { id: "redo", label: "Redo (Ctrl+Y)", action: "command://notation/redo", category: "Tools", icon: IconCode.REDO },
+        { id: "escape", label: "Cancel note input / selection tool", action: "escape", category: "Tools", icon: IconCode.CLOSE_X_ROUNDED },
+        { id: "empty", label: "Empty key", action: "", category: "Tools", icon: IconCode.NONE }
     ]
-    FontLoader {
-        id: musicFont
-        source: root.musicFontSource
-    }
 
-    VoicesSelectionFilterModel {
-        id: voicesFilter
-        objectName: "keypad-voices-filter"
-    }
+    FontLoader { id: musicFont; source: root.musicFontSource }
+    FontLoader { id: fallbackFont; source: root.fallbackFontSource }
+    FontLoader { id: iconFont; source: root.iconFontSource }
+    Settings { id: preferences; category: "EvanScoreNoteInput" }
+    VoicesSelectionFilterModel { id: voicesFilter; objectName: "keypad-voices-filter" }
 
+    function showNotice(message) { notice = message; noticeTimer.restart(); }
+    function defaultHeight(page) { return 230 + page.rows * 58 + page.groups.length * 18; }
+    function validSize(value, fallback, minimum, maximum) {
+        return typeof value === "number" && isFinite(value) ? Math.max(minimum, Math.min(maximum, value)) : fallback;
+    }
+    function loadPreferences() {
+        try { layoutOverrides = Layouts.validate(JSON.parse(preferences.value("layoutsV2", "{}")), pages, catalogById); }
+        catch (error) { layoutOverrides = ({}); }
+        changingPage = true;
+        noteWindow.width = validSize(preferences.value("widthV2", 320), 320, noteWindow.minimumWidth, 900);
+        noteWindow.height = validSize(preferences.value("heightV2-" + currentPage.id, defaultHeight(currentPage)), defaultHeight(currentPage), noteWindow.minimumHeight, 1200);
+        changingPage = false;
+        preferencesLoaded = true;
+    }
+    function saveSize() {
+        if (!preferencesLoaded || changingPage) return;
+        preferences.setValue("widthV2", noteWindow.width);
+        preferences.setValue("heightV2-" + currentPage.id, noteWindow.height);
+        preferences.sync();
+    }
+    function setPage(index) {
+        if (index === activePage) return;
+        saveSize();
+        changingPage = true;
+        picker.close();
+        activePage = index;
+        noteWindow.height = validSize(preferences.value("heightV2-" + currentPage.id, defaultHeight(currentPage)), defaultHeight(currentPage), noteWindow.minimumHeight, 1200);
+        changingPage = false;
+    }
+    function resetSize() {
+        noteWindow.width = 320;
+        noteWindow.height = defaultHeight(currentPage);
+        saveSize();
+    }
+    function saveLayouts() { preferences.setValue("layoutsV2", JSON.stringify(layoutOverrides)); preferences.sync(); }
+    function replaceKey(toolId) {
+        layoutOverrides = Layouts.replace(currentPage, layoutOverrides, catalogById, editingSlot, toolId);
+        saveLayouts(); picker.close();
+    }
+    function resetPage() {
+        let updated = JSON.parse(JSON.stringify(layoutOverrides));
+        delete updated[currentPage.id];
+        layoutOverrides = updated;
+        saveLayouts();
+    }
+    function beginCustomize(slot) { editingSlot = slot; picker.open(); }
+    function isChecked(spec) {
+        return spec.action === activeDuration || (spec.action === "open-noteheads" && openNoteheads)
+            || (!!spec.tremoloName && spec.tremoloName === activeTremolo);
+    }
+    function selectedChords() {
+        let chords = [];
+        for (const note of selectedNotes()) {
+            const chord = note.parent;
+            if (!chords.some(function(existing) { return typeof existing.is === "function" ? existing.is(chord) : existing === chord; })) chords.push(chord);
+        }
+        return chords;
+    }
+    function toggleTremolo(name) {
+        const chords = selectedChords();
+        const type = tremoloTypes[name];
+        if (!chords.length || type === undefined || elementTypes.TREMOLO_SINGLECHORD === undefined) return false;
+        if (chords.some(function(chord) { return chord.tremoloTwoChord; })) {
+            showNotice("Remove the two-note tremolo before adding a single-note roll.");
+            return true;
+        }
+        const remove = chords.every(function(chord) { return chord.tremoloSingleChord && chord.tremoloSingleChord.tremoloType === type; });
+        curScore.startCmd();
+        try {
+            for (const chord of chords) {
+                if (remove) removeElement(chord.tremoloSingleChord);
+                else if (chord.tremoloSingleChord) chord.tremoloSingleChord.tremoloType = type;
+                else {
+                    const tremolo = newElement(elementTypes.TREMOLO_SINGLECHORD);
+                    tremolo.track = chord.track;
+                    tremolo.tremoloType = type;
+                    chord.add(tremolo);
+                }
+            }
+        } finally { curScore.endCmd(); }
+        Qt.callLater(syncSelection);
+        return true;
+    }
+    function toggleSymbol(name) {
+        const chords = selectedChords();
+        const symbol = symbolTypes[name];
+        if (!chords.length || symbol === undefined) return false;
+        function matching(chord) { return Array.from(chord.articulations).filter(function(a) { return a.symbol === symbol; }); }
+        const remove = chords.every(function(chord) { return matching(chord).length > 0; });
+        curScore.startCmd();
+        try {
+            for (const chord of chords) {
+                const existing = matching(chord);
+                if (remove) { for (const a of existing) removeElement(a); }
+                else if (!existing.length) {
+                    const articulation = newElement(elementTypes.ARTICULATION);
+                    articulation.track = chord.track;
+                    articulation.symbol = symbol;
+                    chord.add(articulation);
+                }
+            }
+        } finally { curScore.endCmd(); }
+        return true;
+    }
     function selectedNotes() {
         let notes = [];
         if (!curScore || !curScore.selection)
@@ -1091,8 +260,13 @@ MuseScore {
 
     function syncSelection() {
         activeDuration = "";
+        activeTremolo = "";
         let notes = selectedNotes();
         openNoteheads = root.noteHeadTypes.HEAD_HALF !== undefined && notes.length > 0 && notes.every(function(note) { return note.headType === root.noteHeadTypes.HEAD_HALF; });
+        if (notes.length && notes.every(function(note) { return note.parent.tremoloSingleChord && note.parent.tremoloSingleChord.tremoloType === notes[0].parent.tremoloSingleChord.tremoloType; })) {
+            const type = notes[0].parent.tremoloSingleChord.tremoloType;
+            for (const name of ["R8", "R16", "R32", "R64", "BUZZ_ROLL"]) if (root.tremoloTypes[name] === type) activeTremolo = name;
+        }
         if (!curScore || !curScore.selection)
             return;
         let selected = curScore.selection.elements;
@@ -1107,7 +281,7 @@ MuseScore {
             activeVoice = item.track % 4;
         if (item.duration) {
             let ratio = item.duration.numerator / item.duration.denominator;
-            let lengths = [1, 2, 4, 8, 16, 32];
+            let lengths = [1, 2, 4, 8, 16, 32, 64];
             for (let n of lengths)
                 for (let dots = 0; dots <= 3; ++dots)
                     if (Math.abs(ratio - (2 - Math.pow(0.5, dots)) / n) < 0.000001)
@@ -1161,375 +335,359 @@ MuseScore {
         return true;
     }
     function activate(spec) {
+        if (!spec.action) return;
         if (spec.action === "open-noteheads") {
-            if (!toggleOpenNoteheads()) {
-                notice = "Select notes to change their noteheads.";
-                noticeTimer.restart();
-            }
-            return;
+            if (!toggleOpenNoteheads()) showNotice("Select notes to change their noteheads.");
+        } else if (spec.tremoloName) {
+            if (!toggleTremolo(spec.tremoloName)) showNotice("Select notes before adding a roll or diddle.");
+        } else if (spec.symbolName) {
+            if (!toggleSymbol(spec.symbolName)) showNotice("Select notes before adding an articulation.");
+        } else if (spec.action === "add-fermata") {
+            if (!addFermata()) showNotice("Select a note or rest first.");
+        } else {
+            if (spec.action.indexOf("pad-note-") === 0) activeDuration = spec.action;
+            cmd(spec.action);
         }
-        if (spec.action === "add-fermata") {
-            if (!addFermata()) {
-                notice = "Select a note or rest first.";
-                noticeTimer.restart();
-            }
-            return;
-        }
-        if (spec.action.indexOf("pad-note-") === 0)
-            activeDuration = spec.action;
-        if (spec.action === "escape")
-            activeTool = "escape";
-        cmd(spec.action);
     }
-    Timer {
-        id: noticeTimer
-        interval: 2000
-        onTriggered: root.notice = ""
-    }
+    Timer { id: noticeTimer; interval: 3000; onTriggered: root.notice = "" }
+    Timer { id: sizeTimer; interval: 350; onTriggered: root.saveSize() }
 
     Window {
         id: noteWindow
-        objectName: "EvanScoreNoteInputWindow"
-        title: "Keypad"
+        objectName: "evanscore-keypad"
         width: 320
-        height: 510
-        minimumWidth: 320
-        maximumWidth: 320
-        minimumHeight: 510
-        maximumHeight: 510
-        // A taskbar window allows Windows to restore the minimized keypad.
-        flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-        modality: Qt.NonModal
+        height: root.defaultHeight(root.currentPage)
+        minimumWidth: 300
+        minimumHeight: 214 + root.currentPage.rows * 36 + root.currentPage.groups.length * 18 + (root.customizeMode ? 28 : 0)
+        maximumWidth: 900
+        maximumHeight: 1200
         color: "transparent"
-        onClosing: root.quit()
+        title: "EvanScore Keypad"
+        flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        onWidthChanged: if (root.preferencesLoaded && !root.changingPage) sizeTimer.restart()
+        onHeightChanged: if (root.preferencesLoaded && !root.changingPage) sizeTimer.restart()
+        onClosing: { root.saveSize(); quit(); }
 
         Rectangle {
-            id: panel
             anchors.fill: parent
             radius: 16
-            antialiasing: true
+            border.color: "#777e858e"
             border.width: 1
-            border.color: "#5077797c"
             gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: "#e52b2e32"
+                GradientStop { position: 0; color: "#c52b2e32" }
+                GradientStop { position: 1; color: "#bb34373b" }
+            }
+        }
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 7
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30; Layout.maximumHeight: 30
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: noteWindow.startSystemMove()
+                    onDoubleClicked: root.resetSize()
                 }
-                GradientStop {
-                    position: 1
-                    color: "#d934373b"
+                KeyButton {
+                    width: 30; height: 28
+                    spec: ({label: "Customize this keypad", icon: IconCode.CONFIGURE})
+                    checked: root.customizeMode
+                    onClicked: { root.customizeMode = !root.customizeMode; picker.close(); }
+                    objectName: "keypad-customize"
+                }
+                Text { anchors.centerIn: parent; text: "Keypad"; color: "#f2f3f5"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Row {
+                    anchors.right: parent.right
+                    spacing: 3
+                    KeyButton {
+                        width: 28; height: 28
+                        spec: ({label: "Minimize", icon: IconCode.APP_MINIMIZE})
+                        onClicked: noteWindow.showMinimized()
+                    }
+                    KeyButton {
+                        width: 28; height: 28
+                        spec: ({label: "Close keypad", icon: IconCode.CLOSE_X_ROUNDED})
+                        onClicked: noteWindow.close()
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 38; Layout.maximumHeight: 38
+                spacing: 6
+                Repeater {
+                    model: ["openheads", "delete", "undo", "redo"]
+                    KeyButton {
+                        required property string modelData
+                        objectName: "keypad-" + modelData
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spec: root.catalogById[modelData]
+                        checked: root.isChecked(spec)
+                        onClicked: root.activate(spec)
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32; Layout.maximumHeight: 32
+                spacing: 3
+                Repeater {
+                    model: root.pages
+                    KeyButton {
+                        required property var modelData
+                        required property int index
+                        objectName: "keypad-tab-" + index
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spec: ({label: modelData.label, icon: root.tabIcons[index]})
+                        checked: root.activePage === index
+                        onClicked: root.setPage(index)
+                    }
+                }
+            }
+            RowLayout {
+                visible: root.customizeMode
+                Layout.fillWidth: true
+                Layout.preferredHeight: 24; Layout.maximumHeight: 24
+                Text { text: "Choose a key to replace"; color: "#e2e6ec"; font.pixelSize: 11; Layout.fillWidth: true }
+                Button {
+                    text: "Reset tab"
+                    flat: true
+                    font.pixelSize: 11
+                    onClicked: root.resetPage()
+                    contentItem: Text { text: parent.text; color: "#ffffff"; font: parent.font }
+                    background: Rectangle { radius: 6; color: parent.hovered ? "#665c626c" : "transparent" }
+                    ToolTip.visible: hovered
+                    ToolTip.text: "Restore the factory buttons on this tab"
                 }
             }
             Item {
-                id: titleBar
-                width: parent.width
-                height: 32
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.rightMargin: 74
-                    onPressed: noteWindow.startSystemMove()
+                id: keysGrid
+                objectName: "keypad-grid"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                readonly property real columnWidth: (width - 18) / 4
+                readonly property real rowHeight: (height - root.currentPage.groups.length * 18) / root.currentPage.rows
+                function groupOffset(row) { return root.currentPage.groups.filter(function(g) { return g.row <= row; }).length * 18; }
+                Repeater {
+                    model: root.currentPage.groups
+                    Text {
+                        required property var modelData
+                        x: 2; y: modelData.row * keysGrid.rowHeight + keysGrid.groupOffset(modelData.row) - 18
+                        text: modelData.label
+                        color: "#bfc7d1"
+                        font.pixelSize: 10
+                        height: 16
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
+                Repeater {
+                    model: root.currentKeys
+                    KeyButton {
+                        required property var modelData
+                        objectName: "keypad-key-" + modelData.toolId
+                        spec: modelData
+                        x: modelData.col * (keysGrid.columnWidth + 6)
+                        y: modelData.row * keysGrid.rowHeight + keysGrid.groupOffset(modelData.row)
+                        width: keysGrid.columnWidth * modelData.colSpan + 6 * (modelData.colSpan - 1)
+                        height: keysGrid.rowHeight * modelData.rowSpan - 6
+                        visible: modelData.toolId !== "empty" || root.customizeMode
+                        checked: root.isChecked(spec)
+                        onClicked: root.customizeMode ? root.beginCustomize(modelData.id) : root.activate(spec)
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32; Layout.maximumHeight: 32
+                spacing: 5
+                Repeater {
+                    model: ["1", "2", "3", "4", "All"]
+                    KeyButton {
+                        required property string modelData
+                        required property int index
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                        spec: ({ label: index < 4 ? "Voice " + modelData : "Select all voices", text: modelData })
+                        checked: index < 4 && root.activeVoice === index
+                        onClicked: {
+                            if (index < 4) { root.activeVoice = index; root.cmd("voice-" + modelData); }
+                            else voicesFilter.selectAll()
+                        }
+                        Rectangle {
+                            anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
+                            height: 2; width: parent.width - 18; radius: 1
+                            color: ["#80aaff", "#78ca94", "#f2948c", "#d5a1ec", "#aab2bf"][index]
+                        }
+                    }
+                }
+            }
+            Item {
+                Layout.fillWidth: true; Layout.preferredHeight: 19; Layout.maximumHeight: 19
                 Text {
-                    anchors.centerIn: parent
-                    text: "Keypad"
-                    color: "#f3f3f3"
-                    font.family: "Segoe UI"
-                    font.pixelSize: 13
-                    font.bold: true
+                    anchors.left: parent.left; anchors.right: resizeHandle.left; anchors.verticalCenter: parent.verticalCenter
+                    text: root.notice || (root.customizeMode ? "Layouts are saved automatically" : root.currentPage.label)
+                    color: root.notice ? "#f2ddba" : "#abb4bf"
+                    font.pixelSize: 10; elide: Text.ElideRight
                 }
-                Row {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 5
-                    spacing: 0
-                    Button {
-                        objectName: "keypad-minimize"
-                        width: 32
-                        height: 28
-                        Accessible.name: "Minimize keypad"
-                        onClicked: noteWindow.showMinimized()
-                        contentItem: Text {
-                            text: "\u2013"
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                KeyButton {
+                    id: resizeHandle
+                    objectName: "keypad-resize"
+                    anchors.right: parent.right; width: 24; height: 19
+                    spec: ({label: "Drag to resize; double-click to reset", icon: IconCode.SPLIT_OUT_ARROWS})
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.SizeFDiagCursor
+                        property point start
+                        property size original
+                        property bool systemResize: false
+                        onPressed: function(mouse) {
+                            start = mapToGlobal(mouse.x, mouse.y);
+                            original = Qt.size(noteWindow.width, noteWindow.height);
+                            systemResize = noteWindow.startSystemResize(Qt.RightEdge | Qt.BottomEdge);
                         }
-                        background: Rectangle {
-                            radius: 6
-                            color: parent.hovered ? "#30ffffff" : "transparent"
+                        onPositionChanged: function(mouse) {
+                            if (!pressed || systemResize) return;
+                            const current = mapToGlobal(mouse.x, mouse.y);
+                            noteWindow.width = root.validSize(original.width + current.x - start.x, original.width, noteWindow.minimumWidth, noteWindow.maximumWidth);
+                            noteWindow.height = root.validSize(original.height + current.y - start.y, original.height, noteWindow.minimumHeight, noteWindow.maximumHeight);
                         }
-                    }
-                    Button {
-                        objectName: "keypad-close"
-                        width: 32
-                        height: 28
-                        Accessible.name: "Close keypad"
-                        onClicked: noteWindow.close()
-                        contentItem: Text {
-                            text: "\u00d7"
-                            color: "white"
-                            font.pixelSize: 20
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            radius: 6
-                            color: parent.hovered ? "#c42b1c" : "transparent"
-                        }
+                        onDoubleClicked: root.resetSize()
                     }
                 }
             }
-            Column {
-                x: 10
-                y: 40
-                width: parent.width - 20
-                spacing: 6
-                Row {
-                    width: parent.width
-                    spacing: 6
-                    Repeater {
-                        model: [
-                            {
-                                action: "delete",
-                                label: "Delete"
-                            },
-                            {
-                                action: "undo",
-                                label: "Undo"
-                            },
-                            {
-                                action: "redo",
-                                label: "Redo"
-                            }
-                        ]
-                        delegate: KeyButton {
-                            required property var modelData
-                            spec: modelData
-                            width: (parent.width - 12) / 3
-                            height: 40
-                            onClicked: root.cmd(spec.action)
-                        }
-                    }
-                }
-                Row {
-                    width: parent.width
-                    spacing: 5
-                    Repeater {
-                        model: root.tabs
-                        delegate: KeyButton {
-                            required property var modelData
-                            required property int index
-                            spec: modelData
-                            width: (parent.width - 20) / 5
-                            height: 42
-                            checked: index === 0 ? root.openNoteheads : root.activePage === index
-                            objectName: "keypad-tab-" + index
-                            onClicked: {
-                                root.activePage = index;
-                                if (index === 0)
-                                    root.activate({ action: "open-noteheads" });
-                            }
-                        }
-                    }
-                }
-                Item {
-                    id: grid
-                    width: parent.width
-                    height: 324
-                    readonly property real keyWidth: (width - 18) / 4
-                    Repeater {
-                        model: root.pages[root.activePage]
-                        delegate: KeyButton {
-                            id: gridKey
-                            required property var modelData
-                            spec: modelData
-                            x: spec.col * (grid.keyWidth + 6)
-                            y: spec.row * 66
-                            width: spec.colSpan * (grid.keyWidth + 6) - 6
-                            height: spec.rowSpan * 66 - 6
-                            checked: (spec.action === "escape" && root.activeTool === "escape") || spec.action === root.activeDuration
-                            onClicked: root.activate(spec)
-                            Shortcut {
-                                sequence: gridKey.spec.shortcut || ""
-                                enabled: sequence !== "" && noteWindow.active
-                                context: Qt.WindowShortcut
-                                onActivated: root.activate(gridKey.spec)
-                            }
-                        }
-                    }
-                }
-                Row {
-                    width: parent.width
-                    spacing: 5
-                    Repeater {
-                        model: ["1", "2", "3", "4", "All"]
-                        delegate: KeyButton {
-                            required property string modelData
-                            required property int index
-                            spec: ({
-                                    action: index < 4 ? "voice-" + modelData : "select-all-voices",
-                                    label: index < 4 ? "Voice " + modelData : "Include all voices in range selections",
-                                    text: modelData
-                                })
-                            width: (parent.width - 20) / 5
-                            height: 36
-                            checked: root.activeVoice === index
-                            onClicked: {
-                                root.activeVoice = index;
-                                if (index < 4)
-                                    root.cmd(spec.action);
-                                else
-                                    voicesFilter.selectAll();
-                            }
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: parent.width - 12
-                                height: 2
-                                radius: 1
-                                color: ["#2b9ee9", "#69bd62", "#f39a45", "#d776d7", "#a2a5aa"][index]
-                                opacity: 0.8
-                            }
-                        }
-                    }
+        }
+        Shortcut { sequence: "Ctrl+Z"; enabled: noteWindow.active && !picker.visible; onActivated: root.cmd("command://notation/undo") }
+        Shortcut { sequences: ["Ctrl+Y", "Ctrl+Shift+Z"]; enabled: noteWindow.active && !picker.visible; onActivated: root.cmd("command://notation/redo") }
+        Shortcut {
+            sequence: "Escape"; enabled: noteWindow.active
+            onActivated: {
+                if (picker.visible) picker.close();
+                else if (root.customizeMode) root.customizeMode = false;
+                else root.cmd("escape");
+            }
+        }
+        Repeater {
+            model: root.currentKeys
+            Item {
+                id: shortcutDelegate
+                required property var modelData
+                Shortcut {
+                    sequence: shortcutDelegate.modelData.shortcut || ""
+                    enabled: noteWindow.active && !root.customizeMode && !picker.visible && !!shortcutDelegate.modelData.shortcut
+                    onActivated: root.activate(shortcutDelegate.modelData)
                 }
             }
-            Text {
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 42
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.notice
-                color: "#ffffff"
-                font.pixelSize: 10
+        }
+        Popup {
+            id: picker
+            objectName: "keypad-picker"
+            parent: noteWindow.contentItem
+            x: 12; y: 46
+            width: noteWindow.width - 24
+            height: Math.min(500, noteWindow.height - 64)
+            modal: true; focus: true
+            padding: 12
+            onOpened: { search.text = ""; search.forceActiveFocus(); }
+            background: Rectangle { color: "#f22b2e33"; radius: 12; border.color: "#777d8591" }
+            ColumnLayout {
+                anchors.fill: parent; spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: "Replace key"; color: "#f2f4f7"; font.pixelSize: 14; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                    KeyButton { width: 26; height: 26; spec: ({label: "Close",icon:IconCode.CLOSE_X_ROUNDED}); onClicked: picker.close() }
+                }
+                TextField {
+                    id: search
+                    objectName: "keypad-search"
+                    Layout.fillWidth: true
+                    placeholderText: "Search symbols and actions"
+                    color: "#ffffff"; placeholderTextColor: "#adb6c2"; font.pixelSize: 12
+                    background: Rectangle { radius: 7; color: "#363b43"; border.color: search.activeFocus ? root.accentColor : "#646d79" }
+                }
+                ScrollView {
+                    Layout.fillWidth: true; Layout.fillHeight: true
+                    contentWidth: availableWidth
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    Column {
+                        width: parent.width
+                        spacing: 5
+                        Repeater {
+                            model: root.toolCatalog.filter(function(t) { return (t.label + " " + t.category).toLowerCase().indexOf(search.text.toLowerCase()) >= 0; })
+                            RowLayout {
+                                required property var modelData
+                                width: parent.width
+                                height: 40
+                                KeyButton { Layout.preferredWidth: 42; Layout.fillHeight: true; spec: modelData; onClicked: root.replaceKey(modelData.id) }
+                                Button {
+                                    Layout.fillWidth: true; Layout.fillHeight: true
+                                    text: modelData.label; focusPolicy: Qt.NoFocus
+                                    onClicked: root.replaceKey(modelData.id)
+                                    background: Rectangle { radius: 6; color: parent.hovered ? "#536070" : "#30343b" }
+                                    contentItem: Text { text: parent.text; color: "#f4f6fa"; font.pixelSize: 11; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter }
+                                }
+                            }
+                        }
+                    }
+                }
+                Text { Layout.fillWidth: true; text: "Existing buttons swap places. Each tab saves independently."; color: "#b7c0cd"; font.pixelSize: 10; wrapMode: Text.WordWrap }
             }
         }
     }
-
     component KeyButton: Button {
         id: key
         property var spec: ({})
-        objectName: "key-" + (spec.action || "")
+        focusPolicy: Qt.NoFocus
         hoverEnabled: true
-        Accessible.name: spec.label || ""
+        padding: 0
+        Accessible.name: spec.label || "Empty key"
         ToolTip.visible: hovered
-        ToolTip.delay: 650
-        ToolTip.text: spec.label || ""
-        padding: 5
+        ToolTip.text: (spec.label || "Empty key") + (spec.shortcut ? " (" + spec.shortcut + ")" : "")
+        ToolTip.delay: 550
         background: Rectangle {
-            radius: 11
-            antialiasing: true
+            radius: Math.min(10, key.height / 4)
+            border.color: key.checked ? "#809dd3f8" : (key.hovered ? "#88949fad" : "#606d737c")
             border.width: 1
-            border.color: key.checked ? "#55bafbff" : "#287c7f84"
             gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: key.checked ? root.accentColor : key.down ? "#c36b7077" : key.hovered ? "#bd767b82" : "#a6666a70"
-                }
-                GradientStop {
-                    position: 1
-                    color: key.checked ? Qt.darker(root.accentColor, 1.15) : key.down ? "#b351555b" : "#985b5f65"
-                }
+                GradientStop { position: 0; color: key.checked ? root.accentColor : (key.down ? "#aa5a6470" : key.hovered ? "#995b6470" : "#80535a65") }
+                GradientStop { position: 1; color: key.checked ? Qt.darker(root.accentColor,1.18) : "#70464c55" }
             }
         }
         contentItem: Item {
-            id: ink
-            readonly property var bounds: key.spec.bounds || [0, 0, 1, 1]
-            readonly property real scale: Math.min(["add-sforzato", "add-tenuto"].indexOf(key.spec.action) >= 0 ? 0.085 : key.spec.action === "add-staccato" ? 0.075 : 0.04, Math.max(0, height - 8) / (bounds[3] - bounds[1]), Math.max(0, width - 8) / (bounds[2] - bounds[0]))
-            Repeater {
-                model: key.spec.glyphs || []
-                delegate: Text {
-                    required property var modelData
-                    text: modelData.symbol
-                    font.family: musicFont.name
-                    font.pixelSize: Math.max(1, ink.scale * 1000 * modelData.factor)
-                    color: "#fafafa"
-                    x: (ink.width - (ink.bounds[0] + ink.bounds[2]) * ink.scale) / 2 + modelData.x * ink.scale
-                    y: (ink.height + (ink.bounds[1] + ink.bounds[3]) * ink.scale) / 2 - modelData.y * ink.scale - baselineOffset
-                }
-            }
             Text {
                 anchors.centerIn: parent
-                text: key.spec.text && ["pointer", "flip", "tie"].indexOf(key.spec.text) < 0 ? key.spec.text : ""
-                color: "#fafafa"
-                font.family: "Segoe UI"
-                font.pixelSize: key.spec.text === "AUTO" ? 10 : 16
-                font.bold: true
+                visible: !key.spec.glyphs
+                text: key.spec.text || String.fromCharCode(key.spec.icon || IconCode.NONE)
+                font.family: key.spec.text ? "Arial" : iconFont.name
+                font.pixelSize: key.spec.text ? 18 : Math.min(key.height - 12, key.width - 14, 38) * (key.spec.grace ? 0.78 : 1)
+                font.weight: key.spec.text ? Font.DemiBold : Font.Normal
+                color: "#f8faff"
+                renderType: Text.NativeRendering
             }
-            Canvas {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: key.spec.action === "tie" && (key.spec.glyphs || []).length ? (ink.height + (ink.bounds[1] + ink.bounds[3]) * ink.scale) / 2 + 4 : (ink.height - height) / 2
-                width: 40
-                height: 40
-                visible: ["delete", "undo", "redo", "escape", "flip", "tie"].indexOf(key.spec.action) >= 0
-                onPaint: {
-                    let ctx = getContext("2d");
-                    ctx.clearRect(0, 0, 40, 40);
-                    ctx.strokeStyle = "#fafafa";
-                    ctx.fillStyle = "#fafafa";
-                    ctx.lineWidth = 2.6;
-                    ctx.lineJoin = "round";
-                    ctx.lineCap = "round";
-                    if (key.spec.action === "delete") {
-                        ctx.strokeRect(11, 12, 18, 22);
-                        ctx.strokeRect(16, 6, 8, 4);
-                        ctx.beginPath();
-                        ctx.moveTo(8, 10);
-                        ctx.lineTo(32, 10);
-                        ctx.moveTo(17, 16);
-                        ctx.lineTo(17, 29);
-                        ctx.moveTo(23, 16);
-                        ctx.lineTo(23, 29);
-                        ctx.stroke();
-                    } else if (key.spec.action === "undo" || key.spec.action === "redo") {
-                        if (key.spec.action === "redo") {
-                            ctx.translate(40, 0);
-                            ctx.scale(-1, 1);
-                        }
-                        ctx.beginPath();
-                        ctx.arc(21, 22, 12, -2.9, 1.2);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(8, 17);
-                        ctx.lineTo(8, 8);
-                        ctx.lineTo(17, 14);
-                        ctx.fill();
-                    } else if (key.spec.action === "escape") {
-                        ctx.beginPath();
-                        ctx.moveTo(12, 5);
-                        ctx.lineTo(12, 32);
-                        ctx.lineTo(19, 26);
-                        ctx.lineTo(25, 35);
-                        ctx.lineTo(29, 32);
-                        ctx.lineTo(23, 23);
-                        ctx.lineTo(32, 23);
-                        ctx.closePath();
-                        ctx.fill();
-                    } else if (key.spec.action === "flip") {
-                        ctx.beginPath();
-                        ctx.ellipse(14, 16, 12, 8);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.moveTo(15, 10);
-                        ctx.lineTo(20, 5);
-                        ctx.lineTo(25, 10);
-                        ctx.moveTo(15, 30);
-                        ctx.lineTo(20, 35);
-                        ctx.lineTo(25, 30);
-                        ctx.stroke();
-                    } else if (key.spec.action === "tie") {
-                        if (!(key.spec.glyphs || []).length) {
-                            ctx.beginPath();
-                            ctx.ellipse(4, 17, 9, 6);
-                            ctx.ellipse(27, 17, 9, 6);
-                            ctx.fill();
-                        }
-                        ctx.beginPath();
-                        ctx.moveTo(9, 4);
-                        ctx.bezierCurveTo(15, 10, 25, 10, 31, 4);
-                        ctx.bezierCurveTo(25, 13, 15, 13, 9, 4);
-                        ctx.fill();
+            Item {
+                id: ink
+                anchors.fill: parent
+                visible: !!key.spec.glyphs
+                readonly property var bounds: key.spec.bounds || [0,0,1,1]
+                readonly property real scale: Math.min(0.045, Math.max(0,height - 14) / (bounds[3]-bounds[1]), Math.max(0,width-14) / (bounds[2]-bounds[0]))
+                Repeater {
+                    model: key.spec.glyphs || []
+                    Text {
+                        required property var modelData
+                        text: modelData.symbol
+                        font.family: modelData.fallback ? fallbackFont.name : musicFont.name
+                        font.pixelSize: 1000 * ink.scale
+                        x: (ink.width - (ink.bounds[0]+ink.bounds[2])*ink.scale)/2 + modelData.x * ink.scale
+                        y: (ink.height + (ink.bounds[1]+ink.bounds[3])*ink.scale)/2 - modelData.y * ink.scale - baselineOffset
+                        color: "#f8faff"
+                        renderType: Text.NativeRendering
                     }
                 }
             }
+            Text { anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 5; text: key.spec.badge || (key.spec.after ? "→" : ""); color: "#d1d9e4"; font.pixelSize: 10 }
         }
     }
 }

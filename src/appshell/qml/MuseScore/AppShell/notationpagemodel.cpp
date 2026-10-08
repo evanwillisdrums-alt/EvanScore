@@ -181,6 +181,7 @@ QString NotationPageModel::statusBarName() const
 
 void NotationPageModel::onNotationChanged()
 {
+    emit hasNotationChanged();
     INotationPtr notation = globalContext()->currentNotation();
     if (!notation) {
         return;
@@ -357,4 +358,9 @@ void NotationPageModel::doUpdateExtensionsToolBarVisibility()
     }
 
     setExtensionsToolBarOpen(false);
+}
+
+bool NotationPageModel::hasNotation() const
+{
+    return globalContext()->currentNotation() != nullptr;
 }

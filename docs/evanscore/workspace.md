@@ -1,0 +1,22 @@
+# EvanScore working workspace
+
+The app starts directly in the notation workspace. New/Open/Save are always on the compact file bar; Files opens the recent-score browser and plugin manager. With no score open, the canvas offers New score, Open score, and Recent scores without a tutorial or modal prompt. Closing the last score returns to this canvas. Session recovery and unsaved-change prompts remain intact. Explicit startup preferences (new score, specific score, continue last) still work.
+
+Automatic first-launch setup, welcome/version promotions, and instructional tours are removed. The Learn item is omitted from the file-browser sidebar; the Help menu remains available. Publishing and developer tools are removed from the primary navigation. Project titles identify EvanScore.
+
+The neutral charcoal appearance is applied once on first launch of this update. Later appearance choices in Preferences are respected across restarts; high-contrast themes are preserved. Rounded document tabs have quieter borders, an unsaved-change dot, close buttons, and existing context-menu/middle-click behavior. No score music fonts or notation styles are changed by the UI theme.
+
+The reference direction is the user's IMG_0529/0530 Logic-style workspace and IMG_0532 translucent keypad, as recorded in AGENTS.md. Attempts to retrieve the official Apple Logic Pro/Human Interface Guidelines and Microsoft Fluent design pages were blocked by the environment's network proxy; no claims rely on reviewing those inaccessible pages. The implementation emphasizes grouped native controls, consistent rounding/spacing, restrained blue selection, and clear musical icons.
+
+## Dynamics responsiveness
+
+The native Dynamics model caches the mapping table and only notifies it when score-wide mapping values change. Selection, curve, and local-note updates use a separate notification. The QML grid uses stable dynamic row identities, so editing a velocity does not destroy/recreate its editor or lose keyboard focus. Preset loading and undo/redo still refresh changed values.
+
+## Validation
+
+- Qt C++ syntax checks for startup, appearance, navigation, project closing, and dynamics model sources.
+- Actual Qt Quick interaction checks for all five keypad tabs, modern undo/redo dispatch, tremolo type/track assignment, independent open noteheads, layout swap/save/reset, and per-tab resize persistence. Host services were mocked; symbols were rendered with the repository's actual fonts.
+- Actual Dynamics QML checks for curve dragging, note selection, zero-velocity mute, presets/defaults, and repeated keyboard edits without recreating the mapping editor. Host model was mocked.
+- Windows release gate requires score export and a real responsive desktop window beyond the splash; its title must identify EvanScore and no automatic onboarding dialog may be present. Native Windows build results are reported separately.
+
+Plugin packaging waits for the matching native Windows build when both native and plugin files change, preventing an update archive from silently reverting newer native features.

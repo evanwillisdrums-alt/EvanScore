@@ -90,9 +90,6 @@ DockWindow {
                     root.openPage(uri)
                 }
 
-                Component.onCompleted: {
-                    toolBar.focusOnFirst()
-                }
             }
         }
     ]

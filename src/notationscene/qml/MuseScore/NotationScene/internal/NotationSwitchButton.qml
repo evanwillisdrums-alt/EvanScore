@@ -45,7 +45,7 @@ FlatRadioButton {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        spacing: 4
+        spacing: 6
 
         StyledTextLabel {
             Layout.alignment: Qt.AlignLeft
@@ -55,7 +55,17 @@ FlatRadioButton {
 
             horizontalAlignment: Text.AlignLeft
 
-            text: (root.needSave ? "*" : "") + root.text
+            text: root.text
+            elide: Text.ElideRight
+        }
+
+        Rectangle {
+            visible: root.needSave
+            Layout.preferredWidth: 5
+            Layout.preferredHeight: 5
+            Layout.alignment: Qt.AlignVCenter
+            radius: 3
+            color: ui.theme.accentColor
         }
 
         StyledIconLabel {
@@ -86,20 +96,23 @@ FlatRadioButton {
             }
         }
 
-        SeparatorLine { orientation: Qt.Vertical }
+
     }
 
     background: Rectangle {
         id: background
         anchors.fill: parent
-
-        color: ui.theme.backgroundSecondaryColor
+        anchors.topMargin: 3
+        anchors.bottomMargin: 3
+        radius: 8
+        color: "transparent"
 
         Rectangle {
             id: backgroundInner
             anchors.fill: parent
 
             visible: false
+            radius: background.radius
             color: "white"
             opacity: 0.05
         }
@@ -144,7 +157,7 @@ FlatRadioButton {
 
                 PropertyChanges {
                     target: background
-                    color: ui.theme.popupBackgroundColor
+                    color: ui.theme.projectTabColor
                 }
 
                 PropertyChanges {

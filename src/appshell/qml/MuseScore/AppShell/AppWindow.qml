@@ -73,7 +73,6 @@ ApplicationWindow {
 
     ToolTipProvider { }
 
-    ToursProvider { }
 
     //! NOTE Need only create
     Shortcuts { }

@@ -45,6 +45,8 @@ class NotationPageModel : public QObject, public muse::Contextable, public muse:
     Q_PROPERTY(bool isNavigatorVisible READ isNavigatorVisible NOTIFY isNavigatorVisibleChanged)
     Q_PROPERTY(bool isBraillePanelVisible READ isBraillePanelVisible NOTIFY isBraillePanelVisibleChanged)
 
+    Q_PROPERTY(bool hasNotation READ hasNotation NOTIFY hasNotationChanged)
+
     QML_ELEMENT
 
     muse::GlobalInject<notation::INotationSceneConfiguration> notationSceneConfiguration;
@@ -58,6 +60,7 @@ class NotationPageModel : public QObject, public muse::Contextable, public muse:
 public:
     explicit NotationPageModel(QObject* parent = nullptr);
 
+    bool hasNotation() const;
     bool isNavigatorVisible() const;
     bool isBraillePanelVisible() const;
 
@@ -84,6 +87,7 @@ public:
     Q_INVOKABLE QString statusBarName() const;
 
 signals:
+    void hasNotationChanged();
     void isNavigatorVisibleChanged();
     void isBraillePanelVisibleChanged();
 

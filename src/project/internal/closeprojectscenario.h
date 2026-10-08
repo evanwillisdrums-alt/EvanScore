@@ -66,7 +66,7 @@ private:
     //! NOTE Lets go of the score, and of everything that was opened for it
     muse::async::Promise<muse::Ret> doCloseProject(bool goToHome);
 
-    void openHomePageIfNeed();
+    void openWorkspaceIfNeed();
 
     std::set<BusyStatus> m_busyStatuses;
     muse::async::Notification m_busyChanged;

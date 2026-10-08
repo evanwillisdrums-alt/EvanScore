@@ -33,7 +33,7 @@ import MuseScore.NotationScene
 Rectangle {
     id: root
 
-    height: 26
+    height: 34
     visible: notationsView.count > 0
     color: ui.theme.backgroundSecondaryColor
 
@@ -45,7 +45,7 @@ Rectangle {
 
     function ensureActive() {
         var item = notationsView.itemAtIndex(notationsView.currentIndex) as NotationSwitchButton
-        item.navigation.requestActive()
+        if (item) item.navigation.requestActive()
     }
 
     NotationSwitchListModel {
@@ -77,7 +77,7 @@ Rectangle {
 
             model: notationSwitchModel
             currentIndex: 0
-            spacing: 0
+            spacing: 4
 
             clip: true
             interactive: true
@@ -133,7 +133,7 @@ Rectangle {
         Row {
             Layout.fillHeight: true
             Layout.leftMargin: -1
-            spacing: 0
+            spacing: 4
 
             visible: notationsView.needsScrollArrowButtons
 

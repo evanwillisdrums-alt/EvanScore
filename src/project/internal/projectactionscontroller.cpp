@@ -413,7 +413,7 @@ muse::Ret ProjectActionsController::continueLastSession()
     const RecentFilesList& recentScorePaths = recentFilesController()->recentFilesList();
 
     if (recentScorePaths.empty()) {
-        Ret ret = openPageIfNeed(HOME_PAGE_URI);
+        Ret ret = openPageIfNeed(NOTATION_PAGE_URI);
         if (!ret) {
             LOGE() << ret.toString();
         }

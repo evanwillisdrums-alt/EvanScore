@@ -39,8 +39,9 @@ void DynamicsPanelModel::onNotationChanged() {
             m_forceScore = false;
             if (!m_editing) emit stateChanged();
         });
-        m_notation->notationChanged().onReceive(&m_notationReceiver, [this](const RectF&) { if (!m_editing) emit stateChanged(); });
+        m_notation->notationChanged().onReceive(&m_notationReceiver, [this](const RectF&) { if (!m_editing) { refreshMappings(); emit stateChanged(); } });
     }
+    refreshMappings();
     emit stateChanged();
 }
 Score* DynamicsPanelModel::score() const { return m_notation ? m_notation->elements()->msScore() : nullptr; }
@@ -113,22 +114,32 @@ QVariantList DynamicsPanelModel::dynamicChoices() const {
     }
     return result;
 }
-QVariantList DynamicsPanelModel::mappings() const {
-    QVariantList result; auto s = score(); if (!s) return result;
+QVariantList DynamicsPanelModel::mappings() const { return m_mappings; }
+void DynamicsPanelModel::refreshMappings() {
+    auto s = score();
+    QStringList sources;
+    if (s) for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role)
+        sources.append(DynamicsPlayback::profile(s).styleSt(DynamicsPlayback::mappingStyle(role)).toQString());
+    if (sources == m_mappingSources) return;
+    m_mappingSources = sources;
+    QVariantList result;
+    if (s)
     for (const auto& def : Dynamic::definitions()) {
         if (def.type == DynamicType::OTHER) continue;
         result.append(QVariantMap { {"name", QString::fromStdString(TConv::toXml(def.type).ascii())}, {"dynamic", static_cast<int>(def.type)},
             {"normal", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Normal)}, {"tap", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Tap)}, {"accent", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Accent)},
             {"tenuto", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Tenuto)}, {"marcato", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Marcato)}, {"ghost", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Ghost)}, {"softAccent", DynamicsPlayback::level(s, def.type, DynamicsPlayback::SoftAccent)}, {"stress", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Stress)}, {"unstress", DynamicsPlayback::level(s, def.type, DynamicsPlayback::Unstress)} });
     }
-    return result;
+    if (result == m_mappings) return;
+    m_mappings = result;
+    emit mappingsChanged();
 }
 void DynamicsPanelModel::edit(const std::function<void()>& change, const char* label) {
     if (!m_notation) return;
     m_editing = true;
     auto undo = m_notation->undoStack(); undo->prepareChanges(TranslatableString("undoableAction", label));
     change(); undo->commitChanges();
-    m_editing = false; emit stateChanged();
+    m_editing = false; refreshMappings(); emit stateChanged();
 }
 void DynamicsPanelModel::showScore() { m_forceScore = true; emit stateChanged(); }
 void DynamicsPanelModel::followSelection() { m_forceScore = false; emit stateChanged(); }
