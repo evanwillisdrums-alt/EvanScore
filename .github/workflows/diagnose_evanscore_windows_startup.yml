@@ -74,7 +74,7 @@ jobs:
           from PIL import Image
           files = sorted(Path('checks').rglob('desktop.png'))
           if files:
-              file = files[0]
+              file = next((f for f in files if f.parent.name.endswith('score')), files[0])
               data = file.read_bytes()
               if len(data) > 20000:
                   preview = Image.open(file).convert('RGB')
