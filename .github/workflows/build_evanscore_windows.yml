@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - codex/rounded-ui-windows-preview
+    paths-ignore:
+      - 'share/plugins/**'
+      - 'AGENTS.md'
+      - '.github/workflows/package_evanscore_plugin_update.yml'
 
 permissions:
   contents: read

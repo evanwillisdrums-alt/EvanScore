@@ -1,0 +1,76 @@
+name: EvanScore Windows plugin update
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/rounded-ui-windows-preview
+    paths:
+      - 'share/plugins/**'
+      - '.github/workflows/package_evanscore_plugin_update.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Find the latest verified Windows build
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base_run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build_evanscore_windows.yml/runs?branch=codex%2Frounded-ui-windows-preview&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          test "$base_run" != null
+          echo "run=$base_run" >> "$GITHUB_OUTPUT"
+
+      - name: Download the verified app
+        uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-x64
+          path: packaged-app
+          run-id: ${{ steps.base.outputs.run }}
+          github-token: ${{ github.token }}
+
+      - name: Update plugins and verify unchanged executables
+        env:
+          BASE_RUN: ${{ steps.base.outputs.run }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, os, shutil, struct
+          app = Path('packaged-app')
+          executables = list(app.rglob('*.exe'))
+          hashes = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in executables}
+          native = next(p for p in executables if p.stem.startswith('MuseScore'))
+          data = native.read_bytes()
+          pe = struct.unpack_from('<I', data, 0x3c)[0]
+          assert data[:2] == b'MZ' and data[pe:pe+4] == b'PE\0\0'
+          assert struct.unpack_from('<H', data, pe+4)[0] == 0x8664
+          targets = list(app.rglob('EvanScoreNoteInput.qml'))
+          assert len(targets) == 1, targets
+          source = Path('share/plugins/evanscore_note_input')
+          shutil.copytree(source, targets[0].parent, dirs_exist_ok=True)
+          for file in source.iterdir():
+              if file.is_file():
+                  assert file.read_bytes() == (targets[0].parent / file.name).read_bytes()
+          assert all(hashlib.sha256(p.read_bytes()).hexdigest() == digest for p, digest in hashes.items())
+          with (app / 'EvanScore-README.txt').open('a', encoding='utf-8') as f:
+              f.write('\nPlugin update: notation previews and host-theme styling.\n')
+              f.write('Base native build: https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['BASE_RUN'] + '\n')
+              f.write('Updated plugin source: https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/tree/' + os.environ['GITHUB_SHA'] + '\n')
+              f.write('Executable hashes are unchanged from the verified native build.\n')
+          print('Windows x64 app preserved; updated plugin files verified.')
+          PY
+
+      - name: Upload runnable Windows app
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-x64
+          path: packaged-app/
+          if-no-files-found: error
+          retention-days: 14
