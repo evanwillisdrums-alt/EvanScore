@@ -7,13 +7,41 @@ on:
         description: Windows app build run to test
         required: true
         default: '37808411015'
+      mode:
+        description: Inspect launch logs or run desktop checks
+        type: choice
+        options:
+          - inspect-logs
+          - desktop
+        default: inspect-logs
 
 permissions:
   actions: read
   contents: read
 
 jobs:
+  inspect:
+    if: inputs.mode == 'inspect-logs'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-build-checks
+          path: checks
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Report launch diagnostics through check annotations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for file in Path('checks').rglob('*'):
+              if file.is_file() and file.suffix in ('.log', '.json'):
+                  content = file.read_text(encoding='utf-8-sig', errors='replace')[-14000:]
+                  message = (str(file) + '\n' + content).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Windows launch diagnostics::' + message)
+          PY
   startup:
+    if: inputs.mode == 'desktop' 
     runs-on: windows-2025
     timeout-minutes: 10
     strategy:
