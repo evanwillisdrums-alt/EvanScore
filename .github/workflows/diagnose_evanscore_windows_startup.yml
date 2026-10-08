@@ -191,8 +191,11 @@ jobs:
           cmake -S buildscripts/ci/windows/startup-inspector -B inspector -G Ninja -DCMAKE_BUILD_TYPE=Release || exit /b 1
           cmake --build inspector || exit /b 1
           '@ | Set-Content inspector-build.cmd
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
           cmd /c inspector-build.cmd > inspector-build.log 2>&1
           $buildExit = $LASTEXITCODE
+          $ErrorActionPreference = 'Stop'
           $content = Get-Content inspector-build.log -Raw
           Write-Host $content
           if ($buildExit -ne 0) {
@@ -226,6 +229,14 @@ jobs:
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
               $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
               Write-Host "::notice title=Layout experiment::$($_.Name) $chunk"
+            }
+          }
+          if (Test-Path inspector-build.log) {
+            $content = Get-Content inspector-build.log -Raw
+            if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
+            for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
+              $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Host "::notice title=Inspector build::$chunk"
             }
           }
       - uses: actions/upload-artifact@v7
