@@ -31,6 +31,7 @@ Column {
     property var padModel: null
 
     property int panelMode: -1
+    property bool compactStrip: false
     property bool useNotationPreview: false
     property alias notationPreviewNumStaffLines: notationPreview.numStaffLines
     property color notationPreviewBackgroundColor: "transparent"
@@ -43,24 +44,24 @@ Column {
 
     function openContextMenu(pos) {
         if (!root.padModel) {
-            return
+            return;
         }
 
         if (!pos) {
-            pos = menuLoader.parent.mapFromItem(root, 0, root.height)
+            pos = menuLoader.parent.mapFromItem(root, 0, root.height);
         }
 
-        menuLoader.show(pos, root.padModel.contextMenuItems)
+        menuLoader.show(pos, root.padModel.contextMenuItems);
     }
 
     QtObject {
         id: prv
 
-        readonly property var currentColor: root.useNotationPreview ? root.notationPreviewBackgroundColor : ui.theme.accentColor
+        readonly property var currentColor: root.compactStrip ? ui.theme.accentColor : root.useNotationPreview ? root.notationPreviewBackgroundColor : ui.theme.accentColor
 
-        readonly property var currentOpacityNormal: root.useNotationPreview ? 0.9 : ui.theme.buttonOpacityNormal
-        readonly property var currentOpacityHover: root.useNotationPreview ? 0.7 : ui.theme.buttonOpacityHover
-        readonly property var currentOpacityHit: root.useNotationPreview ? 1.0 : ui.theme.buttonOpacityHit
+        readonly property var currentOpacityNormal: root.compactStrip ? 0 : root.useNotationPreview ? 0.9 : ui.theme.buttonOpacityNormal
+        readonly property var currentOpacityHover: root.compactStrip ? 0.12 : root.useNotationPreview ? 0.7 : ui.theme.buttonOpacityHover
+        readonly property var currentOpacityHit: root.compactStrip ? 0.25 : root.useNotationPreview ? 1.0 : ui.theme.buttonOpacityHit
     }
 
     Item {
@@ -78,32 +79,32 @@ Column {
 
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            onPressed: function(event) {
-                ui.tooltip.hide(root)
+            onPressed: function (event) {
+                ui.tooltip.hide(root);
 
                 if (!Boolean(root.padModel)) {
-                    return
+                    return;
                 }
 
                 if (event.button === Qt.RightButton) {
-                    let pos = menuLoader.parent.mapFromItem(mouseArea, event.x, event.y)
-                    root.openContextMenu(pos)
-                    return
+                    let pos = menuLoader.parent.mapFromItem(mouseArea, event.x, event.y);
+                    root.openContextMenu(pos);
+                    return;
                 }
 
-                root.padModel.triggerPad(event.modifiers)
+                root.padModel.triggerPad(event.modifiers);
             }
 
             onContainsMouseChanged: {
                 if (!Boolean(root.padModel)) {
-                    ui.tooltip.hide(root)
-                    return
+                    ui.tooltip.hide(root);
+                    return;
                 }
 
                 if (mouseArea.containsMouse && root.useNotationPreview) {
-                    ui.tooltip.show(root, root.padModel.padName)
+                    ui.tooltip.show(root, root.padModel.padName);
                 } else {
-                    ui.tooltip.hide(root)
+                    ui.tooltip.hide(root);
                 }
             }
         }
@@ -141,7 +142,7 @@ Column {
             anchors.fill: parent
 
             engravingItem: Boolean(root.padModel) ? root.padModel.notationPreviewItem : null
-            spatium: 6.25 // Value approximated visually (needs to accommodate "extreme ledger line" situations)
+            spatium: root.compactStrip ? Math.min(4.5, mainContentArea.width / 6) : 6.25
 
             opacity: 0.9
         }
@@ -170,7 +171,7 @@ Column {
         id: separator
 
         width: parent.width
-        height: 1
+        height: root.compactStrip ? 0 : 1
 
         color: root.useNotationPreview ? ui.theme.strokeColor : ui.theme.accentColor
     }
@@ -182,7 +183,7 @@ Column {
         bottomLeftRadius: root.cornerRadius
         bottomRightRadius: root.cornerRadius
 
-        color: Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.buttonOpacityNormal)
+        color: root.compactStrip ? "transparent" : Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.buttonOpacityNormal)
 
         MouseArea {
             id: footerMouseArea
@@ -193,9 +194,9 @@ Column {
 
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            onPressed: function(event) {
-                let pos = menuLoader.parent.mapFromItem(footerMouseArea, event.x, event.y)
-                root.openContextMenu(pos)
+            onPressed: function (event) {
+                let pos = menuLoader.parent.mapFromItem(footerMouseArea, event.x, event.y);
+                root.openContextMenu(pos);
             }
         }
 
@@ -203,17 +204,21 @@ Column {
             id: shortcutLabel
 
             anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.margins: 6
+            anchors.left: root.compactStrip ? undefined : parent.left
+            anchors.horizontalCenter: root.compactStrip ? parent.horizontalCenter : undefined
+            anchors.margins: root.compactStrip ? 0 : 6
+            width: root.compactStrip ? parent.width : implicitWidth
 
             font: ui.theme.bodyFont
-            color: ui.theme.fontPrimaryColor
+            font.pixelSize: root.compactStrip ? 9 : ui.theme.bodyFont.pixelSize
+            color: root.compactStrip ? "#53565a" : ui.theme.fontPrimaryColor
 
             text: Boolean(root.padModel) ? root.padModel.keyboardShortcut : ""
         }
 
         StyledIconLabel {
             id: midiNoteIcon
+            visible: !root.compactStrip
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: midiNoteLabel.left
@@ -225,6 +230,7 @@ Column {
 
         StyledTextLabel {
             id: midiNoteLabel
+            visible: !root.compactStrip
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -240,8 +246,8 @@ Column {
     ContextMenuLoader {
         id: menuLoader
 
-        onHandleMenuItem: function(itemId) {
-            root.padModel.handleMenuItem(itemId)
+        onHandleMenuItem: function (itemId) {
+            root.padModel.handleMenuItem(itemId);
         }
 
         states: [
@@ -250,7 +256,7 @@ Column {
                 when: footerMouseArea.containsMouse && !footerMouseArea.pressed
                 PropertyChanges {
                     target: footerArea
-                    color: Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.buttonOpacityHover)
+                    color: Utils.colorWithAlpha(root.compactStrip ? ui.theme.accentColor : ui.theme.buttonColor, root.compactStrip ? 0.12 : ui.theme.buttonOpacityHover)
                 }
             },
             State {
@@ -258,7 +264,7 @@ Column {
                 when: footerMouseArea.pressed
                 PropertyChanges {
                     target: footerArea
-                    color: Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.buttonOpacityHit)
+                    color: Utils.colorWithAlpha(root.compactStrip ? ui.theme.accentColor : ui.theme.buttonColor, root.compactStrip ? 0.25 : ui.theme.buttonOpacityHit)
                 }
             }
         ]

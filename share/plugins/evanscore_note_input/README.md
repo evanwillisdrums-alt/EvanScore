@@ -1,13 +1,15 @@
 # EvanScore floating note input
 
-This is a QML plugin, not a native application window. It opens on demand as a draggable, nonmodal keypad, so the score remains available. Close it with its title-bar close button.
+Enable **EvanScore Note Input** through Extensions > Manage plugins, then run it from the Extensions menu. It opens only on request as a draggable, nonmodal QML plugin window. The score remains available while it is open.
 
-Enable **EvanScore Note Input** through Extensions > Manage plugins, then run it from the Extensions menu. The updated EvanScore build bundles it; for manual installation, put this folder in the user plugins folder configured in Preferences.
+The dark translucent keypad follows the supplied IMG_0532.jpeg reference: delete/undo/redo, five category tabs, a four-column notation grid with a wide rest key and tall tie key, and the voice row. Windows minimize and close buttons are in the top right. Restore a minimized keypad from the Windows taskbar. Closing it stops this plugin, not the application.
 
-Buttons use MuseScore's note-input commands. Quarter/eighth/16th, half, rest, dot, accidentals, flam, accent, tie and marcato use existing commands. Diddle and roll use the new EvanScore commands and require the updated app. Select notes before applying flam, diddle or roll.
+The tabs expose note values, grace notes and percussion commands (flam/diddle/roll), beam controls, articulations, and accidentals. Hover for names; the keys show musical symbols. Buttons dispatch MuseScore's native commands. Fermatas use the score plugin API in one undoable operation, and clicking again removes them when all selected targets already have a fermata. Diddle and roll require the updated EvanScore app. Select notes before adding flam/diddle/roll or fermatas.
 
-The keypad follows the app's light/dark theme and rounded control styling. Buttons show notation previews, including grace notes for flams and one/three tremolo slashes for diddles/rolls. Hover for descriptive labels and shortcuts. Leland supplies the keypad's UI symbols; score music fonts are unchanged.
+Voice 1–4 selects the native input voice. **All** enables all four voices in MuseScore's selection filter for range selections; it does not enter the same note in four voices.
 
-To update an already downloaded app, replace `plugins/evanscore_note_input/EvanScoreNoteInput.qml` inside its extracted resources folder with this version, then restart the app. Updating this QML plugin does not require rebuilding the executable.
+Leland supplies the keypad's UI symbols only. Score music fonts are unchanged. The panel and inactive keys have translucent backgrounds; notation glyphs stay opaque and legible. Selected keys reuse the app's blue accent.
 
 The keypad's number shortcuts work while the keypad has focus. Global keyboard shortcuts and mouse side-button assignments are configured in Preferences > Shortcuts.
+
+For manual installation, put this whole folder in the user plugins folder configured in Preferences. To update an extracted EvanScore app, replace its `plugins/evanscore_note_input` folder and restart. Updating this plugin does not rebuild or update native percussion-strip and toolbar changes; those require the new full app download.

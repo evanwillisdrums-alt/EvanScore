@@ -47,10 +47,18 @@ Item {
                                 : tempoLoader.x + tempoLoader.width
     height: 30
 
+    Rectangle {
+        anchors.fill: parent
+        radius: 10
+        color: ui.theme.backgroundSecondaryColor
+        opacity: 0.55
+    }
+
     ListView {
         id: buttonsListView
 
         anchors.left: parent.left
+        anchors.leftMargin: 4
 
         width: contentWidth
         height: contentHeight
@@ -120,6 +128,7 @@ Item {
         anchors.bottomMargin: 2
 
         orientation: Qt.Vertical
+        opacity: 0.35
         visible: !root.floating
     }
 
@@ -257,6 +266,7 @@ Item {
         anchors.bottomMargin: 2
 
         orientation: Qt.Vertical
+        opacity: 0.35
         visible: !root.floating
     }
 }

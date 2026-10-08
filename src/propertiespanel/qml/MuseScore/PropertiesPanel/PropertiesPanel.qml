@@ -64,7 +64,7 @@ Rectangle {
         topMargin: 12
         bottomMargin: 12
 
-        spacing: 12
+        spacing: 8
 
         interactive: !popupController.isAnyPopupOpen
 
@@ -96,28 +96,35 @@ Rectangle {
             popupController.repositionPopupIfNeed()
         }
 
-        delegate: Column {
+        delegate: Item {
             id: delegateItem
 
             required property PropertiesPanelAbstractModel propertiesPanelSectionModel
             required property int index
 
             width: ListView.view.width
-            spacing: sectionList.spacing
+            height: _item.implicitHeight + 20
 
             property var navigationPanel: _item.navigationPanel
 
-            SeparatorLine {
-                visible: delegateItem.index !== 0
+            Rectangle {
+                anchors.fill: parent
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
+                radius: 10
+                color: ui.theme.backgroundSecondaryColor
+                opacity: 0.45
             }
 
             PropertiesPanelSectionDelegate {
                 id: _item
 
+                anchors.top: parent.top
+                anchors.topMargin: 10
                 anchors.left: parent.left
-                anchors.leftMargin: 12
+                anchors.leftMargin: 18
                 anchors.right: parent.right
-                anchors.rightMargin: 12
+                anchors.rightMargin: 18
 
                 sectionModel: delegateItem.propertiesPanelSectionModel
                 anchorItem: root

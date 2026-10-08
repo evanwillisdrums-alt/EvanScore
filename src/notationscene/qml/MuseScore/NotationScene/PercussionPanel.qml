@@ -32,6 +32,8 @@ import MuseScore.NotationScene
 Item {
     id: root
 
+    readonly property bool compactStrip: percModel.currentPanelMode !== PanelMode.EDIT_LAYOUT
+
     property NavigationSection navigationSection: null
     property int contentNavigationPanelOrderStart: 1
 
@@ -113,24 +115,14 @@ Item {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: parent.width
+        width: Math.max(0, parent.width - 16)
 
-        contentWidth: rowLayout.width
+        contentWidth: width
         contentHeight: rowLayout.height + rowLayout.anchors.topMargin
 
         clip: true
-        flickableDirection: Flickable.HorizontalFlick
+        interactive: false
         boundsBehavior: Flickable.StopAtBounds
-        StyledScrollBar.horizontal: horizontalScrollBar
-
-        WheelHandler {
-            target: null
-            onWheel: function (event) {
-                let delta = event.pixelDelta.x || event.pixelDelta.y || (event.angleDelta.x || event.angleDelta.y) / 3;
-                flickable.contentX = Math.max(0, Math.min(flickable.contentWidth - flickable.width, flickable.contentX - delta));
-                event.accepted = true;
-            }
-        }
 
         RowLayout {
             id: rowLayout
@@ -158,6 +150,7 @@ Item {
                 }
             }
 
+            width: flickable.width
             height: padGrid.cellHeight * padGrid.numRows
             anchors.top: parent.top
             anchors.topMargin: Math.max((flickable.height - height) / 2, 0)
@@ -168,17 +161,25 @@ Item {
 
                 readonly property int numRows: 1
                 readonly property int numColumns: model.numPads
-                readonly property int spacing: 12
+                readonly property int spacing: root.compactStrip ? 0 : 4
 
                 property PercussionPanelPad swapOriginPad: null
                 property bool isKeyboardSwapActive: false
 
-                width: padRow.width
+                Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: width
+                Layout.minimumWidth: 0
 
-                property int cellWidth: 104
-                property int cellHeight: 88
+                readonly property int visiblePadCount: Math.max(1, root.compactStrip ? model.activePadCount : model.numPads)
+                readonly property real cellWidth: Math.max(0, Math.min(40, (width - spacing * (visiblePadCount - 1)) / visiblePadCount))
+                readonly property int cellHeight: root.compactStrip ? 68 : 88
+
+                Rectangle {
+                    anchors.fill: parent
+                    visible: root.compactStrip && percModel.enabled
+                    radius: 6
+                    color: percModel.notationPreviewBackgroundColor
+                }
 
                 property alias model: padRepeater.model
 
@@ -235,7 +236,8 @@ Item {
                                 padModel: padArea.padModel
                                 panelEnabled: percModel.enabled
                                 panelMode: percModel.currentPanelMode
-                                useNotationPreview: percModel.useNotationPreview
+                                compactStrip: root.compactStrip
+                                useNotationPreview: root.compactStrip || percModel.useNotationPreview
                                 notationPreviewNumStaffLines: percModel.notationPreviewNumStaffLines
                                 notationPreviewBackgroundColor: percModel.notationPreviewBackgroundColor
 
@@ -277,11 +279,6 @@ Item {
                                         return;
                                     }
                                     navigationPrv.currentPadNavigationIndex = [pad.navigationRow, pad.navigationColumn];
-                                    let left = padArea.mapToItem(flickable.contentItem, 0, 0).x;
-                                    if (left < flickable.contentX)
-                                        flickable.contentX = left;
-                                    else if (left + padArea.width > flickable.contentX + flickable.width)
-                                        flickable.contentX = left + padArea.width - flickable.width;
                                 }
 
                                 Connections {
@@ -375,11 +372,9 @@ Item {
 
                 onClicked: {
                     padGrid.model.addEmptyRow/*focusFirstInNewRow*/ (true);
-                    flickable.contentX = Math.max(0, flickable.contentWidth - flickable.width);
                 }
             }
         }
-
     }
 
     StyledTextLabel {
@@ -388,13 +383,5 @@ Item {
         anchors.centerIn: flickable
         font: ui.theme.bodyFont
         text: qsTrc("notation/percussion", "Select an unpitched percussion staff to see available sounds")
-    }
-
-    StyledScrollBar {
-        id: horizontalScrollBar
-        orientation: Qt.Horizontal
-        width: flickable.width
-        anchors.horizontalCenter: flickable.horizontalCenter
-        anchors.bottom: root.bottom
     }
 }

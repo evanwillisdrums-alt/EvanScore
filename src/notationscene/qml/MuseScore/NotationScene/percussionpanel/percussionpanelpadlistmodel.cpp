@@ -21,6 +21,7 @@
  */
 
 #include "percussionpanelpadlistmodel.h"
+#include <algorithm>
 
 #include "notationscene/utilities/percussionutilities.h"
 
@@ -59,6 +60,11 @@ QHash<int, QByteArray> PercussionPanelPadListModel::roleNames() const
         { PadModelRole, "padModel" },
     };
     return roles;
+}
+
+int PercussionPanelPadListModel::activePadCount() const
+{
+    return static_cast<int>(std::count_if(m_padModels.begin(), m_padModels.end(), [](const auto* pad) { return pad != nullptr; }));
 }
 
 void PercussionPanelPadListModel::init()

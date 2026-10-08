@@ -42,6 +42,7 @@ class PercussionPanelPadListModel : public QAbstractListModel, public muse::Cont
 
     Q_PROPERTY(int numColumns READ numColumns NOTIFY numColumnsChanged)
     Q_PROPERTY(int numPads READ numPads NOTIFY numPadsChanged)
+    Q_PROPERTY(int activePadCount READ activePadCount NOTIFY numPadsChanged)
 
     QML_ELEMENT
 
@@ -70,6 +71,7 @@ public:
 
     int numColumns() const { return m_drumset ? static_cast<int>(m_drumset->percussionPanelColumns()) : DEFAULT_NUM_COLUMNS; }
     int numPads() const { return m_padModels.count(); }
+    int activePadCount() const;
 
     void setDrumset(const engraving::Drumset* drumset);
     const engraving::Drumset* drumset() const { return m_drumset; }

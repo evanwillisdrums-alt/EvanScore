@@ -36,6 +36,7 @@ DropArea {
     property bool panelEnabled: false
 
     property int panelMode: -1
+    property bool compactStrip: false
     property bool useNotationPreview: false
     property int notationPreviewNumStaffLines: 0
     property color notationPreviewBackgroundColor: "transparent"
@@ -56,47 +57,47 @@ DropArea {
 
     property var dragParent: null
     signal startPadSwapRequested(var isKeyboardSwap)
-    signal endPadSwapRequested()
-    signal cancelPadSwapRequested()
+    signal endPadSwapRequested
+    signal cancelPadSwapRequested
 
-    onDropped: function(dropEvent)  {
-        root.endPadSwapRequested()
-        dropEvent.accepted = true
+    onDropped: function (dropEvent) {
+        root.endPadSwapRequested();
+        dropEvent.accepted = true;
     }
 
     QtObject {
         id: prv
         readonly property color enabledBackgroundColor: Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.buttonOpacityNormal)
         readonly property color disabledBackgroundColor: Utils.colorWithAlpha(ui.theme.buttonColor, ui.theme.itemOpacityDisabled)
-        readonly property real footerHeight: 24
+        readonly property real footerHeight: root.compactStrip ? 14 : 24
 
         readonly property string accessibleDetailsString: {
             if (!Boolean(root.padModel)) {
-                return ""
+                return "";
             }
 
             //: %1 will be the MIDI note for a drum (displayed in the percussion panel)
-            let line1 = qsTrc("notation/percussion", "MIDI %1").arg(root.padModel.midiNote)
+            let line1 = qsTrc("notation/percussion", "MIDI %1").arg(root.padModel.midiNote);
 
-            let shortcut = root.padModel.keyboardShortcut
+            let shortcut = root.padModel.keyboardShortcut;
             if (shortcut === "") {
-                return line1
+                return line1;
             }
 
             //: %1 will be the shortcut for a drum (displayed in the percussion panel)
-            let line2 = qsTrc("notation/percussion", "Shortcut %1").arg(shortcut)
+            let line2 = qsTrc("notation/percussion", "Shortcut %1").arg(shortcut);
 
-            return line2 + ", " + line1
+            return line2 + ", " + line1;
         }
 
         readonly property string accessibleRowColumnString: {
             //: %1 will be the row number of a percussion panel pad
-            let line1 = qsTrc("notation/percussion", "Row %1").arg(root.navigationRow + 1)
+            let line1 = qsTrc("notation/percussion", "Row %1").arg(root.navigationRow + 1);
 
             //: %1 will be the column number of a percussion panel pad
-            let line2 = qsTrc("notation/percussion", "Column %1").arg(root.navigationColumn + 1)
+            let line2 = qsTrc("notation/percussion", "Column %1").arg(root.navigationColumn + 1);
 
-            return line1 + " " + line2
+            return line1 + " " + line2;
         }
 
         readonly property string fullAccessibleString: prv.accessibleDetailsString + ", " + prv.accessibleRowColumnString
@@ -123,10 +124,10 @@ DropArea {
 
         onTriggered: {
             if (Boolean(root.padModel) && root.panelMode !== PanelMode.EDIT_LAYOUT) {
-                root.padModel.triggerPad()
-                return
+                root.padModel.triggerPad();
+                return;
             }
-            root.panelHasActiveKeyboardSwap ? root.endPadSwapRequested() : root.startPadSwapRequested(true)
+            root.panelHasActiveKeyboardSwap ? root.endPadSwapRequested() : root.startPadSwapRequested(true);
         }
     }
 
@@ -154,12 +155,12 @@ DropArea {
         width: root.width
         height: root.height
 
-        radius: root.width / 6
+        radius: root.compactStrip ? 4 : root.width / 6
 
-        color: ui.theme.backgroundPrimaryColor
+        color: root.compactStrip ? "transparent" : ui.theme.backgroundPrimaryColor
 
         border.color: root.showEditOutline ? ui.theme.accentColor : "transparent"
-        border.width: 2
+        border.width: root.compactStrip ? 0 : 2
 
         DragHandler {
             id: dragHandler
@@ -171,11 +172,11 @@ DropArea {
 
             onActiveChanged: {
                 if (dragHandler.active) {
-                    root.startPadSwapRequested(false)
-                    return
+                    root.startPadSwapRequested(false);
+                    return;
                 }
                 if (!swappableArea.Drag.drop()) {
-                    root.cancelPadSwapRequested()
+                    root.cancelPadSwapRequested();
                 }
             }
         }
@@ -192,7 +193,7 @@ DropArea {
 
             anchors.fill: parent
             // Defined as 1 in the spec, but causes some aliasing in practice...
-            anchors.margins: 2 + swappableArea.border.width
+            anchors.margins: root.compactStrip ? 0 : 2 + swappableArea.border.width
 
             sourceComponent: Boolean(root.padModel) ? padContentComponent : emptySlotComponent
 
@@ -204,6 +205,7 @@ DropArea {
 
                     padModel: root.padModel
                     panelMode: root.panelMode
+                    compactStrip: root.compactStrip
                     useNotationPreview: root.useNotationPreview
                     notationPreviewNumStaffLines: root.notationPreviewNumStaffLines
                     notationPreviewBackgroundColor: root.notationPreviewBackgroundColor
@@ -217,7 +219,7 @@ DropArea {
                     Connections {
                         target: footerNavCtrl
                         function onTriggered() {
-                            padContent.openContextMenu(null)
+                            padContent.openContextMenu(null);
                         }
                     }
                 }

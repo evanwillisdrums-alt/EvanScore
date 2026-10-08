@@ -196,7 +196,8 @@ void PercussionPanelModel::init()
 
 QList<QVariantMap> PercussionPanelModel::layoutMenuItems() const
 {
-    const auto editLayoutTitle = m_currentPanelMode == PanelMode::Mode::EDIT_LAYOUT
+    const bool editingLayout = m_currentPanelMode == PanelMode::Mode::EDIT_LAYOUT;
+    const auto editLayoutTitle = editingLayout
                                  ? muse::qtrc("notation/percussion", "Finish editing")
                                  : muse::qtrc("notation/percussion", "Edit layout");
 
@@ -215,14 +216,15 @@ QList<QVariantMap> PercussionPanelModel::layoutMenuItems() const
 
     QList<QVariantMap> menuItems = {
         { { "id", PAD_NAMES_CODE }, { "title", muse::qtrc("notation/percussion", "Pad names") },
-            { "checkable", true }, { "checked", !useNotationPreview() }, { "enabled", true } },
+            { "checkable", true }, { "checked", editingLayout && !useNotationPreview() }, { "enabled", editingLayout } },
 
         { { "id", NOTATION_PREVIEW_CODE }, { "title", muse::qtrc("notation/percussion", "Notation preview") },
-            { "checkable", true }, { "checked", useNotationPreview() }, { "enabled", true } },
+            { "checkable", true }, { "checked", !editingLayout || useNotationPreview() },
+            { "enabled", editingLayout } },
 
         { }, // separator
 
-        { { "title", muse::qtrc("notation/percussion",  "%1 columns").arg(m_padListModel->numColumns()) },
+        { { "title", muse::qtrc("notation/percussion",  "%1 layout columns").arg(m_padListModel->numColumns()) },
             { "subitems", columnsSubmenu }, { "enabled", true } },
 
         { { "id", EDIT_LAYOUT_CODE },

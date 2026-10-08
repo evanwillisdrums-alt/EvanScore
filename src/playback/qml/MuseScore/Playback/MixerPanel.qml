@@ -176,7 +176,7 @@ ColumnLayout {
             Repeater {
                 model: contextMenuModel.labelsSectionVisible ? mixerPanelModel.count + 1 : mixerPanelModel.count
 
-                SeparatorLine { orientation: Qt.Vertical }
+                SeparatorLine { orientation: Qt.Vertical; opacity: 0.35 }
             }
         }
 
