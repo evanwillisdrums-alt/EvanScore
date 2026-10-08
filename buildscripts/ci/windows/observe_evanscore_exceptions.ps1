@@ -147,6 +147,10 @@ public static class EvanScoreExceptionObserver {
                                 try{Console.WriteLine("Exception message: "+CString(pi.process,U64(pi.process,obj+8)));}catch{}
                             } catch(Exception e){Console.WriteLine("Type observation: "+e.Message);}
                             Stack(pi.process,tid);
+                        } else if(exception==0xc0000005 || exception==0xc0000409 || exception==0xc000001d) {
+                            // Early crashes can occur before the app creates its
+                            // logger or main window; retain their faulting stack.
+                            Stack(pi.process,tid);
                         }
                     }
                 }

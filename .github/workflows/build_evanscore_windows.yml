@@ -12,6 +12,7 @@ on:
       - '.github/workflows/diagnose_evanscore_windows_startup.yml'
       - 'buildscripts/ci/windows/check_evanscore_gui.ps1'
       - 'buildscripts/ci/windows/observe_evanscore_exceptions.ps1'
+      - 'buildscripts/ci/windows/startup-inspector/**'
       - '.github/workflows/check_evanscore_windows_cache.yml'
 
 permissions:

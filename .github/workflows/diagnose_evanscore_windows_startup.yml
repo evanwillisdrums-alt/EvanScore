@@ -25,35 +25,13 @@ on:
           - desktop
           - exceptions
           - layout
-          - job-logs
         default: inspect-logs
-      job_id:
-        description: Job ID for bounded failure log inspection
-        default: ''
 
 permissions:
   actions: read
   contents: read
 
 jobs:
-  job-logs:
-    if: inputs.mode == 'job-logs'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Read the selected completed diagnostic job
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JOB_ID: ${{ inputs.job_id }}
-        run: |
-          if [[ ! "$JOB_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
-          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$JOB_ID/logs" > prior-job.log
-          python3 - <<'PY'
-          from pathlib import Path
-          content = Path('prior-job.log').read_text(errors='replace')[-22000:]
-          for offset in range(0, len(content), 2800):
-              chunk = content[offset:offset+2800].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
-              print('::notice title=Prior job log::'+chunk)
-          PY
   inspect:
     if: inputs.mode == 'inspect-logs'
     runs-on: ubuntu-latest
@@ -210,7 +188,7 @@ jobs:
           @echo off
           for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL_DIR=%%i"
           call "%VS_INSTALL_DIR%\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -S buildscripts/ci/windows/startup-inspector -B inspector -G Ninja -DCMAKE_BUILD_TYPE=Release || exit /b 1
+          cmake -S buildscripts/ci/windows/startup-inspector -B inspector -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo || exit /b 1
           cmake --build inspector || exit /b 1
           '@ | Set-Content inspector-build.cmd
           $ErrorActionPreference = 'Continue'
@@ -237,8 +215,12 @@ jobs:
           $destination = Join-Path $app.DirectoryName 'platformthemes'
           New-Item -ItemType Directory -Force $destination | Out-Null
           Copy-Item inspector/plugins/platformthemes/*.dll $destination
+          Get-ChildItem inspector -Filter 'evanscore-startup-inspector.pdb' -Recurse | ForEach-Object { Copy-Item $_.FullName $destination }
           $env:QT_PLUGIN_PATH = $app.DirectoryName
           $env:QT_QPA_PLATFORMTHEME = 'evanscore-inspector'
+          if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'baseline') {
+            pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app > inspector-exceptions.log 2>&1
+          }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1.mscx
@@ -265,6 +247,14 @@ jobs:
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
               $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
               Write-Host "::notice title=Inspector build::$chunk"
+            }
+          }
+          if (Test-Path inspector-exceptions.log) {
+            $content = Get-Content inspector-exceptions.log -Raw
+            if ($content.Length -gt 12000) { $content = $content.Substring(0, 12000) }
+            for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
+              $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Host "::notice title=Inspector exception::$chunk"
             }
           }
       - uses: actions/upload-artifact@v7
