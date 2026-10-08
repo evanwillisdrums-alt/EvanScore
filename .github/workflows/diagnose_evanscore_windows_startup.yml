@@ -90,6 +90,21 @@ jobs:
           path: downloaded-app
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Get matching native symbols when available
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-native-symbols
+          path: native-symbols
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Place symbols alongside the executable
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem downloaded-app -Filter 'MuseScore*.exe' -Recurse | Select-Object -First 1
+          if (Test-Path native-symbols) {
+            Get-ChildItem native-symbols -Filter '*.pdb' -Recurse | ForEach-Object { Copy-Item $_.FullName $app.DirectoryName }
+          }
       - name: Observe native exceptions on the Windows desktop
         shell: pwsh
         run: |
