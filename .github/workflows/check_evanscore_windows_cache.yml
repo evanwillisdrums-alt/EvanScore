@@ -1,0 +1,66 @@
+name: EvanScore Windows compiler cache check
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cache:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    env:
+      SCCACHE_GHA_ENABLED: 'on'
+      SCCACHE_GHA_VERSION: evanscore-msvc-v1
+      SCCACHE_IGNORE_SERVER_IO_ERROR: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the pinned compiler cache
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+        with:
+          version: v0.18.0
+      - name: Create a native cache correctness fixture
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force cache-check | Out-Null
+          @'
+          cmake_minimum_required(VERSION 3.28)
+          project(EvanScoreCacheCheck LANGUAGES CXX)
+          add_executable(cache-check main.cpp value.cpp)
+          '@ | Set-Content cache-check/CMakeLists.txt
+          @'
+          #include <iostream>
+          int value();
+          int main() { std::cout << value(); }
+          '@ | Set-Content cache-check/main.cpp
+          'int value() { return 1; }' | Set-Content cache-check/value.cpp
+          @'
+          @echo off
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL_DIR=%%i"
+          call "%VS_INSTALL_DIR%\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -S cache-check -B cache-check/build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE="%CD%/buildscripts/ci/windows/sccache-toolchain.cmake" || exit /b 1
+          cmake --build cache-check/build || exit /b 1
+          '@ | Set-Content cache-check/build.cmd
+      - name: Verify cold, warm, and changed native compilation
+        shell: pwsh
+        run: |
+          sccache --zero-stats
+          cmd /c cache-check\build.cmd
+          if ($LASTEXITCODE -ne 0) { throw 'Cold build failed' }
+          if ((& ./cache-check/build/cache-check.exe) -ne '1') { throw 'Cold executable returned an incorrect value' }
+          Remove-Item cache-check/build -Recurse -Force
+          sccache --zero-stats
+          cmd /c cache-check\build.cmd
+          if ($LASTEXITCODE -ne 0) { throw 'Warm build failed' }
+          $stats = (sccache --show-stats --stats-format json | ConvertFrom-Json).stats
+          $hits = ($stats.cache_hits.counts.PSObject.Properties.Value | Measure-Object -Sum).Sum
+          if ($hits -lt 2) { throw "Warm build did not reuse both objects: $hits hits" }
+          'int value() { return 2; }' | Set-Content cache-check/value.cpp
+          Remove-Item cache-check/build -Recurse -Force
+          sccache --zero-stats
+          cmd /c cache-check\build.cmd
+          if ($LASTEXITCODE -ne 0) { throw 'Changed build failed' }
+          if ((& ./cache-check/build/cache-check.exe) -ne '2') { throw 'The cache reused stale code' }
+          $stats = (sccache --show-stats --stats-format json | ConvertFrom-Json).stats
+          $hits = ($stats.cache_hits.counts.PSObject.Properties.Value | Measure-Object -Sum).Sum
+          if ($hits -lt 1) { throw 'Unchanged source was not reused in the changed build' }
+          Write-Host '::notice title=Windows compiler cache::PASS: cold/warm native builds, cache hits for unchanged code, and correct executable after a source edit.'
