@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$InstallRoot,
     [string]$OutputDirectory = 'build.artifacts/gui',
+    [string]$ScorePath = '',
     [ValidateSet('default', 'software')][string]$Renderer = 'default'
 )
 
@@ -29,6 +30,12 @@ public static class EvanScoreWindows {
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr handle, out Rect rect);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr handle, StringBuilder title, int count);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr handle, StringBuilder name, int count);
+    [DllImport("user32.dll", SetLastError=true)] static extern IntPtr SendMessageTimeout(
+        IntPtr handle, uint message, UIntPtr wParam, IntPtr lParam, uint flags, uint timeout, out UIntPtr result);
+    public static bool Responsive(long handle) {
+        UIntPtr result;
+        return SendMessageTimeout(new IntPtr(handle), 0, UIntPtr.Zero, IntPtr.Zero, 2, 1000, out result) != IntPtr.Zero;
+    }
     public static Window[] Visible(uint processId) {
         var windows = new List<Window>();
         EnumWindows((handle, data) => {
@@ -55,7 +62,11 @@ try {
     $env:QT_QPA_PLATFORM = 'windows'
     if ($Renderer -eq 'software') { $env:QT_QUICK_BACKEND = 'software' }
     else { Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue }
-    $process = Start-Process -FilePath $app.FullName -ArgumentList @('--debug', '--session-type', 'start-empty') `
+    $launchArguments = @('--debug', '--session-type', 'start-empty')
+    if ($ScorePath) {
+        $launchArguments += ('"' + (Resolve-Path $ScorePath).Path + '"')
+    }
+    $process = Start-Process -FilePath $app.FullName -ArgumentList $launchArguments `
         -WorkingDirectory $app.DirectoryName -PassThru `
         -RedirectStandardOutput (Join-Path $output 'stdout.log') `
         -RedirectStandardError (Join-Path $output 'stderr.log')
@@ -70,7 +81,14 @@ try {
         $main = $windows | Where-Object { $_.Class -like '*QWindow*' -and $_.Width -ge 600 -and $_.Height -ge 450 } | Select-Object -First 1
         # The startup splash is an 800x380 QWidget. It must disappear as well.
         $splash = $windows | Where-Object { $_.Class -like '*QWidget*' -and $_.Width -eq 800 -and $_.Height -eq 380 }
-        if ($main -and -not $splash -and $process.Responding) {
+        $windowResponding = $main -and [EvanScoreWindows]::Responsive($main.Handle)
+        @{
+            elapsedSeconds = [math]::Round(((Get-Date) - $started).TotalSeconds)
+            processResponding = $process.Responding
+            windowResponding = $windowResponding
+            splashVisible = [bool]$splash
+        } | ConvertTo-Json | Set-Content (Join-Path $output 'startup-state.json')
+        if ($main -and -not $splash -and $process.Responding -and $windowResponding) {
             if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
             $onboarding = $windows | Where-Object { $_.Title -match 'Welcome|First.?launch' }
             if ($onboarding) { throw 'Automatic onboarding dialog appeared instead of the score workspace' }
@@ -89,6 +107,15 @@ try {
     if (-not $ready) { throw 'Desktop startup did not complete within 90 seconds' }
 } finally {
     if ($process -and -not $process.HasExited) {
+        if ($main -and -not (Test-Path (Join-Path $output 'desktop.png'))) {
+            Add-Type -AssemblyName System.Drawing
+            $bitmap = [System.Drawing.Bitmap]::new($main.Width, $main.Height)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            try {
+                $graphics.CopyFromScreen($main.Left, $main.Top, 0, 0, $bitmap.Size)
+                $bitmap.Save((Join-Path $output 'desktop.png'))
+            } finally { $graphics.Dispose(); $bitmap.Dispose() }
+        }
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     }
     $env:QT_QUICK_BACKEND = $oldBackend
