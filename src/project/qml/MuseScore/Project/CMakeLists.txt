@@ -166,6 +166,12 @@ qt_add_qml_module(project_qml
 
 fixup_qml_module_dependencies(project_qml)
 
+# QML imports do not provide C++ header dependencies for the score previews.
+target_link_libraries(project_qml PRIVATE
+    notationscene_qml
+    muse::uicomponents_qml
+)
+
 # Necessary for the auto-generated sources
 target_include_directories(project_qml PRIVATE
     internal
