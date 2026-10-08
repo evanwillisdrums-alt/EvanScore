@@ -130,7 +130,16 @@ try {
                 $bitmap.Save((Join-Path $output 'desktop.png'))
             } finally { $graphics.Dispose(); $bitmap.Dispose() }
         }
-        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        # A successful score launch must close cleanly so the next renderer's
+        # check does not inherit an intentional crash-recovery session.
+        if ($ready) {
+            $process.CloseMainWindow() | Out-Null
+            $process.WaitForExit(10000) | Out-Null
+            $process.Refresh()
+        }
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
     }
     $env:QT_QUICK_BACKEND = $oldBackend
     $env:QT_QPA_PLATFORM = $oldPlatform
