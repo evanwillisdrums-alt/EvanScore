@@ -80,6 +80,7 @@ public static class EvanScoreExceptionObserver {
             }
             Console.WriteLine("Thread "+tid+" instruction 0x"+rip.ToString("x")+" "+Symbol(process,rip));
             var frame=Marshal.AllocHGlobal(512);
+            int walked=0;
             try {
                 for(int i=0;i<512;i++)Marshal.WriteByte(frame,i,0);
                 Marshal.WriteInt64(frame,0,unchecked((long)rip));Marshal.WriteInt32(frame,12,3);
@@ -91,8 +92,10 @@ public static class EvanScoreExceptionObserver {
                     ulong address=unchecked((ulong)Marshal.ReadInt64(frame,0));
                     if(address==0)break;
                     Console.WriteLine("  0x"+address.ToString("x")+" "+Symbol(process,address));
+                    walked++;
                 }
             } finally {Marshal.FreeHGlobal(frame);}
+            if(walked>0)return;
             var bytes=Read(process,rsp,4096);
             Console.WriteLine("Symbolized stack candidates (not an unwound trace):");
             int shown=0;
