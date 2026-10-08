@@ -32,7 +32,7 @@ import MuseScore.AppShell
 Item {
     id: root
 
-    width: fileControls.width + 10 + radioButtonList.width
+    width: Math.ceil(fileControls.width + 10 + radioButtonList.width)
     height: 36
 
     property alias navigation: navPanel
@@ -123,6 +123,15 @@ Item {
 
             property alias navigation: tabNavigation
             height: 32
+            // A checked label can become bold without resizing its dock. A
+            // synchronous dock resize during layout re-enters KDDockWidgets'
+            // size signal, which throws and leaves startup unresponsive.
+            width: Math.ceil(Math.max(64, tabTitleMetrics.advanceWidth + leftPadding + rightPadding))
+            TextMetrics {
+                id: tabTitleMetrics
+                font: ui.theme.bodyBoldFont
+                text: tabButton.title
+            }
             indicator: Item {}
             contentItem: StyledTextLabel {
                 text: tabButton.title
