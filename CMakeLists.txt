@@ -246,6 +246,9 @@ if (MSVC AND NOT MUSE_COMPILE_USE_PCH AND TARGET muse_uicomponents_qml)
     # The pinned Windows popup controller gets QCursor through its PCH.
     # Supply that declaration for cached MSVC builds without changing muse.
     target_compile_options(muse_uicomponents_qml PRIVATE /FIQCursor)
+    # Consumers of exported QuickPaintedView/PopupView headers also need
+    # Qt Quick's include directories; the PCH otherwise conceals this dependency.
+    target_link_libraries(muse_uicomponents_qml INTERFACE Qt::Quick)
 endif()
 
 
