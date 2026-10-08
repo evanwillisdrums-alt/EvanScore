@@ -10,7 +10,7 @@ The category buttons expose note values, grace notes and percussion commands (fl
 
 Voice 1–4 selects the native input voice. **All** enables all four voices in MuseScore's selection filter for range selections; it does not enter the same note in four voices.
 
-The existing MusescoreIcon font supplies interface, duration, tie, and beaming icons. Leland supplies composed tremolo symbols, with Bravura as the native fallback for uncommon articulation glyphs. Score music fonts are unchanged. The panel and inactive keys have translucent backgrounds; notation glyphs stay opaque and legible. Selected keys reuse the app's blue accent.
+The existing MusescoreIcon font supplies interface, duration, tie, and beaming icons. Leland supplies the hollow notehead and composed tremolo symbols, with Bravura as the native fallback for uncommon articulation glyphs. Score music fonts are unchanged. The panel and inactive keys have translucent backgrounds; notation glyphs stay opaque and legible. Selected keys reuse the app's blue accent.
 
 The keypad's number shortcuts work while the keypad has focus. Global keyboard shortcuts and mouse side-button assignments are configured in Preferences > Shortcuts.
 

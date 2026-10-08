@@ -65,7 +65,7 @@ MuseScore {
         { id: "tie", label: "Tie", action: "tie", category: "Durations", icon: IconCode.NOTE_TIE },
         { id: "slur", label: "Slur", action: "add-slur", category: "Durations", icon: IconCode.NOTE_SLUR },
         { id: "noteinput", label: "Note input", action: "note-input", category: "Tools", icon: IconCode.DURATION_CURSOR },
-        { id: "openheads", label: "Open / automatic noteheads", action: "open-noteheads", category: "Tools", icon: IconCode.NOTE_HEAD_HALF },
+        { id: "openheads", label: "Open / automatic noteheads", action: "open-noteheads", category: "Tools", glyphs: [{symbol: "\ue0a3", x: 0, y: 0}], bounds: [0, -133, 325, 132] },
         { id: "natural", label: "Natural", action: "nat", category: "Pitch", icon: IconCode.NATURAL },
         { id: "sharp", label: "Sharp", action: "sharp", category: "Pitch", icon: IconCode.SHARP },
         { id: "flat", label: "Flat", action: "flat", category: "Pitch", icon: IconCode.FLAT },
