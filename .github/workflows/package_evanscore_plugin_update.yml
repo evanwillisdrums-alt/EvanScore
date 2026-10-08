@@ -9,6 +9,10 @@ on:
       - 'share/plugins/**'
       - '.github/workflows/package_evanscore_plugin_update.yml'
 
+concurrency:
+  group: evanscore-plugin-update-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read

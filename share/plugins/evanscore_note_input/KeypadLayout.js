@@ -48,7 +48,7 @@ function defaults() {
     ];
 }
 function index(catalog) {
-    var result = {};
+    var result = Object.create(null);
     catalog.forEach(function(tool) { result[tool.id] = tool; });
     return result;
 }

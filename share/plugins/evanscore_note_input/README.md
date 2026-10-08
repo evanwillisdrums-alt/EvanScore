@@ -21,3 +21,5 @@ Version 1.4 groups durations, pitch, and articulations on the main tab, with fla
 Click the gear, then a key, to search and choose a replacement. Choosing a tool already on the current tab swaps the two buttons. Tabs save independently and persist across restarts. “Reset tab” restores that tab only; choosing “Empty key” hides a slot outside customization. All supported tools, including 64th/breve/triple dots and four-slash rolls, remain available in the picker.
 
 Drag the lower-right resize handle; double-click it or the title bar to restore the default size. Width is shared, while each tab remembers its own height. Resizing keeps every key visible without scrolling. Keypad opacity is slightly reduced while icons remain opaque.
+
+Rendered Qt previews: [Notes](previews/notes.png), [Percussion](previews/percussion.png), [Customize](previews/customize.png). These use the actual plugin QML and bundled fonts in an isolated test host; they are not screenshots of the complete Windows app.
