@@ -19,6 +19,7 @@ if ($peOffset -lt 0 -or $peOffset + 6 -gt $bytes.Length -or
 New-Item -ItemType Directory -Force build.artifacts | Out-Null
 $artifacts = (Resolve-Path build.artifacts).Path
 $score = (Resolve-Path src/engraving/tests/tuplet_data/tuplet1.mscx).Path
+$guiScore = (Resolve-Path src/engraving/tests/tuplet_data/tuplet1-ref.mscx).Path
 $pdf = Join-Path $artifacts 'Windows-score-export.pdf'
 $stdout = Join-Path $artifacts 'Windows-app-stdout.log'
 $stderr = Join-Path $artifacts 'Windows-app-stderr.log'
@@ -53,7 +54,7 @@ try {
 
 foreach ($renderer in @('default', 'software')) {
     & "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer $renderer -OutputDirectory "build.artifacts/gui-$renderer-empty"
-    & "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer $renderer -OutputDirectory "build.artifacts/gui-$renderer-score" -ScorePath $score
+    & "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer $renderer -OutputDirectory "build.artifacts/gui-$renderer-score" -ScorePath $guiScore
 }
 
 $relativeApp = [System.IO.Path]::GetRelativePath((Resolve-Path build.install).Path, $app.FullName)

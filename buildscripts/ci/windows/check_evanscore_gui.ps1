@@ -82,7 +82,7 @@ try {
         if ($process.HasExited) { throw "GUI exited with code $($process.ExitCode)" }
         $windows = @([EvanScoreWindows]::Visible($process.Id))
         $windows | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $output 'windows.json')
-        $main = $windows | Where-Object { $_.Class -like '*QWindow*' -and $_.Width -ge 600 -and $_.Height -ge 450 } | Select-Object -First 1
+        $main = $windows | Where-Object { $_.Class -like '*QWindow*' -and $_.Title -like '*EvanScore*' -and $_.Width -ge 600 -and $_.Height -ge 450 } | Select-Object -First 1
         # The startup splash is an 800x380 QWidget. It must disappear as well.
         $splash = $windows | Where-Object { $_.Class -like '*QWidget*' -and $_.Width -eq 800 -and $_.Height -eq 380 }
         $windowResponding = $main -and [EvanScoreWindows]::Responsive($main.Handle)

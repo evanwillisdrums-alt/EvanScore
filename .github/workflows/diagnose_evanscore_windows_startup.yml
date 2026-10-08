@@ -101,7 +101,7 @@ jobs:
         shell: pwsh
         run: |
           ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory build.artifacts/gui-empty -Renderer '${{ matrix.renderer }}'
-          ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory build.artifacts/gui-score -Renderer '${{ matrix.renderer }}' -ScorePath src/engraving/tests/tuplet_data/tuplet1.mscx
+          ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory build.artifacts/gui-score -Renderer '${{ matrix.renderer }}' -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -223,7 +223,7 @@ jobs:
           }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
-            ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1.mscx
+            ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx
           } catch {
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Host "::notice title=Layout trial failure::$message"
