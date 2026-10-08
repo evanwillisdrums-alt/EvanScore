@@ -72,6 +72,8 @@ try {
         -RedirectStandardError (Join-Path $output 'stderr.log')
     $deadline = (Get-Date).AddSeconds(90)
     $ready = $false
+    $readyChecks = 0
+    $expectedScoreName = if ($ScorePath) { [System.IO.Path]::GetFileNameWithoutExtension($ScorePath) } else { '' }
     do {
         Start-Sleep -Milliseconds 1000
         $process.Refresh()
@@ -82,13 +84,23 @@ try {
         # The startup splash is an 800x380 QWidget. It must disappear as well.
         $splash = $windows | Where-Object { $_.Class -like '*QWidget*' -and $_.Width -eq 800 -and $_.Height -eq 380 }
         $windowResponding = $main -and [EvanScoreWindows]::Responsive($main.Handle)
+        $scoreLoaded = -not $ScorePath -or ($main -and $main.Title.Contains($expectedScoreName))
+        if ($main -and -not $splash -and $process.Responding -and $windowResponding -and $scoreLoaded) {
+            $readyChecks++
+        } else {
+            $readyChecks = 0
+        }
         @{
             elapsedSeconds = [math]::Round(((Get-Date) - $started).TotalSeconds)
             processResponding = $process.Responding
             windowResponding = $windowResponding
             splashVisible = [bool]$splash
+            scoreLoaded = [bool]$scoreLoaded
+            consecutiveResponsiveChecks = $readyChecks
         } | ConvertTo-Json | Set-Content (Join-Path $output 'startup-state.json')
-        if ($main -and -not $splash -and $process.Responding -and $windowResponding) {
+        # Require the requested score title and sustained response, not a fleeting
+        # initial window that can still freeze while startup tasks finish.
+        if ($readyChecks -ge 10) {
             if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
             $onboarding = $windows | Where-Object { $_.Title -match 'Welcome|First.?launch' }
             if ($onboarding) { throw 'Automatic onboarding dialog appeared instead of the score workspace' }
@@ -100,7 +112,7 @@ try {
                 $graphics.CopyFromScreen($main.Left, $main.Top, 0, 0, $bitmap.Size)
                 $bitmap.Save((Join-Path $output 'desktop.png'))
             } finally { $graphics.Dispose(); $bitmap.Dispose() }
-            Write-Host "GUI opened beyond splash: $($main.Title), $($main.Width)x$($main.Height), renderer=$Renderer"
+            Write-Host "GUI stayed responsive beyond splash for 10 checks: $($main.Title), $($main.Width)x$($main.Height), renderer=$Renderer"
             break
         }
     } while ((Get-Date) -lt $deadline)
