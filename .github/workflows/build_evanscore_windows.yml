@@ -11,6 +11,7 @@ on:
       - '.github/workflows/package_evanscore_plugin_update.yml'
       - '.github/workflows/diagnose_evanscore_windows_startup.yml'
       - 'buildscripts/ci/windows/check_evanscore_gui.ps1'
+      - 'buildscripts/ci/windows/observe_evanscore_exceptions.ps1'
 
 permissions:
   contents: read

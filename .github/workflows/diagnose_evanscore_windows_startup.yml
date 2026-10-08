@@ -14,12 +14,16 @@ on:
           - EvanScore-Windows-x64
           - EvanScore-Windows-diagnostic-only
         default: EvanScore-Windows-x64
+      log_artifact:
+        description: Diagnostic log artifact to inspect
+        default: EvanScore-Windows-build-checks
       mode:
         description: Inspect launch logs or run desktop checks
         type: choice
         options:
           - inspect-logs
           - desktop
+          - exceptions
         default: inspect-logs
 
 permissions:
@@ -33,7 +37,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v5
         with:
-          name: EvanScore-Windows-build-checks
+          name: ${{ inputs.log_artifact }}
           path: checks
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
@@ -73,3 +77,31 @@ jobs:
           name: startup-${{ matrix.renderer }}
           path: build.artifacts/gui/
           retention-days: 14
+
+  exceptions:
+    if: inputs.mode == 'exceptions'
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: downloaded-app
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Observe native exceptions on the Windows desktop
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app > exception-observer.log 2>&1
+          $content = Get-Content exception-observer.log -Raw
+          for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
+            $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host "::notice title=Native exception observation::$chunk"
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-exception-observer
+          path: exception-observer.log
+          retention-days: 3
