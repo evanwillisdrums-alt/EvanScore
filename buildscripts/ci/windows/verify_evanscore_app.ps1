@@ -65,10 +65,14 @@ $relativeApp
 Keep the DLLs, plugins, fonts, and other supplied folders together.
 This is the native MuseScore fork with the implemented gray styling and rounded controls.
 Use the Regular / Percussion button in the top toolbar to select a saved workspace mode.
-Percussion applies the supplied score style (Arial text / Arial Black headings) and places accents above.
+Percussion uses the supplied style until you save your own default, and places accents above.
 In Preferences > Shortcuts, search Flam, Diddle, or Roll, or record side/middle mouse-button bindings.
 Percussion input uses one compact notation strip that fits the panel without sideways scrolling.
 The reference-style translucent floating keypad has working Windows minimize/close buttons.
+The keypad’s top-left open notehead button changes appearance without changing duration or playback.
+In Format > Style, Make Default Style saves the current style for new scores and persists after restart.
+Existing scores retain their styles; Apply Default Style applies the saved default to the current score.
+Saving a default is a permanent preference change even if you later cancel score edits in the dialog.
 The optional floating keypad is bundled as the EvanScore Note Input plugin: enable it in Extensions > Manage plugins, then run it from the Extensions menu.
 The marimba visualization is still a preview concept.
 The internal executable and application name remain MuseScore.

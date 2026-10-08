@@ -33,13 +33,13 @@
 #include "settings.h"
 #include "notation/inotation.h"
 #include "notation/inotationstyle.h"
+#include "notation/styledefaultssettings.h"
 #include "notation/inotationinteraction.h"
 #include "notation/inotationundostack.h"
 #include "engraving/style/styledef.h"
 
 using namespace mu::notation;
 using namespace muse;
-static const Settings::Key MODE("notation", "percussion/workspaceMode");
 static const Settings::Key MOUSE("notation", "input/mouseBindings");
 
 static QJsonObject bindings()
@@ -77,9 +77,9 @@ void PercussionWorkspaceModel::load(bool handleMouse)
     if (m_loaded) return;
     m_loaded = true;
     m_handleMouse = handleMouse;
-    settings()->setDefaultValue(MODE, Val(false));
+    settings()->setDefaultValue(PERCUSSION_WORKSPACE_MODE, Val(false));
     settings()->setDefaultValue(MOUSE, Val("{}"));
-    settings()->valueChanged(MODE).onReceive(this, [this](const Val&) {
+    settings()->valueChanged(PERCUSSION_WORKSPACE_MODE).onReceive(this, [this](const Val&) {
         emit percussionModeChanged();
         if (m_handleMouse) applyWorkspace();
     });
@@ -90,20 +90,22 @@ void PercussionWorkspaceModel::load(bool handleMouse)
         applyWorkspace();
     }
 }
-bool PercussionWorkspaceModel::percussionMode() const { return settings()->value(MODE).toBool(); }
-void PercussionWorkspaceModel::setPercussionMode(bool enabled) { settings()->setSharedValue(MODE, Val(enabled)); }
+bool PercussionWorkspaceModel::percussionMode() const { return settings()->value(PERCUSSION_WORKSPACE_MODE).toBool(); }
+void PercussionWorkspaceModel::setPercussionMode(bool enabled) { settings()->setSharedValue(PERCUSSION_WORKSPACE_MODE, Val(enabled)); }
 void PercussionWorkspaceModel::applyWorkspace()
 {
     auto notation = context()->currentNotation();
     if (!notation) return;
     auto style = notation->style();
     const bool above = style->styleValue(engraving::Sid::percussionAccentsAbove).toBool();
-    if (percussionMode()) {
+    const auto savedDefault = settings()->value(SAVED_DEFAULT_STYLE_PATH).toPath();
+    const bool hasSavedDefault = !savedDefault.empty() && savedDefault == notationConfiguration()->defaultStyleFilePath();
+    if (percussionMode() && !hasSavedDefault) {
         if (!above && !style->loadStyle(io::path_t(":/configs/evanscore-percussion.mss"), false)) emit styleLoadFailed();
-    } else if (above) {
+    } else if (above != percussionMode()) {
         auto undo = notation->undoStack();
-        undo->prepareChanges(TranslatableString("undoableAction", "Use regular accent placement"));
-        style->setStyleValue(engraving::Sid::percussionAccentsAbove, false);
+        undo->prepareChanges(TranslatableString("undoableAction", "Change workspace accent placement"));
+        style->setStyleValue(engraving::Sid::percussionAccentsAbove, percussionMode());
         undo->commitChanges();
     }
 }

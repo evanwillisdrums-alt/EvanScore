@@ -37,6 +37,7 @@ public:
     static const MStyle& baseStyle();
 
     static const MStyle& defaultStyle();
+    static void setDefaultStyle(const MStyle& style);
     static const MStyle* defaultStyleForParts();
 
     static const MStyle& resolveStyleDefaults(const int defaultsVersion);

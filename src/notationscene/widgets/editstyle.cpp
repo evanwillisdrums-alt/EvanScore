@@ -24,6 +24,9 @@
 
 #include <QAnyStringView>
 #include <QButtonGroup>
+#include <QDir>
+#include <QSaveFile>
+#include <QTimer>
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickView>
@@ -51,6 +54,10 @@
 #include "notation/inotationelements.h" // IWYU pragma: keep
 #include "notation/inotationstyle.h" // IWYU pragma: keep
 #include "notation/inotationundostack.h" // IWYU pragma: keep
+#include "notation/styledefaultssettings.h"
+#include "io/buffer.h"
+#include "engraving/style/defaultstyle.h"
+
 #include "notation/inotationviewstate.h" // IWYU pragma: keep
 
 #include "ui/view/widgetstatestore.h"
@@ -255,6 +262,12 @@ void EditStyle::classBegin()
     setModal(true);
 
     buttonApplyToAllParts = buttonBox->addButton(muse::qtrc("notation/editstyle", "Apply to all parts"), QDialogButtonBox::ApplyRole);
+    buttonApplyDefaultStyle = buttonBox->addButton(muse::qtrc("notation/editstyle", "Apply Default Style"), QDialogButtonBox::ActionRole);
+    buttonApplyDefaultStyle->setObjectName("applyDefaultStyleButton");
+    buttonApplyDefaultStyle->setToolTip(muse::qtrc("notation/editstyle", "Apply the saved default style to this score."));
+    buttonMakeDefaultStyle = buttonBox->addButton(muse::qtrc("notation/editstyle", "Make Default Style"), QDialogButtonBox::ActionRole);
+    buttonMakeDefaultStyle->setObjectName("makeDefaultStyleButton");
+    buttonMakeDefaultStyle->setToolTip(muse::qtrc("notation/editstyle", "Save this style as the permanent default for new scores."));
     WidgetUtils::setWidgetIcon(buttonTogglePagelist, IconCode::Code::ARROW_RIGHT);
 
     // ====================================================
@@ -1352,6 +1365,7 @@ void EditStyle::showEvent(QShowEvent* ev)
     pageList->setFocus();
     globalContext()->currentNotation()->undoStack()->prepareChanges(muse::TranslatableString("undoableAction", "Edit style"));
     buttonApplyToAllParts->setEnabled(globalContext()->currentNotation()->style()->canApplyToAllParts());
+    buttonApplyDefaultStyle->setEnabled(!notationConfiguration()->defaultStyleFilePath().empty());
 
     WidgetStateStore::restoreGeometry(this);
     QWidget::showEvent(ev);
@@ -1389,6 +1403,10 @@ void EditStyle::retranslate()
     retranslateUi(this);
 
     buttonApplyToAllParts->setText(muse::qtrc("notation/editstyle", "Apply to all parts"));
+    buttonMakeDefaultStyle->setText(muse::qtrc("notation/editstyle", "Make Default Style"));
+    buttonMakeDefaultStyle->setToolTip(muse::qtrc("notation/editstyle", "Save this style as the permanent default for new scores."));
+    buttonApplyDefaultStyle->setText(muse::qtrc("notation/editstyle", "Apply Default Style"));
+    buttonApplyDefaultStyle->setToolTip(muse::qtrc("notation/editstyle", "Apply the saved default style to this score."));
 
     for (const LineStyleSelect* lineStyleSelect : m_lineStyleSelects) {
         int idx = 0;
@@ -1670,11 +1688,65 @@ void EditStyle::buttonClicked(QAbstractButton* b)
         reject();
         break;
     default:
-        if (b == buttonApplyToAllParts) {
+        if (b == buttonMakeDefaultStyle) {
+            makeDefaultStyle();
+        } else if (b == buttonApplyDefaultStyle) {
+            applyDefaultStyle();
+        } else if (b == buttonApplyToAllParts) {
             globalContext()->currentNotation()->style()->applyToAllParts();
         }
         break;
     }
+}
+
+void EditStyle::makeDefaultStyle()
+{
+    auto notation = globalContext()->currentNotation();
+    if (!notation) {
+        return;
+    }
+    auto score = notation->elements()->msScore();
+    muse::io::Buffer buffer = muse::io::Buffer::opened(muse::io::IODevice::WriteOnly);
+    if (!score->style().write(&buffer)) {
+        interactive()->error(muse::trc("notation/editstyle", "Could not save the default style"),
+                             muse::trc("notation/editstyle", "The current style could not be serialized."));
+        return;
+    }
+
+    const muse::io::path_t directory = globalConfiguration()->userDataPath() + "/Styles";
+    const muse::io::path_t path = directory + "/EvanScore-Default.mss";
+    QSaveFile file(path.toQString());
+    const QByteArray data = buffer.data().toQByteArray();
+    if (!QDir().mkpath(directory.toQString()) || !file.open(QIODevice::WriteOnly)
+        || file.write(data) != data.size() || !file.commit()) {
+        interactive()->error(muse::trc("notation/editstyle", "Could not save the default style"), file.errorString().toStdString());
+        return;
+    }
+
+    // Publish the preference only after the complete style file is safely saved.
+    notationConfiguration()->setDefaultStyleFilePath(path);
+    muse::settings()->setSharedValue(SAVED_DEFAULT_STYLE_PATH, muse::Val(path.toStdString()));
+    DefaultStyle::setDefaultStyle(score->style());
+    buttonApplyDefaultStyle->setEnabled(true);
+    setValues();
+    buttonMakeDefaultStyle->setText(muse::qtrc("notation/editstyle", "Default Saved"));
+    QTimer::singleShot(2000, this, [this]() {
+        buttonMakeDefaultStyle->setText(muse::qtrc("notation/editstyle", "Make Default Style"));
+    });
+}
+
+void EditStyle::applyDefaultStyle()
+{
+    auto notation = globalContext()->currentNotation();
+    if (!notation) {
+        return;
+    }
+    auto style = notation->style();
+    const bool accentsAbove = muse::settings()->value(PERCUSSION_WORKSPACE_MODE).toBool();
+    style->resetAllStyleValues({ Sid::percussionAccentsAbove });
+    // Workspace accent placement remains controlled by Regular / Percussion mode.
+    style->setStyleValue(Sid::percussionAccentsAbove, accentsAbove);
+    setValues();
 }
 
 //---------------------------------------------------------

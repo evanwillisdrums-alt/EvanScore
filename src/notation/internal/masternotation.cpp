@@ -29,6 +29,8 @@
 #include "translation.h"
 
 #include "engraving/style/defaultstyle.h"
+#include "engraving/iengravingconfiguration.h"
+#include "notation/styledefaultssettings.h"
 #include "engraving/style/pagestyle.h"
 
 #include "engraving/dom/factory.h"
@@ -295,6 +297,17 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
     TRACEFUNC;
 
     mu::engraving::VBox* nvb = nullptr;
+
+    if (createdFromTemplate) {
+        const auto savedDefault = settings()->value(SAVED_DEFAULT_STYLE_PATH).toPath();
+        static muse::GlobalInject<IEngravingConfiguration> engravingConfiguration;
+        if (!savedDefault.empty() && savedDefault == engravingConfiguration()->defaultStyleFilePath()) {
+            for (Score* templateScore : score->scoreList()) {
+                const MStyle* partStyle = templateScore->isMaster() ? nullptr : DefaultStyle::defaultStyleForParts();
+                templateScore->setStyle(partStyle ? *partStyle : DefaultStyle::defaultStyle());
+            }
+        }
+    }
 
     if (createdFromTemplate) {
         mu::engraving::MeasureBase* mb = score->first();

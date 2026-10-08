@@ -27,6 +27,7 @@
 #include "modularity/ioc.h"
 #include "async/asyncable.h"
 #include "context/iglobalcontext.h"
+#include "notation/inotationconfiguration.h"
 #include "rcommand/icommandsregister.h"
 #include "rcommand/icommandsstate.h"
 #include "rcommand/icommanddispatcher.h"
@@ -39,6 +40,7 @@ class PercussionWorkspaceModel : public QObject, public muse::Contextable, publi
     Q_PROPERTY(bool percussionMode READ percussionMode WRITE setPercussionMode NOTIFY percussionModeChanged)
     Q_PROPERTY(bool capturing READ capturing NOTIFY capturingChanged)
     Q_PROPERTY(QVariantList mouseBindings READ mouseBindings NOTIFY mouseBindingsChanged)
+    muse::GlobalInject<INotationConfiguration> notationConfiguration;
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::GlobalInject<muse::rcommand::ICommandsRegister> commandsRegister;
     muse::ContextInject<muse::rcommand::ICommandsState> commandsState = { this };

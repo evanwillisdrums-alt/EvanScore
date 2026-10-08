@@ -113,6 +113,12 @@ const MStyle& DefaultStyle::defaultStyle()
     return instance()->m_defaultStyle;
 }
 
+void DefaultStyle::setDefaultStyle(const MStyle& style)
+{
+    instance()->m_defaultStyle = style;
+    instance()->m_defaultStyle.precomputeValues();
+}
+
 const MStyle* DefaultStyle::defaultStyleForParts()
 {
     return instance()->m_defaultStyleForParts;

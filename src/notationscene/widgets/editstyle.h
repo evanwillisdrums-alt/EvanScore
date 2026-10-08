@@ -33,6 +33,8 @@
 #include "ui/iuiconfiguration.h"
 #include "ui/iuiengine.h"
 #include "engraving/iengravingfontsprovider.h"
+#include "global/iglobalconfiguration.h"
+#include "notation/inotationconfiguration.h"
 
 #include "engraving/style/textstyle.h"
 
@@ -50,6 +52,8 @@ class EditStyle : public muse::ui::WidgetDialog, private Ui::EditStyleBase
 
     muse::GlobalInject<mu::notation::INotationSceneConfiguration> configuration;
     muse::GlobalInject<muse::ui::IUiConfiguration> uiConfiguration;
+    muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
+    muse::GlobalInject<INotationConfiguration> notationConfiguration;
     muse::GlobalInject<mu::engraving::IEngravingFontsProvider> engravingFonts;
     muse::ContextInject<mu::context::IGlobalContext> globalContext = { this };
     muse::ContextInject<muse::IInteractive> interactive = { this };
@@ -117,6 +121,11 @@ private:
     std::vector<QComboBox*> verticalPlacementComboBoxes;
 
     QPushButton* buttonApplyToAllParts = nullptr;
+    QPushButton* buttonMakeDefaultStyle = nullptr;
+    QPushButton* buttonApplyDefaultStyle = nullptr;
+
+    void makeDefaultStyle();
+    void applyDefaultStyle();
 
     void unhandledType(const StyleWidget);
     engraving::PropertyValue getValue(engraving::Sid idx);
