@@ -2,6 +2,12 @@ name: EvanScore Windows compiler cache check
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/rounded-ui-windows-preview
+    paths:
+      - '.github/workflows/check_evanscore_windows_cache.yml'
+      - 'buildscripts/ci/windows/sccache-toolchain.cmake'
 permissions:
   contents: read
 jobs:
