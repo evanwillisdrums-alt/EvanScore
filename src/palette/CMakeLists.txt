@@ -85,6 +85,7 @@ target_sources(palette PRIVATE
 
 target_link_libraries(palette PRIVATE
     engraving
+    muse::ui # PaletteConfiguration uses UiEngine and its Qt Quick types
     Qt::Widgets
 )
 
