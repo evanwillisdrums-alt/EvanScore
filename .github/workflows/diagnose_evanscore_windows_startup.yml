@@ -182,12 +182,27 @@ jobs:
           aqtsource: git+https://github.com/miurahr/aqtinstall.git
           py7zrversion: '@git+https://github.com/miurahr/py7zr.git'
       - name: Build isolated runtime inspector
-        shell: cmd
+        shell: pwsh
         run: |
+          @'
+          @echo off
           for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL_DIR=%%i"
           call "%VS_INSTALL_DIR%\VC\Auxiliary\Build\vcvars64.bat"
           cmake -S buildscripts/ci/windows/startup-inspector -B inspector -G Ninja -DCMAKE_BUILD_TYPE=Release || exit /b 1
           cmake --build inspector || exit /b 1
+          '@ | Set-Content inspector-build.cmd
+          cmd /c inspector-build.cmd > inspector-build.log 2>&1
+          $buildExit = $LASTEXITCODE
+          $content = Get-Content inspector-build.log -Raw
+          Write-Host $content
+          if ($buildExit -ne 0) {
+            if ($content.Length -gt 18000) { $content = $content.Substring($content.Length - 18000) }
+            for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
+              $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Host "::notice title=Inspector build::$chunk"
+            }
+            throw 'Inspector build failed'
+          }
       - name: Test layout and score opening
         shell: pwsh
         env:
@@ -197,6 +212,7 @@ jobs:
           $destination = Join-Path $app.DirectoryName 'platformthemes'
           New-Item -ItemType Directory -Force $destination | Out-Null
           Copy-Item inspector/plugins/platformthemes/*.dll $destination
+          $env:QT_PLUGIN_PATH = $app.DirectoryName
           $env:QT_QPA_PLATFORMTHEME = 'evanscore-inspector'
           ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
           ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1.mscx
