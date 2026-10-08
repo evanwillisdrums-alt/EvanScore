@@ -123,10 +123,12 @@ DockPage {
 
             floatable: false
             closable: false
-            resizable: false
+            resizable: true
             separatorsVisible: false
 
-            alignment: DockToolBarAlignment.Center
+            // Let this toolbar absorb the row's spare width. Fixed center
+            // padding otherwise repeatedly changes dock minimums during polish.
+            alignment: DockToolBarAlignment.Left
             contentBottomPadding: 2
 
             compactPriorityOrder: 1
