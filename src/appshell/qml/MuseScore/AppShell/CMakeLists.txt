@@ -20,6 +20,14 @@
 
 muse_create_qml_module(appshell_qml FOR appshell)
 
+# Use the selected dock implementation (v1 or v2), preserving pinned framework sources.
+get_target_property(evanscore_dock_source_dir muse_dockwindow SOURCE_DIR)
+target_include_directories(appshell_qml PRIVATE
+    "${evanscore_dock_source_dir}"
+    "${evanscore_dock_source_dir}/qml/Muse/Dock"
+)
+target_link_libraries(appshell_qml PRIVATE muse::dockwindow_qml)
+
 qt_add_qml_module(appshell_qml
     URI MuseScore.AppShell
     VERSION 1.0
@@ -48,6 +56,7 @@ qt_add_qml_module(appshell_qml
         PublishPage/publishtoolbarmodel.h
         welcomedialogmodel.cpp
         welcomedialogmodel.h
+        workspacedockwindow.h
     QML_FILES
         AboutDialog.qml
         AboutMusicXMLDialog.qml

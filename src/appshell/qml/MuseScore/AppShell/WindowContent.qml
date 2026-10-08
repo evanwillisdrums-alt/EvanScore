@@ -36,7 +36,7 @@ import "./NotationReviewPage"
 import "./PublishPage"
 import "./DevTools"
 
-DockWindow {
+WorkspaceDockWindow {
     id: root
 
     objectName: "WindowContent"
