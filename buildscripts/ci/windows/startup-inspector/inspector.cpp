@@ -62,11 +62,19 @@ class InspectorPlugin final : public QPlatformThemePlugin {
     Q_PLUGIN_METADATA(IID QPlatformThemeFactoryInterface_iid FILE "inspector.json")
 public:
     QPlatformTheme* create(const QString&, const QStringList&) override {
-        qWarning() << "LAYOUT INSPECTOR installed";
-        auto inspector = new Inspector(QCoreApplication::instance());
-        QCoreApplication::instance()->installEventFilter(inspector);
+        // EvanScore queries styleHints before constructing QApplication. Qt
+        // can load the theme here while there is still no application object.
+        if (QCoreApplication::instance()) install();
+        else qAddPreRoutine(&install);
         // Let Qt keep its normal Windows platform theme.
         return nullptr;
+    }
+private:
+    static void install() {
+        auto app = QCoreApplication::instance();
+        if (!app) return;
+        qWarning() << "LAYOUT INSPECTOR installed";
+        app->installEventFilter(new Inspector(app));
     }
 };
 #include "inspector.moc"
