@@ -41,6 +41,8 @@ Previewing or comparing an alternative must not silently rewrite notation. Commi
 
 Battery remains the user's main overall focus. The special emphasis on keyboard percussion applies to this particular visualizer, not to the application's entire feature roadmap.
 
-## Research awaiting access
+## Supplied research bibliography
 
-The user supplied a cross-chat reference titled “Research mallet placement patterns,” conversation ID `6ac69b45-3ae8-83ea-9f10-d634eba01aba`. Its cached preview is null, and this session has no `read_thread` tool. Its contents and citations have not been read. A request to paste the research is pending. Do not invent conclusions, cite the unseen conversation as evidence, or hard-code literature/technique thresholds before reviewing the supplied research and sources.
+The user supplied a cross-chat reference titled “Research mallet placement patterns,” conversation ID `6ac69b45-3ae8-83ea-9f10-d634eba01aba`. Its cached preview is null, and this session has no `read_thread` tool. In response to a request for its contents, the user pasted 38 citation entries and an extensive scanned-source list. This provides a bibliography and snippets, not the report's conclusions or complete source texts. The curated source leads and verification status are recorded in [mallet-research-sources.md](mallet-research-sources.md).
+
+Direct retrieval of PAS, Yamaha, PMC, and Nancy Zeltsman pages returned the environment proxy's HTTP 403 tunnel rejection. No full text was reviewed through those requests. Do not invent conclusions, treat a search snippet as the complete source, or hard-code universal literature/technique thresholds from this bibliography.
