@@ -62,6 +62,24 @@ jobs:
                   print('::notice title=Windows launch diagnostics::' + message)
                   notices += 1
           PY
+      - name: Report small desktop capture for startup inspection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          files = sorted(Path('checks').rglob('desktop.png'))
+          if files:
+              file = files[0]
+              data = file.read_bytes()
+              if len(data) <= 20000:
+                  encoded = base64.b64encode(data).decode('ascii')
+                  parts = [encoded[i:i+2800] for i in range(0, len(encoded), 2800)]
+                  for index, part in enumerate(parts):
+                      message = f'Screenshot part={index} count={len(parts)} bytes={len(data)}\n{part}'
+                      print('::notice title=Desktop capture::' + message.replace('\n', '%0A'))
+              else:
+                  print(f'::notice title=Desktop capture::Capture is retained in the artifact; {len(data)} bytes exceeds the bounded annotation limit.')
+          PY
   startup:
     if: inputs.mode == 'desktop'
     runs-on: windows-2025
