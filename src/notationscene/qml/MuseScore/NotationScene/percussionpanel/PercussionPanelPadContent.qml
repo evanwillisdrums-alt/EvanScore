@@ -209,8 +209,9 @@ Column {
             anchors.margins: root.compactStrip ? 0 : 6
             width: root.compactStrip ? parent.width : implicitWidth
 
-            font: ui.theme.bodyFont
-            font.pixelSize: root.compactStrip ? 9 : ui.theme.bodyFont.pixelSize
+            font: root.compactStrip
+                  ? Qt.font({ family: ui.theme.bodyFont.family, pixelSize: 9 })
+                  : ui.theme.bodyFont
             color: root.compactStrip ? "#53565a" : ui.theme.fontPrimaryColor
 
             text: Boolean(root.padModel) ? root.padModel.keyboardShortcut : ""

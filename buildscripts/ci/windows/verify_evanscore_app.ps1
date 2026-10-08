@@ -51,6 +51,8 @@ try {
     }
 }
 
+& "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer software
+
 $relativeApp = [System.IO.Path]::GetRelativePath((Resolve-Path build.install).Path, $app.FullName)
 $source = "https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA"
 if (-not (Get-ChildItem build.install -Filter 'EvanScoreNoteInput.qml' -Recurse)) {
@@ -77,8 +79,8 @@ The optional floating keypad is bundled as the EvanScore Note Input plugin: enab
 The marimba visualization is still a preview concept.
 The internal executable and application name remain MuseScore.
 
-Build checks passed: Windows x64 executable header, native process exit, and score-to-PDF export.
-Interactive playback and the visible desktop UI have not been checked by this automated test.
+Build checks passed: Windows x64 executable header, native process exit, score-to-PDF export, and desktop startup beyond the splash screen.
+Interactive playback has not been checked by this automated test.
 
 Corresponding source and its license information:
 $source
