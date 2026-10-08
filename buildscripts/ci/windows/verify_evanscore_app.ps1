@@ -51,7 +51,10 @@ try {
     }
 }
 
-& "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer software
+foreach ($renderer in @('default', 'software')) {
+    & "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer $renderer -OutputDirectory "build.artifacts/gui-$renderer-empty"
+    & "$PSScriptRoot/check_evanscore_gui.ps1" -InstallRoot build.install -Renderer $renderer -OutputDirectory "build.artifacts/gui-$renderer-score" -ScorePath $score
+}
 
 $relativeApp = [System.IO.Path]::GetRelativePath((Resolve-Path build.install).Path, $app.FullName)
 $source = "https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA"

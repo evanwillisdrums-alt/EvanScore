@@ -62,9 +62,11 @@ try {
     $env:QT_QPA_PLATFORM = 'windows'
     if ($Renderer -eq 'software') { $env:QT_QUICK_BACKEND = 'software' }
     else { Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue }
-    $launchArguments = @('--debug', '--session-type', 'start-empty')
+    $launchArguments = @('--debug')
     if ($ScorePath) {
         $launchArguments += ('"' + (Resolve-Path $ScorePath).Path + '"')
+    } else {
+        $launchArguments += @('--session-type', 'start-empty')
     }
     $process = Start-Process -FilePath $app.FullName -ArgumentList $launchArguments `
         -WorkingDirectory $app.DirectoryName -PassThru `
