@@ -16,6 +16,7 @@ public static class EvanScoreExceptionObserver {
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool CreateProcess(string app,StringBuilder command,IntPtr pa,IntPtr ta,bool inherit,uint flags,IntPtr environment,string cwd,ref StartupInfo si,out ProcessInfo pi);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool WaitForDebugEventEx(IntPtr ev,uint timeout);
     [DllImport("kernel32.dll")] static extern bool ContinueDebugEvent(uint pid,uint tid,uint status);
+    [DllImport("kernel32.dll",SetLastError=true)] static extern bool DebugBreakProcess(IntPtr process);
     [DllImport("kernel32.dll")] static extern bool ReadProcessMemory(IntPtr process,IntPtr address,byte[] data,IntPtr size,out IntPtr read);
     [DllImport("kernel32.dll")] static extern bool TerminateProcess(IntPtr process,uint code);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
@@ -52,11 +53,13 @@ public static class EvanScoreExceptionObserver {
             Marshal.WriteInt32(ptr,48,0x100001);
             if(!GetThreadContext(thread,ptr))return;
             ulong rsp=unchecked((ulong)Marshal.ReadInt64(ptr,152));
+            ulong rip=unchecked((ulong)Marshal.ReadInt64(ptr,248));
             SymInitializeW(process,null,true);
-            var bytes=Read(process,rsp,1024);
+            Console.WriteLine("Thread "+tid+" instruction 0x"+rip.ToString("x")+" "+Symbol(process,rip));
+            var bytes=Read(process,rsp,4096);
             Console.WriteLine("Symbolized stack candidates (not an unwound trace):");
             int shown=0;
-            for(int i=0;i<bytes.Length && shown<30;i+=8) {
+            for(int i=0;i<bytes.Length && shown<60;i+=8) {
                 ulong address=BitConverter.ToUInt64(bytes,i);
                 if(address<0x10000)continue;
                 var name=Symbol(process,address);
@@ -69,15 +72,25 @@ public static class EvanScoreExceptionObserver {
         var si=new StartupInfo();si.cb=Marshal.SizeOf(si); ProcessInfo pi;
         if(!CreateProcess(app,new StringBuilder("\""+app+"\" --debug --session-type start-empty"),IntPtr.Zero,IntPtr.Zero,false,2,IntPtr.Zero,cwd,ref si,out pi))throw new Exception("CreateProcess failed: "+Marshal.GetLastWin32Error());
         var ev=Marshal.AllocHGlobal(176);bool breakpointHandled=false;var deadline=DateTime.UtcNow.AddSeconds(45);
+        var nextSnapshot=DateTime.UtcNow.AddSeconds(20);bool snapshotRequested=false;int snapshots=0;
         try {
             while(DateTime.UtcNow<deadline) {
+                if(!snapshotRequested && snapshots<2 && DateTime.UtcNow>=nextSnapshot) {
+                    snapshotRequested=DebugBreakProcess(pi.process);
+                    if(!snapshotRequested){Console.WriteLine("DebugBreakProcess failed: "+Marshal.GetLastWin32Error());snapshots++;nextSnapshot=DateTime.UtcNow.AddSeconds(10);}
+                }
                 if(!WaitForDebugEventEx(ev,1000))continue;
                 uint code=unchecked((uint)Marshal.ReadInt32(ev,0)),pid=unchecked((uint)Marshal.ReadInt32(ev,4)),tid=unchecked((uint)Marshal.ReadInt32(ev,8));uint status=0x10002;
                 if(code==1) {
                     uint exception=unchecked((uint)Marshal.ReadInt32(ev,16));
                     uint chance=unchecked((uint)Marshal.ReadInt32(ev,168));
                     status=0x80010001;
-                    if(exception==0x80000003 && !breakpointHandled){breakpointHandled=true;status=0x10002;}
+                    if(exception==0x80000003 && snapshotRequested) {
+                        Console.WriteLine("Main thread snapshot "+(snapshots+1)+":");
+                        Stack(pi.process,pi.tid);
+                        snapshots++;snapshotRequested=false;nextSnapshot=DateTime.UtcNow.AddSeconds(10);status=0x10002;
+                    }
+                    else if(exception==0x80000003 && !breakpointHandled){breakpointHandled=true;status=0x10002;}
                     else {
                         Console.WriteLine("Exception 0x"+exception.ToString("x")+" firstChance="+chance);
                         if(exception==0xe06d7363) {
