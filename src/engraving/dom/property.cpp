@@ -518,6 +518,15 @@ static constexpr PropertyMetaData propertyList[] = {
 
     { Pid::SHARED_PART_ENABLED,                 P_TYPE::BOOL,                      PropertyGroup::NONE,       false, "sharedPartEnabled",               QT_TRANSLATE_NOOP("engraving/propertyName", "shared part enabled") },
 
+    { Pid::DYNAMICS_MARK_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsMarkVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamic playback velocity") },
+    { Pid::DYNAMICS_CURVE_SHAPE, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsCurveShape", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsCurveShape") },
+    { Pid::DYNAMICS_CURVE_BEND, P_TYPE::REAL, PropertyGroup::NONE, true, "dynamicsCurveBend", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsCurveBend") },
+    { Pid::DYNAMICS_START_DYNAMIC, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsStartDynamic", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsStartDynamic") },
+    { Pid::DYNAMICS_END_DYNAMIC, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsEndDynamic", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsEndDynamic") },
+    { Pid::DYNAMICS_START_ROLE, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsStartRole", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsStartRole") },
+    { Pid::DYNAMICS_END_ROLE, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsEndRole", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsEndRole") },
+    { Pid::DYNAMICS_START_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsStartVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsStartVelocity") },
+    { Pid::DYNAMICS_END_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsEndVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsEndVelocity") },
     { Pid::END,                                 P_TYPE::INT,                       PropertyGroup::NONE,       false, "++end++",                         nullptr }
 };
 /* *INDENT-ON* */

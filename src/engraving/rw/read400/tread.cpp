@@ -579,6 +579,8 @@ void TRead::read(Dynamic* d, XmlReader& e, ReadContext& ctx)
         const AsciiStringView tag = e.name();
         if (tag == "subtype") {
             d->setDynamicType(e.readText());
+        } else if (tag == "dynamicsMarkVelocity") {
+            readProperty(d, e, ctx, Pid::DYNAMICS_MARK_VELOCITY);
         } else if (tag == "velocity") {
             d->setVelocity(e.readInt());
         } else if (tag == "dynType") {
@@ -2706,6 +2708,8 @@ void TRead::read(Hairpin* h, XmlReader& e, ReadContext& ctx)
         if (tag == "subtype") {
             h->setHairpinType(HairpinType(e.readInt()));
         } else if (TRead::readStyledProperty(h, tag, e, ctx)) {
+        } else if (tag == "dynamicsCurveShape" || tag == "dynamicsCurveBend" || tag == "dynamicsStartDynamic" || tag == "dynamicsEndDynamic" || tag == "dynamicsStartRole" || tag == "dynamicsEndRole" || tag == "dynamicsStartVelocity" || tag == "dynamicsEndVelocity") {
+            readProperty(h, e, ctx, propertyId(tag));
         } else if (tag == "hairpinCircledTip") {
             h->setHairpinCircledTip(e.readInt());
         } else if (tag == "veloChange") {

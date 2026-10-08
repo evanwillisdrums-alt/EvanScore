@@ -23,6 +23,8 @@
 #include "masternotation.h"
 
 #include <QFileInfo>
+#include <QFile>
+#include "engraving/dom/dynamicsplayback.h"
 
 #include "log.h"
 #include "realfn.h"
@@ -335,6 +337,19 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
             if (st != Sid::pageTwosided && RealIsEqual(score->style().styleD(st), DefaultStyle::baseStyle().styleD(st))) {
                 score->style().set(st, DefaultStyle::defaultStyle().value(st));
             }
+        }
+    }
+
+    // This path runs only for newly created scores (including templates), never when opening a score.
+    const auto dynamicsDefault = settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath();
+    if (!dynamicsDefault.empty()) {
+        QFile file(dynamicsDefault.toQString());
+        MStyle candidate = score->style();
+        if (file.open(QIODevice::ReadOnly) && file.size() <= 1024 * 1024
+            && DynamicsPlayback::readPreset(muse::ByteArray::fromQByteArray(file.readAll()), candidate)) {
+            for (Sid sid : DynamicsPlayback::profileStyles()) score->style().set(sid, candidate.value(sid));
+        } else {
+            LOGW() << "Could not load the saved default dynamics; using the score's settings";
         }
     }
 

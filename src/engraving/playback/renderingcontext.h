@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "engraving/dom/dynamicsplayback.h"
 #include "mpe/events.h"
 
 #include "../dom/chord.h"
@@ -121,6 +122,13 @@ struct NominalNoteCtx {
         chordCtx(ctx),
         articulations(ctx.commonArticulations)
     {
+        if (DynamicsPlayback::enabled(note->score())) {
+            const int fallback = static_cast<int>(ctx.nominalDynamicLevel * 127 / muse::mpe::MAX_DYNAMIC_LEVEL);
+            int velocity = DynamicsPlayback::velocity(note, fallback);
+            if (note->userVelocity() != 0) velocity = note->customizeVelocity(velocity);
+            userVelocityFraction = std::clamp(velocity, 1, 127) / 127.f;
+            dynamicLevel = static_cast<muse::mpe::dynamic_level_t>(userVelocityFraction * muse::mpe::MAX_DYNAMIC_LEVEL);
+        }
     }
 };
 

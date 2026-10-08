@@ -129,6 +129,7 @@ Dynamic::Dynamic(const Dynamic& d)
     : TextBase(d)
 {
     m_dynamicType = d.m_dynamicType;
+    m_preciseVelocity = d.m_preciseVelocity;
     m_velocity    = d.m_velocity;
     m_changeInVelocity = d.m_changeInVelocity;
     m_velChangeSpeed = d.m_velChangeSpeed;
@@ -446,6 +447,8 @@ std::unique_ptr<ElementGroup> Dynamic::getDragGroup(std::function<bool(const Eng
 PropertyValue Dynamic::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
+    case Pid::DYNAMICS_MARK_VELOCITY:
+        return m_preciseVelocity;
     case Pid::DYNAMIC_TYPE:
         return m_dynamicType;
     case Pid::VELOCITY:
@@ -478,6 +481,9 @@ PropertyValue Dynamic::getProperty(Pid propertyId) const
 bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
 {
     switch (propertyId) {
+    case Pid::DYNAMICS_MARK_VELOCITY:
+        m_preciseVelocity = std::clamp(v.toInt(), -1, 127);
+        break;
     case Pid::DYNAMIC_TYPE:
         if (v.type() == P_TYPE::DYNAMIC_TYPE) {
             setDynamicType(v.value<DynamicType>());
@@ -525,6 +531,7 @@ bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
 PropertyValue Dynamic::propertyDefault(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_MARK_VELOCITY: return -1;
     case Pid::TEXT_STYLE:
         return TextStyleType::DYNAMICS;
     case Pid::VELOCITY:

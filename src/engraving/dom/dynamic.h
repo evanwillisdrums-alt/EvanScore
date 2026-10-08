@@ -75,6 +75,9 @@ public:
     void reset() override;
 
     void setVelocity(int v) { m_velocity = v; }
+    static const std::vector<Dyn>& definitions() { return DYN_LIST; }
+    int preciseVelocity() const { return m_preciseVelocity; }
+    int velocityOverride() const { return m_velocity; }
     int velocity() const;
 
     int changeInVelocity() const;
@@ -152,6 +155,7 @@ private:
     bool m_playDynamic = true;
 
     mutable PointF m_dragOffset;
+    int m_preciseVelocity = -1;
     int m_velocity = -1;           // associated midi velocity 0-127
 
     int m_changeInVelocity = 128;

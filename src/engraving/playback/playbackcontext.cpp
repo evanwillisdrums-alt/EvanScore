@@ -25,6 +25,10 @@
 #include <cmath>
 
 #include "dom/lyrics.h"
+#include "dom/chord.h"
+#include "dom/dynamicsplayback.h"
+#include "dom/hairpin.h"
+#include "dom/note.h"
 #include "dom/measure.h"
 #include "dom/measurerepeat.h"
 #include "dom/part.h"
@@ -241,6 +245,65 @@ SyllableEvent PlaybackContext::syllable(const track_idx_t trackIdx, const int no
 DynamicAutomationLayers PlaybackContext::dynamicLevelLayers(const track_idx_t trackFrom, const track_idx_t trackTo) const
 {
     TRACEFUNC;
+
+    if (m_score && DynamicsPlayback::enabled(m_score)) {
+        DynamicAutomationLayers result;
+        const TempoTimeline& timeline = m_score->tempoTimeline(/*expandRepeats*/ true);
+        // Generate audio automation from the same values used by MIDI and the sidebar.
+        // These layers are derived data: switching custom dynamics off restores native automation.
+        for (track_idx_t track = trackFrom; track < trackTo; ++track) {
+            DynamicAutomationMap layer;
+            int noteRole = DynamicsPlayback::Normal;
+            for (const RepeatSegment* repeat : m_score->repeatList(/*expandRepeats*/ true)) {
+                const int offset = repeat->utick - repeat->tick;
+                for (const Measure* measure : repeat->measureList()) {
+                    for (const Segment* segment = measure->first(); segment; segment = segment->next()) {
+                        const EngravingItem* item = segment->element(track);
+                        if (!item || !item->isChord()) continue;
+                        const Chord* chord = toChord(item);
+                        int velocity = 0;
+                        for (const Note* note : chord->notes()) {
+                            if (!note->getProperty(Pid::PLAY).toBool()) continue;
+                            int value = DynamicsPlayback::velocity(note, 80);
+                            if (note->userVelocity() != 0) value = note->customizeVelocity(value);
+                            velocity = std::max(velocity, value);
+                            noteRole = DynamicsPlayback::role(note);
+                        }
+                        muse::mpe::AutomationPoint point;
+                        point.outValue = velocity / 127.0;
+                        layer[timeline.utick2utime(segment->tick().ticks() + offset) * 1000000] = point;
+                        // Continuous instruments need the curve between attacks, too. Sample at
+                        // most 1/64 of the hairpin; note overrides remain limited to their duration.
+                        const Hairpin* h = DynamicsPlayback::activeHairpin(m_score, chord->tick(), track);
+                        if (!h || h->ticks().ticks() <= 0) continue;
+                        const int begin = chord->tick().ticks();
+                        const int end = std::min({h->tick2().ticks(), (chord->tick() + chord->actualTicks()).ticks(), repeat->endTick()});
+                        const int step = std::max(1, h->ticks().ticks() / 64);
+                        const Note* first = chord->notes().empty() ? nullptr : chord->notes().front();
+                        const bool local = first && first->userVelocity() != 0;
+                        if (local) continue;
+                        for (int tick = begin + step; tick <= end; tick += step) {
+                            const double t = double(tick - h->tick().ticks()) / h->ticks().ticks();
+                            const double value = DynamicsPlayback::hairpinValue(h, t, noteRole) / 127.0;
+                            muse::mpe::AutomationPoint sample;
+                            sample.inValue = muse::mpe::AutomationPoint::ExplicitArrival { value, {} };
+                            sample.outValue = value;
+                            layer[timeline.utick2utime(tick + offset) * 1000000] = sample;
+                        }
+                        // Always include the exact destination, even when tick spacing is uneven.
+                        const double t = double(end - h->tick().ticks()) / h->ticks().ticks();
+                        const double value = DynamicsPlayback::hairpinValue(h, t, noteRole) / 127.0;
+                        muse::mpe::AutomationPoint sample;
+                        sample.inValue = muse::mpe::AutomationPoint::ExplicitArrival { value, {} };
+                        sample.outValue = value;
+                        layer[timeline.utick2utime(end + offset) * 1000000] = sample;
+                    }
+                }
+            }
+            if (!layer.empty()) result[static_cast<layer_idx_t>(track)] = std::move(layer);
+        }
+        return result;
+    }
 
     if (!m_score || !m_score->automationData()) {
         return {};

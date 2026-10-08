@@ -84,6 +84,8 @@ set(DOM_SRC
     ${CMAKE_CURRENT_LIST_DIR}/durationelement.h
     ${CMAKE_CURRENT_LIST_DIR}/durationtype.cpp
     ${CMAKE_CURRENT_LIST_DIR}/durationtype.h
+    ${CMAKE_CURRENT_LIST_DIR}/dynamicsplayback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dynamicsplayback.h
     ${CMAKE_CURRENT_LIST_DIR}/dynamic.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dynamic.h
     ${CMAKE_CURRENT_LIST_DIR}/expression.cpp

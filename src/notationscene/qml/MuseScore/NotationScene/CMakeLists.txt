@@ -76,6 +76,8 @@ qt_add_qml_module(notationscene_qml
         notationruler.h
         notationswitchlistmodel.cpp
         notationswitchlistmodel.h
+        dynamicspanelmodel.cpp
+        dynamicspanelmodel.h
         percussionworkspacemodel.cpp
         percussionworkspacemodel.h
         notationtoolbarmodel.cpp
@@ -167,6 +169,8 @@ qt_add_qml_module(notationscene_qml
         timelineview.h
 
     QML_FILES
+        DynamicsPanel.qml
+        DynamicsCurve.qml
         AbstractElementPopup.qml
         ConcertPitchControl.qml
         EditGridSizeDialog.qml

@@ -134,6 +134,11 @@ QString NotationPageModel::layoutPanelName() const
     return LAYOUT_PANEL_NAME;
 }
 
+QString NotationPageModel::dynamicsPanelName() const
+{
+    return DYNAMICS_PANEL_NAME;
+}
+
 QString NotationPageModel::propertiesPanelName() const
 {
     return PROPERTIES_PANEL_NAME;

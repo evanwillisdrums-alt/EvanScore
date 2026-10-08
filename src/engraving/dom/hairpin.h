@@ -179,6 +179,15 @@ public:
     bool snapToItemAfter() const { return m_snapToItemAfter; }
     void setSnapToItemAfter(bool v) { m_snapToItemAfter = v; }
 
+    int dynamicsCurveShape() const { return m_dynamicsCurveShape; }
+    double dynamicsCurveBend() const { return m_dynamicsCurveBend; }
+    int dynamicsStartDynamic() const { return m_dynamicsStartDynamic; }
+    int dynamicsEndDynamic() const { return m_dynamicsEndDynamic; }
+    int dynamicsStartRole() const { return m_dynamicsStartRole; }
+    int dynamicsEndRole() const { return m_dynamicsEndRole; }
+    int dynamicsStartVelocity() const { return m_dynamicsStartVelocity; }
+    int dynamicsEndVelocity() const { return m_dynamicsEndVelocity; }
+
     int subtype() const override { return int(m_hairpinType); }
     TranslatableString subtypeUserName() const override;
 
@@ -188,6 +197,15 @@ protected:
 private:
 
     Sid getPropertyStyle(Pid) const override;
+
+    int m_dynamicsCurveShape = -1;
+    double m_dynamicsCurveBend = -100.0;
+    int m_dynamicsStartDynamic = -1;
+    int m_dynamicsEndDynamic = -1;
+    int m_dynamicsStartRole = 0;
+    int m_dynamicsEndRole = 0;
+    int m_dynamicsStartVelocity = -1;
+    int m_dynamicsEndVelocity = -1;
 
     HairpinType m_hairpinType = HairpinType::INVALID;
     int m_veloChange = 0;

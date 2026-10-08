@@ -339,6 +339,25 @@ DockPage {
         },
 
         DockPanel {
+            id: dynamicsPanel
+            visible: false
+            objectName: root.pageModel.dynamicsPanelName()
+            title: qsTrc("appshell", "Dynamics")
+            navigationSection: root.navigationPanelSec(dynamicsPanel.location)
+            width: root.verticalPanelDefaultWidth
+            minimumWidth: root.verticalPanelDefaultWidth
+            maximumWidth: root.verticalPanelDefaultWidth
+            minimumHeight: root.panelMinDimension
+            maximumHeight: root.panelMaxDimension
+            groupName: root.verticalPanelsGroup
+            dropDestinations: root.verticalPanelDropDestinations
+            DynamicsPanel {
+                navigationSection: dynamicsPanel.navigationSection
+                navigationOrderStart: dynamicsPanel.contentNavigationPanelOrderStart
+            }
+        },
+
+        DockPanel {
             id: selectionFilterPanel
 
             objectName: root.pageModel.selectionFiltersPanelName()

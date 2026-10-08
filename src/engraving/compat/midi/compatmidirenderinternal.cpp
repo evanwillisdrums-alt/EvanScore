@@ -25,6 +25,7 @@
  render score into event list
 */
 
+#include "engraving/dom/dynamicsplayback.h"
 #include "compatmidirender.h"
 #include "compatmidirenderinternal.h"
 
@@ -104,6 +105,7 @@ struct PlayNoteParams {
     int offTime = 0;
     int offset = 0;
     int staffIdx = 0;
+    Fraction nominalTick;
     MidiInstrumentEffect effect = MidiInstrumentEffect::NONE;
     bool callAllSoundOff = false;//NoteOn silence channel
 };
@@ -224,9 +226,11 @@ static void playNote(EventsHolder& events, const Note* note, PlayNoteParams para
         return;
     }
 
+    params.velo = DynamicsPlayback::velocityAt(note, params.nominalTick, params.velo);
     if (note->userVelocity() != 0) {
         params.velo = note->customizeVelocity(params.velo);
     }
+    if (params.velo <= 0) return;
 
     if (params.callAllSoundOff && params.onTime != 0) {
         NPlayEvent ev1(ME_CONTROLLER, params.channel, CTRL_ALL_NOTES_OFF, 0);
@@ -675,6 +679,30 @@ static void renderSnd(EventsHolder& events, const Chord* chord, int noteChannel,
 {
     Fraction stick = chord->tick();
     Fraction etick = stick + chord->ticks();
+    if (DynamicsPlayback::enabled(chord->score())) {
+        // Battery samples use strike velocity; a shared channel controller would also
+        // change the loudness of taps and undo their fixed level.
+        if (chord->staff()->isDrumStaff(stick)) return;
+        const Hairpin* h = DynamicsPlayback::activeHairpin(chord->score(), stick, chord->track());
+        if (!h || h->ticks().ticks() <= 0 || chord->notes().empty()) return;
+        const Note* note = chord->notes().front();
+        if (note->userVelocity() != 0) return;
+        const int end = std::min(etick.ticks(), h->tick2().ticks());
+        const int step = std::max(1, h->ticks().ticks() / 64);
+        int lastValue = -1;
+        for (int tick = stick.ticks(); tick <= end; tick = std::min(end, tick + step)) {
+            const double t = double(tick - h->tick().ticks()) / h->ticks().ticks();
+            const int value = static_cast<int>(std::lround(DynamicsPlayback::hairpinValue(h, t)));
+            if (value != lastValue) {
+                NPlayEvent event(ME_CONTROLLER, noteChannel, context.sndController, value);
+                event.setOriginatingStaff(chord->staffIdx());
+                events[noteChannel].emplace(tick + tickOffset, event);
+                lastValue = value;
+            }
+            if (tick == end) break;
+        }
+        return;
+    }
     const VelocityMap& veloEvents = context.velocitiesByTrack.at(chord->track());
     const VelocityMap& multEvents = context.velocityMultiplicationsByTrack.at(chord->track());
     auto changes = veloEvents.changesInRange(stick, etick);
@@ -907,6 +935,7 @@ static void collectNote(EventsHolder& events, const Note* note, const CollectNot
             }
 
             playParams.staffIdx = static_cast<int>(staff->idx());
+            playParams.nominalTick = nonUnwoundTick;
             playParams.callAllSoundOff = noteParams.callAllSoundOff;
             playNote(events, note, playParams, pitchWheelRenderer);
 

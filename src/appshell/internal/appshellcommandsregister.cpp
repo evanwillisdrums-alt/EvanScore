@@ -149,6 +149,13 @@ static const std::vector<CommandInfo> s_commandInfos = {
         Decoration(rcommand::Checkable::Yes)
         ),
     CommandInfo(
+        DOCK_TOGGLE_DYNAMICS_COMMAND,
+        TranslatableString("action", "&Dynamics"),
+        TranslatableString("action", "Show/hide dynamics panel"),
+        InputSchema(),
+        Decoration(rcommand::Checkable::Yes)
+        ),
+    CommandInfo(
         DOCK_TOGGLE_PROPERTIES_COMMAND,
         TranslatableString("action", "Propert&ies"),
         TranslatableString("action", "Show/hide properties"),

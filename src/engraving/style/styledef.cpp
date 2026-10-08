@@ -2259,6 +2259,19 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(palmMuteBeginFilledArrowWidth,              0.85_sp),
     styleDef(palmMuteEndFilledArrowHeight,               1.0_sp),
     styleDef(palmMuteEndFilledArrowWidth,                0.85_sp),
+    styleDef(evanDynamicsEnabled, false),
+    styleDef(evanDynamicsNormal, String()),
+    styleDef(evanDynamicsTap, String()),
+    styleDef(evanDynamicsAccent, String()),
+    styleDef(evanDynamicsBattery, true),
+    styleDef(evanDynamicsCurveShape, 0),
+    styleDef(evanDynamicsCurveBend, 0.0),
+    styleDef(evanDynamicsTenuto, String()),
+    styleDef(evanDynamicsMarcato, String()),
+    styleDef(evanDynamicsGhost, String()),
+    styleDef(evanDynamicsSoftAccent, String()),
+    styleDef(evanDynamicsStress, String()),
+    styleDef(evanDynamicsUnstress, String()),
 } };
 
 #undef styleDef

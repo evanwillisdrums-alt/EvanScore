@@ -608,6 +608,15 @@ LineSegment* Hairpin::createLineSegment()
 PropertyValue Hairpin::getProperty(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_CURVE_SHAPE: return m_dynamicsCurveShape;
+    case Pid::DYNAMICS_CURVE_BEND: return m_dynamicsCurveBend;
+    case Pid::DYNAMICS_START_DYNAMIC: return m_dynamicsStartDynamic;
+    case Pid::DYNAMICS_END_DYNAMIC: return m_dynamicsEndDynamic;
+    case Pid::DYNAMICS_START_ROLE: return m_dynamicsStartRole;
+    case Pid::DYNAMICS_END_ROLE: return m_dynamicsEndRole;
+    case Pid::DYNAMICS_START_VELOCITY: return m_dynamicsStartVelocity;
+    case Pid::DYNAMICS_END_VELOCITY: return m_dynamicsEndVelocity;
+
     case Pid::HAIRPIN_CIRCLEDTIP:
         return m_hairpinCircledTip;
     case Pid::HAIRPIN_TYPE:
@@ -645,6 +654,15 @@ PropertyValue Hairpin::getProperty(Pid id) const
 bool Hairpin::setProperty(Pid id, const PropertyValue& v)
 {
     switch (id) {
+    case Pid::DYNAMICS_CURVE_SHAPE: m_dynamicsCurveShape = v.toInt(); break;
+    case Pid::DYNAMICS_CURVE_BEND: m_dynamicsCurveBend = v.toDouble(); break;
+    case Pid::DYNAMICS_START_DYNAMIC: m_dynamicsStartDynamic = v.toInt(); break;
+    case Pid::DYNAMICS_END_DYNAMIC: m_dynamicsEndDynamic = v.toInt(); break;
+    case Pid::DYNAMICS_START_ROLE: m_dynamicsStartRole = v.toInt(); break;
+    case Pid::DYNAMICS_END_ROLE: m_dynamicsEndRole = v.toInt(); break;
+    case Pid::DYNAMICS_START_VELOCITY: m_dynamicsStartVelocity = v.toInt(); break;
+    case Pid::DYNAMICS_END_VELOCITY: m_dynamicsEndVelocity = v.toInt(); break;
+
     case Pid::HAIRPIN_CIRCLEDTIP:
         m_hairpinCircledTip = v.toBool();
         break;
@@ -695,6 +713,15 @@ bool Hairpin::setProperty(Pid id, const PropertyValue& v)
 PropertyValue Hairpin::propertyDefault(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_CURVE_SHAPE: return -1;
+    case Pid::DYNAMICS_CURVE_BEND: return -100.0;
+    case Pid::DYNAMICS_START_DYNAMIC: return -1;
+    case Pid::DYNAMICS_END_DYNAMIC: return -1;
+    case Pid::DYNAMICS_START_ROLE: return 0;
+    case Pid::DYNAMICS_END_ROLE: return 0;
+    case Pid::DYNAMICS_START_VELOCITY: return -1;
+    case Pid::DYNAMICS_END_VELOCITY: return -1;
+
     case Pid::HAIRPIN_CIRCLEDTIP:
         return false;
 

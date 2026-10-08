@@ -2278,6 +2278,20 @@ enum class Sid : short {
     palmMuteEndFilledArrowHeight,
     palmMuteEndFilledArrowWidth,
 
+    evanDynamicsEnabled,
+    evanDynamicsNormal,
+    evanDynamicsTap,
+    evanDynamicsAccent,
+    evanDynamicsBattery,
+    evanDynamicsCurveShape,
+    evanDynamicsCurveBend,
+    evanDynamicsTenuto,
+    evanDynamicsMarcato,
+    evanDynamicsGhost,
+    evanDynamicsSoftAccent,
+    evanDynamicsStress,
+    evanDynamicsUnstress,
+
     STYLES
 };
 

@@ -21,6 +21,7 @@
  */
 
 #include "playbackmodel.h"
+#include "dom/dynamicsplayback.h"
 
 #include "dom/fret.h"
 #include "dom/harmony.h"
@@ -755,6 +756,10 @@ bool PlaybackModel::hasToReloadTracks(const ScoreChanges& changes) const
 
 bool PlaybackModel::hasToReloadScore(const ScoreChanges& changes) const
 {
+    // Dynamics profiles are score-wide, even when the edit originated from a selected note.
+    for (Sid sid : DynamicsPlayback::profileStyles()) {
+        if (muse::contains(changes.changedStyleIdSet, sid)) return true;
+    }
     static const std::unordered_set<ElementType> REQUIRED_TYPES {
         ElementType::SCORE,
         ElementType::GRADUAL_TEMPO_CHANGE,

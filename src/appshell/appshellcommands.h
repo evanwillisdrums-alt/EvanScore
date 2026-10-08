@@ -43,6 +43,7 @@ inline static const muse::rcommand::Command DOCK_TOGGLE_PLAYBACK_COMMAND("comman
 inline static const muse::rcommand::Command DOCK_TOGGLE_NOTEINPUT_COMMAND("command://app/dock/toggle-noteinput");
 inline static const muse::rcommand::Command DOCK_TOGGLE_PALETTES_COMMAND("command://app/dock/toggle-palettes");
 inline static const muse::rcommand::Command DOCK_TOGGLE_INSTRUMENTS_COMMAND("command://app/dock/toggle-instruments");
+inline static const muse::rcommand::Command DOCK_TOGGLE_DYNAMICS_COMMAND("command://app/dock/toggle-dynamics");
 inline static const muse::rcommand::Command DOCK_TOGGLE_PROPERTIES_COMMAND("command://app/dock/toggle-properties");
 inline static const muse::rcommand::Command DOCK_TOGGLE_SELECTION_FILTER_COMMAND("command://app/dock/toggle-selection-filter");
 inline static const muse::rcommand::Command DOCK_TOGGLE_UNDO_HISTORY_COMMAND("command://app/dock/toggle-undo-history");

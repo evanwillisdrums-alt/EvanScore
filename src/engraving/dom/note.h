@@ -273,7 +273,7 @@ public:
     bool isSmall() const { return m_isSmall; }
     void setSmall(bool val);
 
-    bool play() const { return m_play; }
+    bool play() const;
     void setPlay(bool val) { m_play = val; }
 
     GuitarBend* bendFor() const;

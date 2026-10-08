@@ -282,6 +282,7 @@ MenuItem* AppMenuModel::makeViewMenu()
         makeMenuItem(TOGGLE_MASTER_PALETTE_COMMAND),
         makeMenuItem(DOCK_TOGGLE_INSTRUMENTS_COMMAND),
         makeMenuItem(DOCK_TOGGLE_PROPERTIES_COMMAND),
+        makeMenuItem(DOCK_TOGGLE_DYNAMICS_COMMAND),
         makeMenuItem(DOCK_TOGGLE_SELECTION_FILTER_COMMAND),
         makeMenuItem(DOCK_TOGGLE_UNDO_HISTORY_COMMAND),
         makeMenuItem(DOCK_TOGGLE_NAVIGATOR_COMMAND),

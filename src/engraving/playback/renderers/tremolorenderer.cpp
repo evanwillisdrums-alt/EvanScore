@@ -31,6 +31,7 @@
 #include "playback/utils/repeatutils.h"
 
 #include "noterenderer.h"
+#include "dom/dynamicsplayback.h"
 
 using namespace mu::engraving;
 using namespace muse;
@@ -248,6 +249,13 @@ void TremoloRenderer::buildAndAppendEvents(const Chord* chord, const Articulatio
 
         int utick = timestampToTick(ctx.score, noteCtx.timestamp);
         noteCtx.dynamicLevel = ctx.playbackCtx->appliableDynamicLevel(note->track(), utick);
+        if (DynamicsPlayback::enabled(note->score())) {
+            int velocity = DynamicsPlayback::velocityAt(note, Fraction::fromTicks(startTick), 80);
+            if (note->userVelocity() != 0) velocity = note->customizeVelocity(velocity);
+            if (velocity <= 0) continue;
+            noteCtx.userVelocityFraction = velocity / 127.f;
+            noteCtx.dynamicLevel = static_cast<dynamic_level_t>(noteCtx.userVelocityFraction * MAX_DYNAMIC_LEVEL);
+        }
 
         NoteArticulationsParser::buildNoteArticulationMap(note, ctx, noteCtx.articulations);
 

@@ -76,6 +76,16 @@ In Format > Style, Make Default Style saves the current style for new scores and
 Existing scores retain their styles; Apply Default Style applies the saved default to the current score.
 Saving a default is a permanent preference change even if you later cancel score edits in the dialog.
 The optional floating keypad is bundled as the EvanScore Note Input plugin: enable it in Extensions > Manage plugins, then run it from the Extensions menu.
+Open View > Dynamics for the native Dynamics sidebar; close it like other panels without disabling saved playback settings.
+Full score edits change default mappings; selecting notes, dynamic markings, or hairpins exposes local controls.
+Dynamics use 0-127 MIDI velocities (0 is silent), with independent normal, tap, tenuto, accent, marcato, ghost, soft-accent, stress, and unstress mappings and visual draggable curves.
+Hairpin endpoints can independently reference note categories, including ff accents to mp taps.
+Selection edits support exact values, add/subtract, scaling, and relative percentages, with articulation/category filters.
+Save Preset / Load Preset transfer playback profiles as .evands files.
+Make Default Dynamics persists for new scores, including templates and after restarting.
+Apply Default Dynamics explicitly applies that profile to an existing score without restyling it.
+Mappings and curves save with the score; local edits support undo/redo and reset to inherited settings.
+Sound libraries determine the audible response to these values; patch-specific Virtual Drumline techniques still use the host's playback setup.
 The marimba visualization is still a preview concept.
 The internal executable and application name remain MuseScore.
 

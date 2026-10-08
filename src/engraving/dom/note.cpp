@@ -26,6 +26,7 @@
 */
 
 #include "note.h"
+#include "dynamicsplayback.h"
 
 #include <cassert>
 
@@ -2417,6 +2418,22 @@ void Note::reset()
     setHideGeneratedParens(false);
 }
 
+bool Note::play() const
+{
+    if (!m_play) return false;
+    if (!score() || !DynamicsPlayback::enabled(score())) return true;
+    int velocity = DynamicsPlayback::velocity(this, 80);
+    if (userVelocity() != 0) velocity = customizeVelocity(velocity);
+    if (velocity > 0) return true;
+    // A roll can begin silently and acquire velocity on subsequent strokes.
+    if (chord() && (chord()->tremoloSingleChord() || chord()->tremoloTwoChord())) {
+        velocity = DynamicsPlayback::velocityAt(this, chord()->tick() + chord()->actualTicks(), 80);
+        if (userVelocity() != 0) velocity = customizeVelocity(velocity);
+        return velocity > 0;
+    }
+    return false;
+}
+
 float Note::userVelocityFraction() const
 {
     return m_userVelocity / 127.f;
@@ -3126,7 +3143,7 @@ PropertyValue Note::getProperty(Pid propertyId) const
     case Pid::VELO_TYPE:
         return m_veloType;
     case Pid::PLAY:
-        return play();
+        return m_play;
     case Pid::LINE:
         return m_line;
     case Pid::FIXED:
