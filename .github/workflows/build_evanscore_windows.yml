@@ -9,6 +9,8 @@ on:
       - 'share/plugins/**'
       - 'AGENTS.md'
       - '.github/workflows/package_evanscore_plugin_update.yml'
+      - '.github/workflows/diagnose_evanscore_windows_startup.yml'
+      - 'buildscripts/ci/windows/check_evanscore_gui.ps1'
 
 permissions:
   contents: read

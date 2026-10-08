@@ -1,0 +1,45 @@
+name: EvanScore Windows startup diagnostic
+
+on:
+  push:
+    branches:
+      - codex/rounded-ui-windows-preview
+    paths:
+      - '.github/workflows/diagnose_evanscore_windows_startup.yml'
+      - 'buildscripts/ci/windows/check_evanscore_gui.ps1'
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Windows app build run to test
+        required: true
+        default: '37713046681'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  startup:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        renderer: [default, software]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-x64
+          path: downloaded-app
+          run-id: ${{ inputs.run_id || '37713046681' }}
+          github-token: ${{ github.token }}
+      - name: Open the downloaded Windows app beyond its splash screen
+        shell: pwsh
+        run: ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -Renderer '${{ matrix.renderer }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: startup-${{ matrix.renderer }}
+          path: build.artifacts/gui/
+          retention-days: 14
