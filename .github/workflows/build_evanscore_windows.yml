@@ -88,8 +88,15 @@ jobs:
         run: bash tools/translations/run_lupdate.sh
 
       - name: Compile and deploy the native app
-        shell: cmd
-        run: buildscripts\ci\windows\build.bat -n %BUILD_NUMBER% --dockwidgets_v2 ON
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build.artifacts | Out-Null
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+          cmd /c "buildscripts\ci\windows\build.bat -n $env:BUILD_NUMBER --dockwidgets_v2 ON" 2>&1 | Tee-Object -FilePath build.artifacts/Windows-build.log
+          $buildExit = $LASTEXITCODE
+          $ErrorActionPreference = 'Stop'
+          if ($buildExit -ne 0) { throw "Native compilation failed with code $buildExit" }
 
       - name: Retain matching native symbols for startup diagnostics
         uses: actions/upload-artifact@v7

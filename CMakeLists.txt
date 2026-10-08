@@ -242,6 +242,12 @@ add_subdirectory(share)
 add_subdirectory(${MUSE_FRAMEWORK_SRC_PATH})
 add_subdirectory(src)
 
+if (MSVC AND NOT MUSE_COMPILE_USE_PCH AND TARGET muse_uicomponents_qml)
+    # The pinned Windows popup controller gets QCursor through its PCH.
+    # Supply that declaration for cached MSVC builds without changing muse.
+    target_compile_options(muse_uicomponents_qml PRIVATE /FIQCursor)
+endif()
+
 
 ###########################################
 # Setup Packaging
