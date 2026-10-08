@@ -169,11 +169,23 @@ MuseScore {
         return spec.action === activeDuration || (spec.action === "open-noteheads" && openNoteheads)
             || (!!spec.tremoloName && spec.tremoloName === activeTremolo);
     }
+    function identityBucket(item) {
+        const fraction = item.fraction;
+        return fraction && typeof item.track === "number"
+            ? item.track + ":" + fraction.numerator + "/" + fraction.denominator : "fallback";
+    }
+    function sameElement(a, b) { return typeof a.is === "function" ? a.is(b) : a === b; }
     function selectedChords() {
         let chords = [];
+        let buckets = Object.create(null);
         for (const note of selectedNotes()) {
             const chord = note.parent;
-            if (!chords.some(function(existing) { return typeof existing.is === "function" ? existing.is(chord) : existing === chord; })) chords.push(chord);
+            const id = identityBucket(chord);
+            const bucket = buckets[id] || (buckets[id] = []);
+            // Grace chords can share a tick/track: compare native identity within the bucket.
+            if (!bucket.some(function(existing) { return sameElement(existing, chord); })) {
+                bucket.push(chord); chords.push(chord);
+            }
         }
         return chords;
     }
@@ -227,9 +239,13 @@ MuseScore {
         let notes = [];
         if (!curScore || !curScore.selection)
             return notes;
+        const buckets = Object.create(null);
         function append(note) {
-            if (!notes.some(function(existing) { return typeof existing.is === "function" ? existing.is(note) : existing === note; }))
-                notes.push(note);
+            const id = identityBucket(note);
+            const bucket = buckets[id] || (buckets[id] = []);
+            if (!bucket.some(function(existing) { return sameElement(existing, note); })) {
+                bucket.push(note); notes.push(note);
+            }
         }
         for (let item of curScore.selection.elements) {
             if (item.type === root.elementTypes.NOTE)
@@ -536,7 +552,17 @@ MuseScore {
                     id: resizeHandle
                     objectName: "keypad-resize"
                     anchors.right: parent.right; width: 24; height: 19
-                    spec: ({label: "Drag to resize; double-click to reset", icon: IconCode.SPLIT_OUT_ARROWS})
+                    focusPolicy: Qt.StrongFocus
+                    spec: ({label: "Drag to resize; arrows fine-tune; double-click to reset", icon: IconCode.SPLIT_OUT_ARROWS, iconSize: 14})
+                    Keys.onPressed: function(event) {
+                        const step = event.modifiers & Qt.ShiftModifier ? 16 : 4;
+                        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right)
+                            noteWindow.width = root.validSize(noteWindow.width + (event.key === Qt.Key_Right ? step : -step), noteWindow.width, noteWindow.minimumWidth, noteWindow.maximumWidth);
+                        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down)
+                            noteWindow.height = root.validSize(noteWindow.height + (event.key === Qt.Key_Down ? step : -step), noteWindow.height, noteWindow.minimumHeight, noteWindow.maximumHeight);
+                        else return;
+                        event.accepted = true;
+                    }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.SizeFDiagCursor
@@ -544,6 +570,7 @@ MuseScore {
                         property size original
                         property bool systemResize: false
                         onPressed: function(mouse) {
+                            resizeHandle.forceActiveFocus();
                             start = mapToGlobal(mouse.x, mouse.y);
                             original = Qt.size(noteWindow.width, noteWindow.height);
                             systemResize = noteWindow.startSystemResize(Qt.RightEdge | Qt.BottomEdge);
@@ -662,7 +689,7 @@ MuseScore {
                 visible: !key.spec.glyphs
                 text: key.spec.text || String.fromCharCode(key.spec.icon || IconCode.NONE)
                 font.family: key.spec.text ? "Arial" : iconFont.name
-                font.pixelSize: key.spec.text ? 18 : Math.min(key.height - 12, key.width - 14, 38) * (key.spec.grace ? 0.78 : 1)
+                font.pixelSize: key.spec.text ? 18 : (key.spec.iconSize || Math.min(key.height - 12, key.width - 14, 38 * Math.min(2, noteWindow.width / 320))) * (key.spec.grace ? 0.78 : 1)
                 font.weight: key.spec.text ? Font.DemiBold : Font.Normal
                 color: "#f8faff"
                 renderType: Text.NativeRendering
@@ -672,7 +699,7 @@ MuseScore {
                 anchors.fill: parent
                 visible: !!key.spec.glyphs
                 readonly property var bounds: key.spec.bounds || [0,0,1,1]
-                readonly property real scale: Math.min(0.045, Math.max(0,height - 14) / (bounds[3]-bounds[1]), Math.max(0,width-14) / (bounds[2]-bounds[0]))
+                readonly property real scale: Math.min(0.045 * Math.min(2, noteWindow.width / 320), Math.max(0,height - 14) / (bounds[3]-bounds[1]), Math.max(0,width-14) / (bounds[2]-bounds[0]))
                 Repeater {
                     model: key.spec.glyphs || []
                     Text {
