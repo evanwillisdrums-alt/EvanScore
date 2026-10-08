@@ -1,18 +1,12 @@
 name: EvanScore Windows startup diagnostic
 
 on:
-  push:
-    branches:
-      - codex/rounded-ui-windows-preview
-    paths:
-      - '.github/workflows/diagnose_evanscore_windows_startup.yml'
-      - 'buildscripts/ci/windows/check_evanscore_gui.ps1'
   workflow_dispatch:
     inputs:
       run_id:
         description: Windows app build run to test
         required: true
-        default: '37713046681'
+        default: '37808411015'
 
 permissions:
   actions: read
