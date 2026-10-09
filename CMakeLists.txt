@@ -242,6 +242,28 @@ add_subdirectory(share)
 add_subdirectory(${MUSE_FRAMEWORK_SRC_PATH})
 add_subdirectory(src)
 
+# App QML modules contain Qt Quick UI, including AOT-generated C++ that uses
+# exported view/accessibility types. QML imports only configure the QML engine;
+# they do not supply Qt Quick's C++ headers. Declare the GUI dependency for all
+# app QML modules so non-PCH builds do not depend on incidental includes.
+function(evanscore_link_qml_gui_modules source_directory)
+    get_property(module_targets DIRECTORY "${source_directory}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(module_target IN LISTS module_targets)
+        get_target_property(module_uri ${module_target} QT_QML_MODULE_URI)
+        if(module_uri)
+            target_link_libraries(${module_target} PRIVATE Qt::Quick)
+        endif()
+    endforeach()
+    get_property(module_directories DIRECTORY "${source_directory}" PROPERTY SUBDIRECTORIES)
+    foreach(module_directory IN LISTS module_directories)
+        evanscore_link_qml_gui_modules("${module_directory}")
+    endforeach()
+endfunction()
+
+if(MUSE_QT_SUPPORT AND TARGET Qt::Quick)
+    evanscore_link_qml_gui_modules("${CMAKE_CURRENT_SOURCE_DIR}/src")
+endif()
+
 if (MSVC AND NOT MUSE_COMPILE_USE_PCH AND TARGET muse_uicomponents_qml)
     # The pinned Windows popup controller gets QCursor through its PCH.
     # Supply that declaration for cached MSVC builds without changing muse.
