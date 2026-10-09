@@ -40,6 +40,13 @@ public:
                 }
                 bool opened = false;
                 for (QObject* object : objects(window)) {
+                    if (QByteArray(object->metaObject()->className()).contains("DynamicsPanelModel")) {
+                        opened = true;
+                        break;
+                    }
+                }
+                for (QObject* object : objects(window)) {
+                    if (opened) break;
                     if (!QByteArray(object->metaObject()->className()).endsWith("AppMenuModel")) continue;
                     opened = QMetaObject::invokeMethod(object, "handleMenuItem", Qt::DirectConnection,
                         Q_ARG(QString, QStringLiteral("command://app/dock/toggle-dynamics")));
@@ -63,10 +70,13 @@ public:
                     };
                     const int original = tap();
                     qWarning() << "DYNAMICS INSPECTOR editing ff taps from" << original << "to 10";
-                    // DynamicType::FF = 10, DynamicsPlayback::Tap = 2. This is
-                    // the exact native method called by the sidebar SpinBox.
-                    if (!QMetaObject::invokeMethod(model, "setMapping", Qt::DirectConnection,
-                            Q_ARG(int, 10), Q_ARG(int, 2), Q_ARG(int, 10))) qFatal("Could not invoke dynamics mapping edit");
+                    QObject* spin = nullptr;
+                    for (QObject* object : objects(window)) {
+                        if (object->objectName() == "dynamics-mapping-ff-tap") { spin = object; break; }
+                    }
+                    if (!spin || !spin->setProperty("value", 10)
+                        || !QMetaObject::invokeMethod(spin, "valueModified", Qt::DirectConnection))
+                        qFatal("Could not edit the ff tap sidebar SpinBox");
                     if (tap() != 10) qFatal("The ff tap mapping did not change to 10");
                     qWarning() << "DYNAMICS INSPECTOR ff taps changed to 10; testing native undo";
                     bool undoRequested = false;
