@@ -463,6 +463,9 @@ jobs:
           } catch {
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Host "::notice title=Layout trial failure::$message"
+            if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics' -and (Test-Path checks/drum-score/ff-snare.mscz)) {
+              pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app -ScorePath checks/drum-score/ff-snare.mscz > inspector-exceptions.log 2>&1
+            }
             throw
           }
       - name: Report bounded inspector diagnostics

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$InstallRoot)
+param([Parameter(Mandatory=$true)][string]$InstallRoot, [string]$ScorePath = '')
 $ErrorActionPreference = 'Stop'
 $app = Get-ChildItem $InstallRoot -Filter '*.exe' -Recurse | Where-Object { $_.BaseName -like 'MuseScore*' } | Select-Object -First 1
 if (-not $app) { throw 'No MuseScore executable found' }
@@ -108,10 +108,12 @@ public static class EvanScoreExceptionObserver {
         } catch(Exception e){Console.WriteLine("Stack observation: "+e.Message);}
         finally {if(thread!=IntPtr.Zero)CloseHandle(thread);Marshal.FreeHGlobal(context);}
     }
-    public static void Observe(string app,string cwd) {
+    public static void Observe(string app,string cwd,string scorePath) {
         symbolPath=cwd;
         var si=new StartupInfo();si.cb=Marshal.SizeOf(si); ProcessInfo pi;
-        if(!CreateProcess(app,new StringBuilder("\""+app+"\" --debug --session-type start-empty"),IntPtr.Zero,IntPtr.Zero,false,2,IntPtr.Zero,cwd,ref si,out pi))throw new Exception("CreateProcess failed: "+Marshal.GetLastWin32Error());
+        if(scorePath.Contains("\""))throw new ArgumentException("Score path must not contain quotation marks");
+        string args=String.IsNullOrEmpty(scorePath)?" --session-type start-empty":" \""+scorePath+"\"";
+        if(!CreateProcess(app,new StringBuilder("\""+app+"\" --debug"+args),IntPtr.Zero,IntPtr.Zero,false,2,IntPtr.Zero,cwd,ref si,out pi))throw new Exception("CreateProcess failed: "+Marshal.GetLastWin32Error());
         var ev=Marshal.AllocHGlobal(176);bool breakpointHandled=false;var deadline=DateTime.UtcNow.AddSeconds(165);
         var nextSnapshot=DateTime.UtcNow.AddSeconds(90);bool snapshotRequested=false;int snapshots=0;
         try {
@@ -161,4 +163,5 @@ public static class EvanScoreExceptionObserver {
     }
 }
 '@
-[EvanScoreExceptionObserver]::Observe($app.FullName,$app.DirectoryName)
+if ($ScorePath) { $ScorePath = (Resolve-Path -LiteralPath $ScorePath).Path }
+[EvanScoreExceptionObserver]::Observe($app.FullName,$app.DirectoryName,$ScorePath)
