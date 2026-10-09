@@ -8,14 +8,7 @@
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QSettings>
-#include <QFile>
-#ifdef Q_OS_WIN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <psapi.h>
-#endif
+#include "processmemory.h"
 #include <algorithm>
 #include <set>
 #include "notation/inotationelements.h"
@@ -35,25 +28,7 @@ using namespace mu::engraving;
 
 static QJsonObject runtimeDiagnostics()
 {
-    QJsonObject result;
-#ifdef Q_OS_WIN
-    PROCESS_MEMORY_COUNTERS_EX memory {};
-    memory.cb = sizeof(memory);
-    if (K32GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory), sizeof(memory))) {
-        result.insert("workingSetBytes", static_cast<double>(memory.WorkingSetSize));
-        result.insert("privateBytes", static_cast<double>(memory.PrivateUsage));
-    }
-#elif defined(Q_OS_LINUX)
-    QFile status(QStringLiteral("/proc/self/status"));
-    if (status.open(QIODevice::ReadOnly)) {
-        const auto lines = status.readAll().split('\n');
-        for (const auto& line : lines) {
-            if (line.startsWith("VmRSS:")) {
-                result.insert("workingSetBytes", line.mid(6).simplified().split(' ').first().toDouble() * 1024);
-            }
-        }
-    }
-#endif
+    QJsonObject result = processMemoryDiagnostics();
     result.insert("timeFormat", QSettings().value("evanscore/transport/musicalPosition", false).toBool() ? "bar.beat" : "elapsed");
     QJsonArray mixers;
     for (QWindow* window : QGuiApplication::allWindows()) {

@@ -80,6 +80,8 @@ qt_add_qml_module(notationscene_qml
         dynamicspanelmodel.h
         featuredebugmodel.cpp
         featuredebugmodel.h
+        processmemory.cpp
+        processmemory.h
         percussionworkspacemodel.cpp
         percussionworkspacemodel.h
         notationtoolbarmodel.cpp
@@ -316,6 +318,10 @@ qt_add_qml_module(notationscene_qml
         TARGET muse_uicomponents_qml
         ${MAYBE_BRAILLE_QML}
 )
+
+# Windows headers define names such as ABSOLUTE used by engraving enums.
+# Keep platform memory queries out of unity files and public model headers.
+set_source_files_properties(processmemory.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 
 fixup_qml_module_dependencies(notationscene_qml)
 

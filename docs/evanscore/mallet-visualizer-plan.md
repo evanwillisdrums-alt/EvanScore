@@ -12,7 +12,7 @@ Native integration is the current recommendation. The checked-out legacy extensi
 
 ## Player and instrument appearance
 
-The latest supplied illustration establishes the rendering direction: a clean illustrated overhead player with soft shading, body, shoulders, arms, hands, hair, and four mallets. The body and arms are mandatory and must show reach and crossovers. Also retain the previously requested front view. Both views must depict the same instrument, mallet assignments, and pose.
+The latest supplied illustration establishes the rendering direction: a clean illustrated overhead player with soft shading, body, shoulders, arms, hands, hair, and four mallets. The body and arms are mandatory and must show reach and crossovers. Also retain the previously requested front/side view of the instrument and player. The user clarified that only the overhead view needs mallet visualization and placement support; the front/side view does not need mallets. Keep instrument range and player appearance consistent between views.
 
 Randomize natural skin tone and hair color each time the panel opens, then keep the appearance stable during that session. This is cosmetic and must not alter reach calculations, player dimensions, note assignments, or saved score content. Keep diagnostic and mallet highlights readable against every player appearance; the avatar must not cover controls, note labels, or strike-point feedback.
 

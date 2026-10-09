@@ -2,6 +2,12 @@
 
 Updated 2026-10-09 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Windows diagnostics compilation correction
+
+Source `4b796f2e86bcb040673ee1d626dcca09f51d5766`, full run `38005758299`, job `114074052279`, failed compilation; it produced no runnable package. The new debug-model Windows headers collide with engraving's `P_TYPE::ABSOLUTE` enum. A local probe inserting the Windows ABSOLUTE macro reproduces the enum/parser failure. Process memory queries now live in processmemory.cpp, explicitly excluded from unity compilation, keeping Windows macros out of model/engraving translation units. All five affected source checks pass; the actual Linux memory helper builds separately with unity enabled elsewhere and reports a positive working set. Full Windows compilation remains required. The diagnostic workflow now reports the first compiler errors separately from bounded log tails so root causes are not obscured by cascades.
+
+The user clarified that only the overhead mallet-visualizer view needs mallet placement/movement; the front/side view does not need mallets. AGENTS, goals, and the visualizer plan reflect that. The visualizer remains planned and is not included in this crash/optimization build.
+
 ## Current correction: queued V2 dock updates, Mixer ownership, time toggle
 
 The expanded fc68 Dynamics run `37986104117` failed on the second score, so its x64 download remains held. Matching-symbol rerun `37986678204` identifies the actual **dockwindow_v2** path: DockBase::applySizeConstraints reenters KDDockWidgets minimum-size notifications during geometry changes; DockBase::syncLayoutItemMinSize also directly reemits from TopLevelToolBarsLayout::relayout. Earlier local toolbar-contract checks used legacy DockToolBar.qml, not the Windows V2 implementation, and therefore did not validate this path. Do not treat content padding as a complete fix.

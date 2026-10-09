@@ -214,6 +214,17 @@ jobs:
               core.notice('Job log retrieval failed: ' + error.message);
               throw error;
             }
+      - name: Report first compiler errors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          file = Path('checks/compiler-errors.log')
+          if file.exists():
+              content = file.read_text(encoding='utf-8-sig', errors='replace')[:18000]
+              for offset in range(0, len(content), 2800):
+                  message = content[offset:offset+2800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=First compiler errors::' + message)
+          PY
       - name: Report launch diagnostics through check annotations
         run: |
           python3 - <<'PY'
