@@ -30,7 +30,7 @@ In Full score → Dynamic mappings, choose an articulation (Tap, Accent, Tenuto,
 
 ## Smooth through articulations
 
-Enable **Smooth through articulations** for one curve between the chosen hairpin endpoints, even as printed notes change from accents to tenutos to taps. It is off initially. Full score sets the preference; a selected hairpin can override it, and **Use score defaults** restores inheritance. Explicit note overrides remain in effect. A ghost mapped to zero remains silent. Presets include the preference; older presets retain the original independent articulation lanes.
+Enable **Smooth through articulations** for one curve between the chosen hairpin endpoints, even as printed notes change from accents to tenutos to taps. If there is no ending dynamic mark and the final stroke category differs, its mapping provides the destination without the usual automatic ±16 adjustment. Explicit hairpin velocity changes remain honored. It is off initially. Full score sets the preference; a selected hairpin can override it, and **Use score defaults** restores inheritance. Explicit note overrides remain in effect. A ghost mapped to zero remains silent. Presets include the preference; older presets retain the original independent articulation lanes.
 
 Legacy imported marking velocities, such as p=64, no longer supersede a custom battery Tap mapping. Explicit note edits and the panel's precise marking override still take priority. Hairpins can still vary the actual note velocity while the Tap mapping is constant.
 

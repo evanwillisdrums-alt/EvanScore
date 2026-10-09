@@ -207,7 +207,13 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
         if (dynamic->preciseVelocity() >= 0) value = dynamic->preciseVelocity();
         else if (role != Tap && dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) value = dynamic->velocity();
     }
-    if (inferredEnd) value += (h->isCrescendo() ? 1 : -1) * (h->veloChange() ? std::abs(h->veloChange()) : 16);
+    int startRole = h->dynamicsStartRole();
+    if (startRole == Auto) startRole = roleAt(h->score(), h->startSegment(), h->track());
+    // A shared ramp ending in a different stroke category already has an
+    // inferred destination (e.g. accent -> tap). Do not shift that target by
+    // the default unmarked-hairpin +/-16 change.
+    if (inferredEnd && (h->veloChange() != 0 || !smoothArticulations(h) || role == startRole))
+        value += (h->isCrescendo() ? 1 : -1) * (h->veloChange() ? std::abs(h->veloChange()) : 16);
     return std::clamp(value, 0, 127);
 }
 

@@ -580,3 +580,23 @@ TEST_F(Engraving_DynamicsPlaybackTests, LocalSmoothingUndoReturnsToInheritedScor
     score->undoStack()->redo();
     EXPECT_FALSE(DynamicsPlayback::smoothArticulations(h));
 }
+
+TEST_F(Engraving_DynamicsPlaybackTests, SharedRampWithoutEndMarkArrivesAtChangedArticulationMapping) {
+    mapping(Sid::evanDynamicsAccent, DynamicType::MF, 100);
+    mapping(Sid::evanDynamicsTap, DynamicType::MF, 30);
+    mark(0, DynamicType::MF); accent(0);
+    Hairpin* h = ramp();
+    for (Pid id : {Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC}) h->setProperty(id, -1);
+    for (Pid id : {Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE}) h->setProperty(id, 0);
+    h->setProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, 1);
+    EXPECT_EQ(DynamicsPlayback::endpoint(h, true), 30);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[3], 80), 30);
+    h->setVeloChange(12);
+    EXPECT_EQ(DynamicsPlayback::endpoint(h, true), 18);
+    h->setVeloChange(0);
+    h->setHairpinType(HairpinType::CRESC_HAIRPIN);
+    auto* articulation = notes[0]->chord()->articulations().front();
+    articulation->setPlayArticulation(false); accent(3);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, 0), 30);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, 1), 100);
+}
