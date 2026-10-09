@@ -74,7 +74,7 @@ jobs:
           def priority(file):
               if file.name == 'stderr.log': return (0, str(file))
               if file.suffix == '.json': return (1, str(file))
-              if file.name.startswith('MuseScore'): return (2, str(file))
+              if file.name.startswith('MuseScore'): return (2, 0 if file.parent.name.endswith('score') else 1, str(file))
               return (3, str(file))
           # GitHub accepts only ten notice annotations per step. Prioritize
           # native stderr and window state so verbose Qt logs cannot hide them.
