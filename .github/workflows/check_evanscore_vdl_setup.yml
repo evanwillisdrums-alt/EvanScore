@@ -76,6 +76,9 @@ jobs:
             }
             & powershell.exe -NoProfile -File $helper -CheckOnly -DownloadOnly
             if ($LASTEXITCODE -eq 0) { throw 'Conflicting modes were accepted' }
+            # This expected failure has been asserted. Do not propagate it
+            # through GitHub's automatic final LASTEXITCODE check.
+            $global:LASTEXITCODE = 0
             'Setup parser and Windows PowerShell detection checks passed.'
           } finally {
             $env:ProgramFiles = $originalProgramFiles
