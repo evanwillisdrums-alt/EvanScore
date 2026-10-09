@@ -195,12 +195,17 @@ public:
                                     for (int index = 0; index < 6; ++index) {
                                         const bool wasOpen = dockOpen(window, panels[index]);
                                         const QByteArray command = QByteArray("command://app/dock/toggle-") + commands[index];
-                                        dispatchMenu(window, command.constData()); QTest::qWait(80);
-                                        if (dockOpen(window, panels[index]) == wasOpen)
+                                        dispatchMenu(window, command.constData());
+                                        if (!QTest::qWaitFor([&] { return dockOpen(window, panels[index]) != wasOpen; }, 1500)) {
+                                            dumpDockState(window, panels[index]);
                                             qFatal("Panel did not toggle: %s", panels[index]);
-                                        dispatchMenu(window, command.constData()); QTest::qWait(80);
-                                        if (dockOpen(window, panels[index]) != wasOpen)
+                                        }
+                                        dispatchMenu(window, command.constData());
+                                        if (!QTest::qWaitFor([&] { return dockOpen(window, panels[index]) == wasOpen; }, 1500)) {
+                                            dumpDockState(window, panels[index]);
                                             qFatal("Panel did not restore: %s", panels[index]);
+                                        }
+                                        qWarning() << "DYNAMICS INSPECTOR panel toggled and restored" << panels[index] << wasOpen;
                                     }
                                 }
                                 if (!model) qFatal("Dynamics model vanished during general panel checks");
@@ -241,6 +246,15 @@ public:
     }
 private:
     bool done = false;
+    static void dumpDockState(QObject* window, const char* name) {
+        for (QObject* object : objects(window)) {
+            if (object->objectName() != QString::fromUtf8(name)) continue;
+            bool open = false;
+            QMetaObject::invokeMethod(object, "isOpen", Qt::DirectConnection, Q_RETURN_ARG(bool, open));
+            qWarning() << "DYNAMICS INSPECTOR dock state" << name << object->metaObject()->className()
+                       << "open" << open << "visible" << object->property("visible");
+        }
+    }
     static bool dockOpen(QObject* window, const char* name) {
         for (QObject* object : objects(window)) {
             if (object->objectName() != QString::fromUtf8(name)
