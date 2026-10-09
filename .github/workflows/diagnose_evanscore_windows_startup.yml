@@ -328,6 +328,22 @@ jobs:
               }
               python buildscripts/ci/windows/startup-inspector/verify_saved_dynamics.py
               if ($LASTEXITCODE -ne 0) { throw 'Native score dynamics persistence verification failed' }
+              # Converter mode starts the real audio engine without requiring
+              # a physical Windows audio device. This covers MS Basic audio;
+              # it does not substitute for an installed Muse Drumline test.
+              foreach ($folder in @('score', 'drum-score')) {
+                $score = Get-ChildItem "checks/$folder" -Filter '*.mscz' | Select-Object -First 1
+                $wav = Join-Path $score.DirectoryName 'custom-dynamics.wav'
+                $render = Start-Process -FilePath $app.FullName -WorkingDirectory $app.DirectoryName -PassThru `
+                  -ArgumentList @('-o', ('"' + $wav + '"'), ('"' + $score.FullName + '"')) `
+                  -RedirectStandardOutput (Join-Path $score.DirectoryName 'audio-export-stdout.log') `
+                  -RedirectStandardError (Join-Path $score.DirectoryName 'audio-export-stderr.log')
+                if (-not $render.WaitForExit(120000)) { $render.Kill(); throw "Custom dynamics audio export timed out in $folder" }
+                $render.Refresh()
+                if ($render.ExitCode -ne 0 -or -not (Test-Path $wav)) { throw "Custom dynamics audio export failed in $folder, exit=$($render.ExitCode)" }
+              }
+              python buildscripts/ci/windows/startup-inspector/verify_dynamics_audio.py
+              if ($LASTEXITCODE -ne 0) { throw 'Custom dynamics audio output verification failed' }
             }
           } catch {
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
