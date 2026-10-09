@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QPointer>
 #include <QKeyEvent>
+#include <QSet>
 
 class Inspector final : public QObject {
 public:
@@ -33,7 +34,21 @@ public:
         if (mode == "dynamics") {
             QTimer::singleShot(4000, window, [root = QPointer<QObject>(root), window = QPointer<QQuickWindow>(window)] {
                 if (!root || !window) return;
-                for (QObject* model : root->findChildren<QObject*>()) {
+                if (window->title() == "EvanScore") {
+                    qWarning() << "DYNAMICS INSPECTOR empty workspace: skipped";
+                    return;
+                }
+                bool opened = false;
+                for (QObject* object : objects(window)) {
+                    if (!QByteArray(object->metaObject()->className()).endsWith("AppMenuModel")) continue;
+                    opened = QMetaObject::invokeMethod(object, "handleMenuItem", Qt::DirectConnection,
+                        Q_ARG(QString, QStringLiteral("command://app/dock/toggle-dynamics")));
+                    if (opened) break;
+                }
+                if (!opened) qFatal("The diagnostic could not open View > Dynamics");
+                QTimer::singleShot(1000, window, [window] {
+                if (!window) return;
+                for (QObject* model : objects(window)) {
                     if (!QByteArray(model->metaObject()->className()).contains("DynamicsPanelModel")) continue;
                     if (!model->property("state").toMap().value("available").toBool()) {
                         qWarning() << "DYNAMICS INSPECTOR empty workspace: skipped";
@@ -63,6 +78,7 @@ public:
                     return;
                 }
                 qFatal("The native DynamicsPanelModel was not found");
+                });
             });
         }
         if (mode == "left") {
@@ -77,6 +93,22 @@ public:
     }
 private:
     bool done = false;
+    static QList<QObject*> objects(QObject* root) {
+        QList<QObject*> result;
+        QList<QObject*> queue { root };
+        QSet<QObject*> visited;
+        while (!queue.isEmpty()) {
+            auto object = queue.takeLast();
+            if (visited.contains(object)) continue;
+            visited.insert(object);
+            result.append(object);
+            queue.append(object->children());
+            if (auto item = qobject_cast<QQuickItem*>(object))
+                for (auto child : item->childItems()) queue.append(child);
+            if (auto window = qobject_cast<QQuickWindow*>(object)) queue.append(window->contentItem());
+        }
+        return result;
+    }
     static QQuickItem* findItem(QQuickItem* item, const QString& name) {
         if (item->objectName() == name) return item;
         for (auto child : item->childItems()) {

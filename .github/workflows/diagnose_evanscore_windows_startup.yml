@@ -321,7 +321,8 @@ jobs:
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath src/engraving/tests/beam_data/drumKitBeam.mscx
               foreach ($folder in @('score', 'drum-score')) {
-                if ((Get-Content "checks/$folder/stderr.log" -Raw) -notmatch 'DYNAMICS INSPECTOR mapping restored after native undo') {
+                $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+                if ($logs -notmatch 'DYNAMICS INSPECTOR mapping restored after native undo') {
                   throw "The native dynamics edit and undo did not complete in $folder"
                 }
               }
@@ -335,8 +336,11 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' } | ForEach-Object {
+          Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
+            if ($_.Name -like 'MuseScore*.log') {
+              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|ERROR|ASSERT' }) -join "`n"
+            }
             if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
               $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
