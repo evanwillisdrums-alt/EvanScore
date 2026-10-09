@@ -119,6 +119,33 @@ QHash<int, QByteArray> MixerPanelModel::roleNames() const
     return roles;
 }
 
+void MixerPanelModel::setMeteringEnabled(bool enabled)
+{
+    if (enabled == m_meteringEnabled) {
+        return;
+    }
+    m_meteringEnabled = enabled;
+    for (MixerChannelItem* item : m_mixerChannelList) {
+        item->setMeteringEnabled(enabled);
+    }
+    emit meteringEnabledChanged();
+}
+
+QVariantMap MixerPanelModel::diagnostics() const
+{
+    int visibleAuxSends = 0;
+    for (const MixerChannelItem* item : m_mixerChannelList) {
+        visibleAuxSends += item->auxSendItems().size();
+    }
+    return {
+        { "channels", m_mixerChannelList.size() },
+        { "ownedChannelObjects", findChildren<MixerChannelItem*>(QString(), Qt::FindDirectChildrenOnly).size() },
+        { "visibleAuxSendControls", visibleAuxSends },
+        { "ownedAuxSendControls", findChildren<AuxSendItem*>().size() },
+        { "meteringEnabled", m_meteringEnabled }
+    };
+}
+
 void MixerPanelModel::reloadItems()
 {
     TRACEFUNC;
@@ -237,10 +264,15 @@ void MixerPanelModel::removeItem(const TrackId trackId)
 
     beginRemoveRows(QModelIndex(), index, index);
 
-    m_mixerChannelList.removeAt(index);
+    MixerChannelItem* removed = m_mixerChannelList.takeAt(index);
     updateItemsPanelsOrder();
 
     endRemoveRows();
+
+    // Let QML release its delegates before destroying the channel. Removed
+    // aux channels must not retain resources and live meter subscriptions.
+    removed->setMeteringEnabled(false);
+    removed->deleteLater();
 
     updateOutputResourceItemCount();
 
@@ -459,6 +491,7 @@ MixerChannelItem* MixerPanelModel::buildInstrumentChannelItem(const TrackId trac
     }
 
     MixerChannelItem* item = new MixerChannelItem(this, type, false /*outputOnly*/, trackId);
+    item->setMeteringEnabled(m_meteringEnabled);
     item->setInstrumentTrackId(instrumentTrackId);
     item->setPanelSection(m_navigationSection);
     item->loadSoloMuteState(controller()->trackSoloMuteState(instrumentTrackId));
@@ -547,6 +580,7 @@ MixerChannelItem* MixerPanelModel::buildInstrumentChannelItem(const TrackId trac
 MixerChannelItem* MixerPanelModel::buildAuxChannelItem(aux_channel_idx_t index, const TrackId trackId)
 {
     MixerChannelItem* item = new MixerChannelItem(this, MixerChannelItem::Type::Aux, true /*outputOnly*/, trackId);
+    item->setMeteringEnabled(m_meteringEnabled);
     item->setPanelSection(m_navigationSection);
     item->loadSoloMuteState(audioSettings()->auxSoloMuteState(index));
 
@@ -596,6 +630,7 @@ MixerChannelItem* MixerPanelModel::buildAuxChannelItem(aux_channel_idx_t index, 
 MixerChannelItem* MixerPanelModel::buildMasterChannelItem()
 {
     MixerChannelItem* item = new MixerChannelItem(this, MixerChannelItem::Type::Master, true /*outputOnly*/, MASTER_TRACK_ID);
+    item->setMeteringEnabled(m_meteringEnabled);
     item->setPanelSection(m_navigationSection);
     item->setTitle(muse::qtrc("playback", "Master"));
 

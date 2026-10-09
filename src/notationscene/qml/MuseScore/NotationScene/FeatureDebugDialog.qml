@@ -53,6 +53,7 @@ StyledDialogView {
             FlatButton {
                 objectName: "feature-debug-copy"
                 text: qsTrc("notation", "Copy report")
+                Layout.minimumWidth: 148
                 backgroundRadius: 8
                 navigation.panel: controlsNavigation
                 navigation.order: 3

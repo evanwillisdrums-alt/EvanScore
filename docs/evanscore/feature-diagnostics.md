@@ -8,4 +8,6 @@ Explicit R/r/L/l sequences retain repeated hands; lowercase is not a dynamics in
 
 Known velocities come from notation/custom mappings and explicit note overrides. A disabled automatic sound-engine value is reported as null, not as a measured velocity of 80. Actual sound-library gain/sample output cannot be inferred from this report. The current VDL sample application/conversion and mallet-visualizer status are explicitly pending/planned.
 
+The runtime section reports EvanScore's working-set bytes (and private bytes on Windows), the saved elapsed/bar.beat transport format, and loaded Mixer channel/aux-control ownership and metering state. Refresh captures current values. Process memory includes loaded sounds; it is not total system memory or a breakdown by sample library. An unloaded Mixer is reported as an empty list.
+
 Future added features must extend this report with useful runtime state, selected inputs, resolved outputs, and unsupported/ambiguous reasons. In particular, VDL integration must report its actual patch/profile, technique, hand-specific sample pitches, controllers/keyswitches, and fallback behavior when implemented. Never label merely recognized sticking as a sample that was actually applied.

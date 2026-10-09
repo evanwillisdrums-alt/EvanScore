@@ -232,6 +232,12 @@ jobs:
               for offset in range(0, len(content), 2800):
                   message = content[offset:offset + 2800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::notice title=Native interaction diagnostics::' + message)
+          PY
+      - name: Report remaining launch logs through check annotations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files = [f for f in Path('checks').rglob('*') if f.is_file() and f.suffix in ('.log', '.json')]
           def priority(file):
               if file.name == 'stderr.log': return (0, str(file))
               if file.suffix == '.json': return (1, str(file))
@@ -474,11 +480,12 @@ jobs:
             $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx -MinimumOpenSeconds $interactionTime
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
+              $env:EVANSCORE_EXPECT_MUSICAL_TIME = '1'
               $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/drum-score/feature-debug.png')
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath buildscripts/ci/windows/fixtures/ff-snare.mscx -MinimumOpenSeconds $interactionTime
               foreach ($folder in @('score', 'drum-score')) {
                 $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-                foreach ($marker in @('mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'mapping save requested')) {
+                foreach ($marker in @('transport pointer toggle, alignment and format checks passed', 'mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mixer visibility and ownership checks passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'mapping save requested')) {
                   if (-not $logs.Contains("DYNAMICS INSPECTOR $marker")) {
                     throw "The native interaction check did not complete in ${folder}: $marker"
                   }

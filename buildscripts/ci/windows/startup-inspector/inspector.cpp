@@ -28,6 +28,7 @@
 #include <QTest>
 #include <QSignalSpy>
 #include <QSet>
+#include <QElapsedTimer>
 #include <algorithm>
 
 class Inspector final : public QObject {
@@ -53,6 +54,7 @@ public:
                     qWarning() << "DYNAMICS INSPECTOR empty workspace: skipped";
                     return;
                 }
+                verifyTransport(window);
                 // Loaded models survive while a different sidebar tab is
                 // active. Reopen through the native command so real clicks
                 // target the visible Dynamics tab, including saved layouts.
@@ -256,6 +258,7 @@ public:
                                 if (!model) qFatal("Dynamics model vanished during general panel checks");
                                 verifyColumn();
                                 qWarning() << "DYNAMICS INSPECTOR general panel and resize checks passed";
+                                verifyMixer(window);
                                 dispatchMenu(window, "command://notation/select-all");
                                 QTest::qWait(250);
                                 QMetaObject::invokeMethod(model, "followSelection", Qt::DirectConnection);
@@ -292,6 +295,86 @@ public:
     }
 private:
     bool done = false;
+    static void verifyTransport(QQuickWindow* window) {
+        auto button = findItem(window->contentItem(), "transport-time-format");
+        auto value = findItem(window->contentItem(), "transport-time-value");
+        QObject* model = nullptr;
+        for (QObject* object : objects(window)) {
+            if (QByteArray(object->metaObject()->className()).contains("PlaybackToolBarModel")) { model = object; break; }
+        }
+        if (!button || !value || !model || !button->isEnabled()) qFatal("Transport format toggle is unavailable");
+        if (qEnvironmentVariable("EVANSCORE_EXPECT_MUSICAL_TIME") == "1" && !model->property("musicalTime").toBool())
+            qFatal("Time format was not remembered across app restarts");
+        const double center = button->y() + button->height()/2;
+        for (const auto name : {"transport-bar-beat", "transport-tempo", "transport-meter-key"}) {
+            auto field = findItem(window->contentItem(), name);
+            if (!field || qAbs(field->y() + field->height()/2 - center) > 0.5) qFatal("Transport values are not horizontally aligned");
+        }
+        for (int click = 0; click < 2; ++click) {
+            const bool before = model->property("musicalTime").toBool();
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
+            QTest::qWait(50);
+            if (model->property("musicalTime").toBool() == before) qFatal("Time format click did not switch");
+            const auto expected = model->property(before ? "elapsedPosition" : "musicalPosition").toString();
+            if (value->property("text").toString() != expected || expected.isEmpty()) qFatal("Time readout did not follow its format");
+        }
+        if (!model->property("musicalTime").toBool()) {
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
+        }
+        qWarning() << "DYNAMICS INSPECTOR transport pointer toggle, alignment and format checks passed";
+    }
+    static void verifyMixer(QQuickWindow* window) {
+        const bool wasOpen = dockOpen(window, "mixerPanel");
+        if (!wasOpen) dispatchMenu(window, "command://app/dock/toggle-mixer");
+        QTest::qWait(150);
+        QObject* model = nullptr;
+        QObject* menu = nullptr;
+        for (QObject* object : objects(window)) {
+            if (object->objectName() == "mixer-panel-model") model = object;
+            if (QByteArray(object->metaObject()->className()).contains("MixerPanelContextMenuModel")) menu = object;
+        }
+        if (!model || !menu) qFatal("Mixer models did not load");
+        auto diagnostics = [model] {
+            QVariantMap result;
+            if (!QMetaObject::invokeMethod(model, "diagnostics", Qt::DirectConnection, Q_RETURN_ARG(QVariantMap, result)))
+                qFatal("Mixer runtime diagnostics missing");
+            return result;
+        };
+        const auto initial = diagnostics();
+        reportMemory("before mixer toggles");
+        qint64 slowest = 0;
+        for (int cycle = 0; cycle < 10; ++cycle) {
+            for (const auto section : {"volume", "fader", "sound", "audio-fx"}) {
+                const QByteArray command = QByteArray("command://playback/toggle-mixer-section?section=") + section;
+                const QString property = QByteArray(section) == "audio-fx" ? QStringLiteral("audioFxSectionVisible") : QString::fromUtf8(section) + "SectionVisible";
+                const bool before = menu->property(property.toUtf8()).toBool();
+                for (int toggle = 0; toggle < 2; ++toggle) {
+                    QElapsedTimer elapsed; elapsed.start();
+                    dispatchMenu(window, command.constData());
+                    const bool expected = toggle == 0 ? !before : before;
+                    if (!QTest::qWaitFor([&] { return menu->property(property.toUtf8()).toBool() == expected; }, 1500))
+                        qFatal("Mixer section visibility did not update");
+                    QTest::qWait(20);
+                    slowest = std::max(slowest, elapsed.elapsed());
+                    if (QByteArray(section) == "fader" && model->property("meteringEnabled").toBool() != expected)
+                        qFatal("Mixer hidden-meter subscription did not follow fader visibility");
+                }
+            }
+            for (const auto command : {"command://playback/toggle-aux-send?auxsend-index=0", "command://playback/toggle-aux-channel?auxchannel-index=0"}) {
+                dispatchMenu(window, command); QTest::qWait(20);
+                dispatchMenu(window, command); QTest::qWait(20);
+            }
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            const auto now = diagnostics();
+            if (now.value("ownedChannelObjects").toInt() != now.value("channels").toInt()
+                || now.value("ownedAuxSendControls").toInt() != now.value("visibleAuxSendControls").toInt()
+                || now.value("channels") != initial.value("channels")) qFatal("Mixer UI controls accumulated after visibility changes");
+        }
+        qWarning() << "DYNAMICS INSPECTOR mixer visibility and ownership checks passed" << diagnostics()
+                   << "slowest section toggle ms" << slowest;
+        reportMemory("after mixer toggles");
+        if (!wasOpen) dispatchMenu(window, "command://app/dock/toggle-mixer");
+    }
     static void verifyFeatureDebug(QQuickWindow* mainWindow) {
         dispatchMenu(mainWindow, "command://app/feature-diagnostics");
         QPointer<QQuickWindow> dialog;
@@ -314,6 +397,8 @@ private:
             return document.object();
         };
         auto data = readReport();
+        if (data.value("runtime").toObject().value("workingSetBytes").toDouble() <= 0)
+            qFatal("Feature diagnostics omitted actual process memory");
         const auto rows = data.value("sticking").toArray();
         if (!data.value("scoreOpen").toBool() || rows.isEmpty() || data.value("truncated").toBool()
             || data.value("scope").toString() != "selected notes")

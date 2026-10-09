@@ -49,6 +49,10 @@ ColumnLayout {
     spacing: 0
 
     function resizePanelToContentHeight() {
+        Qt.callLater(applyContentHeight)
+    }
+
+    function applyContentHeight() {
         if (contentColumn.completed && implicitHeight > 0) {
             root.resizeRequested(width, implicitHeight)
         }
@@ -91,6 +95,9 @@ ColumnLayout {
 
     MixerPanelModel {
         id: mixerPanelModel
+        objectName: "mixer-panel-model"
+
+        meteringEnabled: root.visible && contextMenuModel.faderSectionVisible
 
         navigationSection: root.navigationSection
         navigationOrderStart: root.contentNavigationPanelOrderStart + 1 // +1 for toolbar

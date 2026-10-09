@@ -49,6 +49,7 @@ class MixerPanelModel : public QAbstractListModel, public QQmlParserStatus, publ
     Q_PROPERTY(int navigationOrderStart READ navigationOrderStart WRITE setNavigationOrderStart NOTIFY navigationOrderStartChanged)
 
     Q_PROPERTY(int count READ rowCount NOTIFY rowCountChanged)
+    Q_PROPERTY(bool meteringEnabled READ meteringEnabled WRITE setMeteringEnabled NOTIFY meteringEnabledChanged)
 
     QML_ELEMENT
 
@@ -61,10 +62,13 @@ public:
     explicit MixerPanelModel(QObject* parent = nullptr);
 
     Q_INVOKABLE QVariantMap get(int index);
+    Q_INVOKABLE QVariantMap diagnostics() const;
 
     QVariant data(const QModelIndex& index, int role) const override;
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
+    bool meteringEnabled() const { return m_meteringEnabled; }
+    void setMeteringEnabled(bool enabled);
 
     muse::ui::NavigationSection* navigationSection() const;
     void setNavigationSection(muse::ui::NavigationSection* navigationSection);
@@ -76,6 +80,7 @@ signals:
     void navigationSectionChanged();
     void navigationOrderStartChanged();
     void rowCountChanged();
+    void meteringEnabledChanged();
 
 private:
     void classBegin() override {}
@@ -119,6 +124,7 @@ private:
 
     QList<MixerChannelItem*> m_mixerChannelList;
     MixerChannelItem* m_masterChannelItem = nullptr;
+    bool m_meteringEnabled = true;
 
     muse::ui::NavigationSection* m_navigationSection = nullptr;
     int m_navigationOrderStart = 1;

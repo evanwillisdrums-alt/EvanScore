@@ -158,6 +158,7 @@ public slots:
     void setBalance(int balance);
     void setSolo(bool solo);
     void setMuted(bool mute);
+    void setMeteringEnabled(bool enabled);
 
 signals:
     void titleChanged(QString title);
@@ -232,6 +233,7 @@ protected:
     QMap<muse::audio::aux_channel_idx_t, AuxSendItem*> m_auxSendItems;
 
     muse::audio::AudioSignalChanges m_audioSignalChanges;
+    bool m_meteringEnabled = true;
     muse::audio::AutomatedControlParamsChanges m_automatedControlParamsChanges;
 
     QString m_title;

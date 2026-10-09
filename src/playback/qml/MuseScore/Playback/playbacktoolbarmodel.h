@@ -41,6 +41,9 @@ class PlaybackToolBarModel : public muse::uicomponents::AbstractMenuModel
     Q_PROPERTY(QTime maxPlayTime READ maxPlayTime NOTIFY maxPlayTimeChanged)
 
     Q_PROPERTY(QTime playTime READ playTime WRITE setPlayTime NOTIFY playPositionChanged)
+    Q_PROPERTY(bool musicalTime READ musicalTime WRITE setMusicalTime NOTIFY musicalTimeChanged)
+    Q_PROPERTY(QString musicalPosition READ musicalPosition NOTIFY playPositionChanged)
+    Q_PROPERTY(QString elapsedPosition READ elapsedPosition NOTIFY playPositionChanged)
     Q_PROPERTY(qreal playPosition READ playPosition WRITE setPlayPosition NOTIFY playPositionChanged)
     Q_PROPERTY(int measureNumber READ measureNumber WRITE setMeasureNumber NOTIFY playPositionChanged)
     Q_PROPERTY(int maxMeasureNumber READ maxMeasureNumber NOTIFY playPositionChanged)
@@ -65,6 +68,10 @@ public:
 
     QTime maxPlayTime() const;
     QTime playTime() const;
+    bool musicalTime() const { return m_musicalTime; }
+    void setMusicalTime(bool musical);
+    QString musicalPosition() const;
+    QString elapsedPosition() const;
     qreal playPosition() const;
 
     int measureNumber() const;
@@ -90,6 +97,7 @@ signals:
     void isToolbarFloatingChanged(bool floating);
     void isPlayAllowedChanged();
     void maxPlayTimeChanged();
+    void musicalTimeChanged();
     void playPositionChanged();
     void tempoChanged();
     void scoreInfoChanged();
@@ -115,6 +123,7 @@ private:
     void rewindToBeat(const engraving::MeasureBeat& beat);
 
     bool m_isToolbarFloating = false;
+    bool m_musicalTime = false;
     muse::secs_t m_playbackPositionSecs = 0.0;
     muse::async::Asyncable m_notationReceiver;
 };

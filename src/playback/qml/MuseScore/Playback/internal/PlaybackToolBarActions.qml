@@ -40,6 +40,8 @@ Item {
     readonly property color displayColor: (ui.theme.borderWidth > 1) ? ui.theme.backgroundPrimaryColor : "#202b3b"
     readonly property color displayTextColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#edf2f8"
     readonly property color captionColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#a9b7c8"
+    readonly property real valueTop: 13
+    readonly property real valueHeight: 26
 
     property bool floating: false
 
@@ -70,7 +72,7 @@ Item {
             spacing: 0
             Repeater {
                 model: [
-                    { label: qsTrc("playback", "TIME"), size: 110 },
+                    { label: root.playbackModel.musicalTime ? qsTrc("playback", "POSITION") : qsTrc("playback", "TIME"), size: 110 },
                     { label: qsTrc("playback", "BAR · BEAT"), size: 78 },
                     { label: qsTrc("playback", "TEMPO"), size: 86 },
                     { label: qsTrc("playback", "METER · KEY"), size: 110 }
@@ -96,14 +98,16 @@ Item {
             }
         }
         Text {
-            x: 286; y: 17
+            objectName: "transport-meter-key"
+            x: 286; y: root.valueTop
             width: 106
+            height: root.valueHeight
             text: root.playbackModel.scoreInfo.timeSignature + "  " + root.playbackModel.scoreInfo.key
             elide: Text.ElideRight
             color: root.displayTextColor
-            font.family: ui.theme.bodyFont.family
-            font.pixelSize: 14
+            font: timeField.font
             horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
         MouseArea {
             x: 284; width: 112; height: parent.height
@@ -116,6 +120,7 @@ Item {
 
     ListView {
         id: buttonsListView
+        enabled: root.playbackModel.isPlayAllowed
 
         anchors.left: parent.left
         anchors.leftMargin: 4
@@ -180,37 +185,48 @@ Item {
         }
     }
 
-    TransportTimeField {
+    FlatButton {
         id: timeField
+        objectName: "transport-time-format"
 
         x: lcd.x + 8 + (110 - width) / 2
-        y: 13
-        foregroundColor: root.displayTextColor
-        font.family: "Consolas"
-        font.pixelSize: 15
-
-        //! NOTE: explicit width prevents the content from jumping around
-        // when a score is being played
-        // See: https://github.com/musescore/MuseScore/issues/9633
-        width: 100
-
-        maxTime: root.playbackModel.maxPlayTime
-        maxMillisecondsNumber: 9
-        time: root.playbackModel.playTime
-
-        navigationPanel: root.navPanel
-        navigationOrderStart: buttonsListView.navigationOrderEnd + 1
-
-        onTimeEdited: function(newTime) {
-            root.playbackModel.playTime = newTime
+        y: root.valueTop
+        width: 108
+        height: root.valueHeight
+        margins: 0
+        minWidth: 0
+        transparent: true
+        backgroundRadius: 5
+        property font font: Qt.font({family: "Consolas", pixelSize: 15})
+        readonly property int navigationOrderEnd: navigation.order
+        navigation.panel: root.navPanel
+        navigation.order: buttonsListView.navigationOrderEnd + 1
+        accessible.name: root.playbackModel.musicalTime ? qsTrc("playback", "Musical position") : qsTrc("playback", "Elapsed time")
+        toolTipTitle: qsTrc("playback", "Switch time format")
+        toolTipDescription: qsTrc("playback", "Click to switch between elapsed time and bar.beat. A third field shows thousandths of a beat; 1.2.500 is halfway through beat 2. Use Bar · Beat to move playback.")
+        contentItem: Text {
+            objectName: "transport-time-value"
+            width: timeField.width
+            height: timeField.height
+            text: root.playbackModel.musicalTime ? root.playbackModel.musicalPosition : root.playbackModel.elapsedPosition
+            color: root.displayTextColor
+            font: timeField.font
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            fontSizeMode: Text.Fit
+            minimumPixelSize: 11
         }
+        onClicked: root.playbackModel.musicalTime = !root.playbackModel.musicalTime
     }
 
     MeasureAndBeatFields {
         id: measureAndBeatFields
+        objectName: "transport-bar-beat"
+        enabled: root.playbackModel.isPlayAllowed
 
         x: lcd.x + 118 + (78 - width) / 2
-        y: 13
+        y: root.valueTop
+        height: root.valueHeight
         foregroundColor: root.displayTextColor
 
         measureNumber: root.playbackModel.measureNumber
@@ -234,9 +250,12 @@ Item {
 
     Loader {
         id: tempoLoader
+        objectName: "transport-tempo"
+        enabled: root.playbackModel.isPlayAllowed
 
         x: lcd.x + 198
-        y: 13
+        y: root.valueTop
+        height: root.valueHeight
 
         readonly property int navigationOrderEnd: item?.navigation?.order ?? measureAndBeatFields.navigationOrderEnd
 
@@ -251,7 +270,7 @@ Item {
 
             Item {
                 implicitWidth: tempoLoader.tempoViewWidth
-                implicitHeight: 26
+                implicitHeight: root.valueHeight
 
                 TempoView {
                     id: tempoView
@@ -277,7 +296,7 @@ Item {
                 backgroundRadius: 8
 
                 implicitWidth: tempoLoader.tempoViewWidth
-                implicitHeight: 26
+                implicitHeight: root.valueHeight
 
                 transparent: !isPopupOpened
                 iconColor: root.displayTextColor

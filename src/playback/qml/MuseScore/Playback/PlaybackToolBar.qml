@@ -61,8 +61,6 @@ Item {
 
         width: childrenRect.width
 
-        enabled: thePlaybackModel.isPlayAllowed
-
         PlaybackToolBarActions {
             id: playbackActions
 
@@ -84,6 +82,7 @@ Item {
 
                 StyledSlider {
                     id: playPositionSlider
+                    enabled: thePlaybackModel.isPlayAllowed
 
                     width: playbackActions.width
 
@@ -99,6 +98,7 @@ Item {
                 }
 
                 PlaybackSpeedSlider {
+                    enabled: thePlaybackModel.isPlayAllowed
                     width: playbackActions.width
 
                     playbackModel: thePlaybackModel

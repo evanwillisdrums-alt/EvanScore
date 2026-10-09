@@ -360,9 +360,14 @@ void MixerChannelItem::loadAuxSendItems(const AuxSendsParams& auxSends)
                 return;
             };
 
-            m_auxSendItems.insert(index, buildAuxSendItem(index, m_outParams.auxSends[index]));
+            if (!m_auxSendItems.contains(index)) {
+                m_auxSendItems.insert(index, buildAuxSendItem(index, m_outParams.auxSends[index]));
+            }
         } else {
-            m_auxSendItems.remove(index);
+            if (AuxSendItem* removed = m_auxSendItems.take(index)) {
+                removed->disconnect();
+                removed->deleteLater();
+            }
         }
 
         emit auxSendItemListChanged();
@@ -389,6 +394,12 @@ void MixerChannelItem::loadAuxSendItems(const AuxSendsParams& auxSends)
     }
 
     if (m_auxSendItems != newItems) {
+        for (auto it = m_auxSendItems.cbegin(); it != m_auxSendItems.cend(); ++it) {
+            if (!newItems.contains(it.key())) {
+                it.value()->disconnect();
+                it.value()->deleteLater();
+            }
+        }
         m_auxSendItems = std::move(newItems);
         emit auxSendItemListChanged();
     }
@@ -409,7 +420,12 @@ void MixerChannelItem::loadSoloMuteState(const notation::INotationSoloMuteState:
 
 void MixerChannelItem::subscribeOnAudioSignalChanges(AudioSignalChanges& audioSignalChanges)
 {
+    m_audioSignalChanges.disconnect(this);
     m_audioSignalChanges = audioSignalChanges;
+
+    if (!m_meteringEnabled) {
+        return;
+    }
 
     m_audioSignalChanges.onReceive(this, [this](const AudioSignalValuesMap& signalValues) {
         //!Note There should be no signal changes when the mixer channel is muted.
@@ -432,6 +448,20 @@ void MixerChannelItem::subscribeOnAudioSignalChanges(AudioSignalChanges& audioSi
             }
         }
     });
+}
+
+void MixerChannelItem::setMeteringEnabled(bool enabled)
+{
+    if (enabled == m_meteringEnabled) {
+        return;
+    }
+    m_meteringEnabled = enabled;
+    m_audioSignalChanges.disconnect(this);
+    if (enabled) {
+        subscribeOnAudioSignalChanges(m_audioSignalChanges);
+    } else {
+        resetAudioChannelsVolumePressure();
+    }
 }
 
 void MixerChannelItem::subscribeOnAutomatedControlParamsChanges(AutomatedControlParamsChanges& changes)

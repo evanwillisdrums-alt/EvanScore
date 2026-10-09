@@ -5,6 +5,17 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QQuickWindow>
+#include <QQuickItem>
+#include <QSettings>
+#include <QFile>
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#endif
 #include <algorithm>
 #include <set>
 #include "notation/inotationelements.h"
@@ -21,6 +32,43 @@
 
 using namespace mu::notation;
 using namespace mu::engraving;
+
+static QJsonObject runtimeDiagnostics()
+{
+    QJsonObject result;
+#ifdef Q_OS_WIN
+    PROCESS_MEMORY_COUNTERS_EX memory {};
+    memory.cb = sizeof(memory);
+    if (K32GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory), sizeof(memory))) {
+        result.insert("workingSetBytes", static_cast<double>(memory.WorkingSetSize));
+        result.insert("privateBytes", static_cast<double>(memory.PrivateUsage));
+    }
+#elif defined(Q_OS_LINUX)
+    QFile status(QStringLiteral("/proc/self/status"));
+    if (status.open(QIODevice::ReadOnly)) {
+        const auto lines = status.readAll().split('\n');
+        for (const auto& line : lines) {
+            if (line.startsWith("VmRSS:")) {
+                result.insert("workingSetBytes", line.mid(6).simplified().split(' ').first().toDouble() * 1024);
+            }
+        }
+    }
+#endif
+    result.insert("timeFormat", QSettings().value("evanscore/transport/musicalPosition", false).toBool() ? "bar.beat" : "elapsed");
+    QJsonArray mixers;
+    for (QWindow* window : QGuiApplication::allWindows()) {
+        const auto* quick = qobject_cast<QQuickWindow*>(window);
+        if (!quick) continue;
+        for (QObject* object : quick->contentItem()->findChildren<QObject*>(QStringLiteral("mixer-panel-model"))) {
+            QVariantMap data;
+            if (QMetaObject::invokeMethod(object, "diagnostics", Qt::DirectConnection, Q_RETURN_ARG(QVariantMap, data))) {
+                mixers.append(QJsonObject::fromVariantMap(data));
+            }
+        }
+    }
+    result.insert("loadedMixers", mixers);
+    return result;
+}
 
 FeatureDebugModel::FeatureDebugModel(QObject* parent)
     : QObject(parent), Contextable(muse::iocCtxForQmlObject(this))
@@ -139,7 +187,8 @@ void FeatureDebugModel::refresh()
         { "truncated", chords.size() > limit },
         { "sticking", rows },
         { "customDynamicsEnabled", score && DynamicsPlayback::enabled(score) },
-        { "reportVersion", 1 },
+        { "reportVersion", 2 },
+        { "runtime", runtimeDiagnostics() },
         { "virtualDrumline", "Setup helper available; conversion and sample application not yet implemented" },
         { "malletVisualizer", "planned; will use shared sticking assignments" }
     };

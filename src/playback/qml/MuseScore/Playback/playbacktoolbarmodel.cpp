@@ -22,6 +22,9 @@
 #include "playbacktoolbarmodel.h"
 
 #include <vector>
+#include <QSettings>
+#include <algorithm>
+#include <cmath>
 
 #include "global/containers.h"
 #include "types/translatablestring.h"
@@ -72,6 +75,36 @@ static const ToolConfig& defaultPlaybackToolConfig()
 PlaybackToolBarModel::PlaybackToolBarModel(QObject* parent)
     : AbstractMenuModel(parent)
 {
+    m_musicalTime = QSettings().value("evanscore/transport/musicalPosition", false).toBool();
+}
+
+void PlaybackToolBarModel::setMusicalTime(bool musical)
+{
+    if (musical == m_musicalTime) {
+        return;
+    }
+    m_musicalTime = musical;
+    QSettings().setValue("evanscore/transport/musicalPosition", musical);
+    emit musicalTimeChanged();
+}
+
+QString PlaybackToolBarModel::musicalPosition() const
+{
+    const auto position = measureBeat();
+    const double beat = std::isfinite(position.beat) ? std::max(0.0, static_cast<double>(position.beat)) : 0.0;
+    const int wholeBeat = static_cast<int>(std::floor(beat));
+    QString result = QStringLiteral("%1.%2").arg(position.measureIndex + 1).arg(wholeBeat + 1);
+    const int fraction = static_cast<int>(std::lround((beat - wholeBeat) * 1000));
+    if (fraction > 0) {
+        result += QStringLiteral(".%1").arg(std::min(fraction, 999), 3, 10, QLatin1Char('0'));
+    }
+    return result;
+}
+
+QString PlaybackToolBarModel::elapsedPosition() const
+{
+    const auto time = playTime();
+    return time.toString(QStringLiteral("h:mm:ss")) + QStringLiteral(".%1").arg(time.msec() / 100);
 }
 
 void PlaybackToolBarModel::load()
