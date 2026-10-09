@@ -57,6 +57,9 @@ $oldBackend = $env:QT_QUICK_BACKEND
 $oldPlatform = $env:QT_QPA_PLATFORM
 $started = Get-Date
 $process = $null
+$main = $null
+$ready = $false
+$closedCleanly = $false
 try {
     # Use the real Windows desktop; a PDF export never loads the main QML window.
     $env:QT_QPA_PLATFORM = 'windows'
@@ -136,9 +139,15 @@ try {
         # A successful score launch must close cleanly so the next renderer's
         # check does not inherit an intentional crash-recovery session.
         if ($ready) {
-            $process.CloseMainWindow() | Out-Null
-            $process.WaitForExit(10000) | Out-Null
+            $closeRequested = $process.CloseMainWindow()
+            $closedCleanly = $process.WaitForExit(10000)
             $process.Refresh()
+            $closedCleanly = $closeRequested -and $closedCleanly -and $process.ExitCode -eq 0
+            @{
+                closeRequested = $closeRequested
+                exitedNormally = $closedCleanly
+                exitCode = if ($process.HasExited) { $process.ExitCode } else { $null }
+            } | ConvertTo-Json | Set-Content (Join-Path $output 'shutdown-state.json')
         }
         if (-not $process.HasExited) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
@@ -155,4 +164,7 @@ try {
     foreach ($name in @('stdout.log', 'stderr.log')) {
         if (Test-Path (Join-Path $output $name)) { Get-Content (Join-Path $output $name) -Tail 100 }
     }
+}
+if ($ready -and -not $closedCleanly) {
+    throw 'The responsive desktop app did not close normally within 10 seconds'
 }

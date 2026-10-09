@@ -10,6 +10,8 @@ The most recent full build before this checkpoint was source `efbfe3b7f845d0ff30
 
 The accompanying CMake change links every app-owned QML module under `src` privately to `Qt::Quick`. QML imports alone do not provide C++ dependencies for generated AOT code. A real Qt 6.8 compile using the repository's `qmlaccessible.h` reproduced the missing-header error without this helper and successfully built with it. The full Windows Qt 6.11 build remains the required validation.
 
+The corrected full build is source `1e1a95f83443b316206e5bd6b0b6f0edafdd5edc`, [run 37882347384](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/37882347384), job `113664616114`. It is compiling at this checkpoint. After it passes, run the desktop diagnostic against the actual uploaded `EvanScore-Windows-x64` artifact on fresh Windows runners. The updated desktop check must also confirm normal exit after requesting window closure; do not silently accept a forced shutdown. These checks can use the newer script without rebuilding the native binary.
+
 ## Startup findings and fixes to preserve
 
 - `643cfebc6ed7ebb65f352177a3f2b384d3200046`: the notation toolbar must be resizable and left-aligned. A centered, fixed toolbar repeatedly changed minimum sizes/padding during Qt window polishing, trapping startup in layout. Windows experiment [37841470959](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/37841470959), left variant job `113531633141`, passed empty-workspace and score-open response checks. This was an isolated experiment; the new full native package must pass without its helper.
