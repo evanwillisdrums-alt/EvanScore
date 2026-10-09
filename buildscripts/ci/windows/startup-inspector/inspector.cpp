@@ -256,6 +256,15 @@ private:
         }
     }
     static bool dockOpen(QObject* window, const char* name) {
+        // Navigator is a loader inside the score view, not a DockPanel.
+        // Its native toggle changes NotationPageModel's visibility property.
+        if (QByteArray(name) == "notationNavigatorPanel") {
+            for (QObject* object : objects(window)) {
+                if (QByteArray(object->metaObject()->className()).contains("NotationPageModel"))
+                    return object->property("isNavigatorVisible").toBool();
+            }
+            qFatal("Could not read native navigator state");
+        }
         for (QObject* object : objects(window)) {
             if (object->objectName() != QString::fromUtf8(name)
                 || object->metaObject()->indexOfMethod("isOpen()") < 0) continue;
