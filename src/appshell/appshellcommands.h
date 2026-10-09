@@ -28,6 +28,7 @@ namespace mu::appshell {
 inline static const muse::rcommand::Command APP_QUIT_COMMAND("command://app/quit");
 inline static const muse::rcommand::Command APP_RESTART_COMMAND("command://app/restart");
 inline static const muse::rcommand::Command APP_FULLSCREEN_COMMAND("command://app/fullscreen");
+inline static const muse::rcommand::Command APP_FEATURE_DEBUG_COMMAND("command://app/feature-diagnostics");
 inline static const muse::rcommand::Command APP_ABOUT_MUSESCORE_COMMAND("command://app/about-musescore");
 inline static const muse::rcommand::Command APP_ABOUT_QT_COMMAND("command://app/about-qt");
 inline static const muse::rcommand::Command APP_ABOUT_MUSICXML_COMMAND("command://app/about-musicxml");

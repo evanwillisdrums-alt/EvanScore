@@ -46,6 +46,9 @@ DockPage {
         DockToolBar {
             id: notationToolBar
 
+            thickness: 48
+            minimumHeight: 48
+
             objectName: root.objectName + "_notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
 
@@ -69,6 +72,9 @@ DockPage {
 
         DockToolBar {
             id: playbackToolBar
+
+            thickness: 48
+            minimumHeight: 48
 
             objectName: root.pageModel.playbackToolBarName()
             title: qsTrc("appshell", "Playback controls")
@@ -101,6 +107,9 @@ DockPage {
 
         DockToolBar {
             id: extDockToolBar
+
+            thickness: 48
+            minimumHeight: 48
 
             objectName: root.pageModel.extensionsToolBarName()
             title: qsTrc("appshell", "Extensions toolbar")
@@ -135,6 +144,9 @@ DockPage {
 
         DockToolBar {
             id: undoRedoToolBar
+
+            thickness: 48
+            minimumHeight: 48
 
             objectName: root.pageModel.undoRedoToolBarName()
             title: qsTrc("appshell", "Undo/redo")

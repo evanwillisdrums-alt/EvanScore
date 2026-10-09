@@ -10,6 +10,11 @@
 #include <private/qguiapplication_p.h>
 #endif
 #include <QCoreApplication>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QEvent>
 #include <QQuickWindow>
 #include <QQuickItem>
@@ -258,6 +263,7 @@ public:
                                     qFatal("Selected notes did not expose a known custom velocity");
                                 qWarning() << "DYNAMICS INSPECTOR selected notes" << state.value("title")
                                            << state.value("noteCategory") << state.value("effectiveVelocity");
+                                verifyFeatureDebug(window);
                                 dispatchMenu(window, "command://project/save");
                                 QTimer::singleShot(1000, window, [] {
                                     qWarning() << "DYNAMICS INSPECTOR mapping save requested; verify the native score archive";
@@ -285,6 +291,59 @@ public:
     }
 private:
     bool done = false;
+    static void verifyFeatureDebug(QQuickWindow* mainWindow) {
+        dispatchMenu(mainWindow, "command://app/feature-diagnostics");
+        QTest::qWait(500);
+        QPointer<QQuickWindow> dialog;
+        QQuickItem* report = nullptr;
+        for (QWindow* window : QGuiApplication::topLevelWindows()) {
+            auto quick = qobject_cast<QQuickWindow*>(window);
+            if (!quick || quick == mainWindow) continue;
+            report = findItem(quick->contentItem(), "feature-debug-report");
+            if (report) { dialog = quick; break; }
+        }
+        if (!dialog || !report) qFatal("Feature diagnostics window did not open");
+        auto readReport = [report]() {
+            QJsonParseError error;
+            const auto document = QJsonDocument::fromJson(report->property("text").toString().toUtf8(), &error);
+            if (error.error != QJsonParseError::NoError || !document.isObject())
+                qFatal("Feature diagnostics report is not valid JSON");
+            return document.object();
+        };
+        auto data = readReport();
+        const auto rows = data.value("sticking").toArray();
+        if (!data.value("scoreOpen").toBool() || rows.isEmpty() || data.value("truncated").toBool()
+            || data.value("scope").toString() != "selected notes")
+            qFatal("Feature diagnostics did not inspect the real selected score");
+        for (const auto& row : rows) {
+            if (row.toObject().value("dynamics").toArray().isEmpty()
+                || row.toObject().value("sampleApplication").toString() != "pending VDL playback integration")
+                qFatal("Feature diagnostics omitted note dynamics or misreported VDL application");
+        }
+        auto checkbox = findItem(dialog->contentItem(), "feature-debug-full-score");
+        auto refresh = findItem(dialog->contentItem(), "feature-debug-refresh");
+        auto copy = findItem(dialog->contentItem(), "feature-debug-copy");
+        if (!checkbox || !refresh || !copy) qFatal("Feature diagnostics controls missing");
+        QTest::mouseClick(dialog, Qt::LeftButton, Qt::NoModifier,
+            checkbox->mapToScene(QPointF(10, checkbox->height()/2)).toPoint());
+        QTest::qWait(100);
+        if (readReport().value("scope").toString() != "full score") qFatal("Feature diagnostics scope switch failed");
+        QTest::mouseClick(dialog, Qt::LeftButton, Qt::NoModifier,
+            refresh->mapToScene(QPointF(refresh->width()/2, refresh->height()/2)).toPoint());
+        QTest::mouseClick(dialog, Qt::LeftButton, Qt::NoModifier,
+            copy->mapToScene(QPointF(copy->width()/2, copy->height()/2)).toPoint());
+        QTest::qWait(100);
+        if (QGuiApplication::clipboard()->text() != report->property("text").toString())
+            qFatal("Feature diagnostics copy report failed");
+        dialog->setWidth(680);
+        dialog->setHeight(490);
+        QTest::qWait(100);
+        if (report->width() < 300 || report->height() < 150) qFatal("Feature diagnostics resize hid the report");
+        dialog->close();
+        QTest::qWait(150);
+        if (dialog && dialog->isVisible()) qFatal("Feature diagnostics did not close");
+        qWarning() << "DYNAMICS INSPECTOR feature diagnostics real report, scope, copy, resize and close passed";
+    }
     static void reportMemory(const char* phase, int cycle = 0) {
 #ifdef Q_OS_WIN
         PROCESS_MEMORY_COUNTERS_EX memory {};

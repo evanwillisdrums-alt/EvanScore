@@ -76,6 +76,10 @@ void AppshellCommandsController::init()
     cd->onRequest(this, APP_QUIT_COMMAND, [this](const rcommand::Params& params) { return quit(params); });
     cd->onRequest(this, APP_RESTART_COMMAND, [this]() { restart(); return muse::make_ok(); });
     cd->onRequest(this, APP_FULLSCREEN_COMMAND, [this]() { toggleFullScreen(); return muse::make_ok(); });
+    cd->onRequest(this, APP_FEATURE_DEBUG_COMMAND, [this]() {
+        interactive()->open(muse::UriQuery("musescore://diagnostics/evanscore/features?modal=false&floating=true"));
+        return muse::make_ok();
+    });
 
     cd->onRequest(this, APP_ABOUT_MUSESCORE_COMMAND, [this]() { openAboutDialog(); return muse::make_ok(); });
     cd->onRequest(this, APP_ABOUT_QT_COMMAND, [this]() { openAboutQtDialog(); return muse::make_ok(); });

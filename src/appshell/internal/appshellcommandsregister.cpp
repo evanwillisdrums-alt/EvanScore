@@ -32,6 +32,13 @@ using namespace mu::appshell;
 
 static const std::vector<CommandInfo> s_commandInfos = {
     CommandInfo(
+        APP_FEATURE_DEBUG_COMMAND,
+        TranslatableString("action", "EvanScore feature diagnostics…"),
+        TranslatableString("action", "Inspect sticking and EvanScore feature status"),
+        InputSchema(),
+        Decoration()
+        ),
+    CommandInfo(
         APP_QUIT_COMMAND,
         TranslatableString("action", "Quit"),
         TranslatableString("action", "Quit"),

@@ -119,6 +119,7 @@ DockPage {
             id: notationToolBar
 
             thickness: 48
+            minimumHeight: 48
             objectName: "notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
 
@@ -148,6 +149,7 @@ DockPage {
             id: playbackToolBar
 
             thickness: 48
+            minimumHeight: floating ? Math.max(48, Math.min(contentHeight, maximumHeight)) : 48
             objectName: root.pageModel.playbackToolBarName()
             title: qsTrc("appshell", "Playback controls")
 
@@ -176,6 +178,7 @@ DockPage {
             id: extDockToolBar
 
             thickness: 48
+            minimumHeight: floating ? Math.max(48, Math.min(contentHeight, maximumHeight)) : 48
             objectName: root.pageModel.extensionsToolBarName()
             title: qsTrc("appshell", "Extensions toolbar")
 
@@ -208,6 +211,9 @@ DockPage {
             id: undoRedoToolBar
 
             thickness: 48
+            // Non-resizable docks use their minimum as their maximum. Keep
+            // this stable even before the action delegates are instantiated.
+            minimumHeight: 48
             objectName: root.pageModel.undoRedoToolBarName()
             title: qsTrc("appshell", "Undo/redo")
 

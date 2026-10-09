@@ -78,6 +78,8 @@ qt_add_qml_module(notationscene_qml
         notationswitchlistmodel.h
         dynamicspanelmodel.cpp
         dynamicspanelmodel.h
+        featuredebugmodel.cpp
+        featuredebugmodel.h
         percussionworkspacemodel.cpp
         percussionworkspacemodel.h
         notationtoolbarmodel.cpp
@@ -170,6 +172,7 @@ qt_add_qml_module(notationscene_qml
 
     QML_FILES
         DynamicsPanel.qml
+        FeatureDebugDialog.qml
         DynamicsCurve.qml
         AbstractElementPopup.qml
         ConcertPitchControl.qml

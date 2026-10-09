@@ -23,6 +23,8 @@ set(PLAYBACK_SRC
     ${CMAKE_CURRENT_LIST_DIR}/playbackcontext.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playbackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/playbackmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/stickingresolver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/stickingresolver.h
     ${CMAKE_CURRENT_LIST_DIR}/playbackmodel.h
     ${CMAKE_CURRENT_LIST_DIR}/playbackeventsrenderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playbackeventsrenderer.h

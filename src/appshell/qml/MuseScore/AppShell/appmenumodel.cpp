@@ -463,6 +463,7 @@ MenuItem* AppMenuModel::makeHelpMenu(bool addDiagnosticsSubMenu)
 MenuItem* AppMenuModel::makeDiagnosticsMenu()
 {
     MenuItemList items {
+        makeMenuItem(APP_FEATURE_DEBUG_COMMAND),
         makeMenuItem(DIAGNOSTICS_SAVE_FILES_COMMAND),
         makeMenuItem(RELOAD_PLAYBACK_CACHE_COMMAND),
         makeMenu(TranslatableString("appshell/menu/diagnostics", "&System"), {
