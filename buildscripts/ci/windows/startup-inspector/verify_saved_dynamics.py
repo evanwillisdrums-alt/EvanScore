@@ -10,7 +10,10 @@ for folder in ('score', 'drum-score'):
         xml_scores = [n for n in archive.namelist() if n.endswith('.mscx')]
         assert xml_scores, 'Missing score XML'
         score = ET.fromstring(archive.read(xml_scores[0]))
-    style = score.find('./Score/Style')
+        # Native MSCZ stores the master style separately. Embedded styles
+        # remain valid for legacy scores and excerpts.
+        style = ET.fromstring(archive.read('score_style.mss')).find('./Style') \
+            if 'score_style.mss' in archive.namelist() else score.find('./Score/Style')
     assert style is not None, 'Missing saved style'
     assert style.findtext('evanDynamicsEnabled') == '1', 'Custom dynamics did not persist'
     values = style.findtext('evanDynamicsTap', '').split()
