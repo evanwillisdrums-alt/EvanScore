@@ -1,6 +1,6 @@
 # EvanScore working workspace
 
-The app starts directly in the notation workspace. New/Open/Save are always on the compact file bar; Files opens the recent-score browser and plugin manager. With no score open, the canvas offers New score, Open score, and Recent scores without a tutorial or modal prompt. Closing the last score returns to this canvas. Session recovery and unsaved-change prompts remain intact. Explicit startup preferences (new score, specific score, continue last) still work.
+With no file specified, EvanScore starts on the Home landing page with New/Open and recent scores; the user explicitly restored this on 2026-10-09. Home and Score remain in the compact primary navigation. Opening a file or continuing a session goes directly to notation. Closing the last score returns to Home. Session recovery and unsaved-change prompts remain intact. Explicit startup preferences (new score, specific score, continue last) still work.
 
 Automatic first-launch setup, welcome/version promotions, and instructional tours are removed. The Learn item is omitted from the file-browser sidebar; the Help menu remains available. Publishing and developer tools are removed from the primary navigation. Project titles identify EvanScore.
 
@@ -20,3 +20,7 @@ The native Dynamics model caches the mapping table and only notifies it when sco
 - Windows release gate requires score export and a real responsive desktop window beyond the splash; its title must identify EvanScore and no automatic onboarding dialog may be present. Native Windows build results are reported separately.
 
 Plugin packaging waits for the matching native Windows build when both native and plugin files change, preventing an update archive from silently reverting newer native features.
+
+## Optional feature diagnostics
+
+Diagnostics → EvanScore feature diagnostics opens a floating read-only report for selected notes or an explicit full-score scan. It shares the host theme, stays out of the normal writing flow, supports resize/close/refresh/copy, and bounds/coalesces scans. The shared sticking reader and current note-dynamics state are exposed; VDL sample routing and the mallet visualizer are labeled pending/planned. See [feature-diagnostics.md](feature-diagnostics.md). Native Window interactions are included in the Windows diagnostic release checks, separately from local host-substitute checks.
