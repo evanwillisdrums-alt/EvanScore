@@ -212,6 +212,19 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           files = [f for f in Path('checks').rglob('*') if f.is_file() and f.suffix in ('.log', '.json')]
+          # Fatal inspector assertions can be buried beneath the docking
+          # library's large geometry dump. Report them before bounded tails.
+          import re
+          failures = []
+          for file in files:
+              for line in file.read_text(encoding='utf-8-sig', errors='replace').splitlines():
+                  if re.search(r'FATAL|qFatal|Main articulations|Articulation disclosure|Articulation smoothing|custom dynamics switch|Could not dispatch|DYNAMICS INSPECTOR', line, re.I):
+                      failures.append(f'{file}: {line[:1200]}')
+          if failures:
+              content = '\n'.join(failures)[-24000:]
+              for offset in range(0, len(content), 2800):
+                  message = content[offset:offset + 2800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Native interaction diagnostics::' + message)
           def priority(file):
               if file.name == 'stderr.log': return (0, str(file))
               if file.suffix == '.json': return (1, str(file))
