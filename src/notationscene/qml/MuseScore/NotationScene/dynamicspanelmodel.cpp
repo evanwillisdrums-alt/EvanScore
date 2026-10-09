@@ -158,6 +158,23 @@ void DynamicsPanelModel::setMapping(int dynamic, int role, int velocity) {
         setScoreStyle(Sid::evanDynamicsEnabled, true);
     }, "Change dynamic mapping");
 }
+void DynamicsPanelModel::setColumnMapping(int role, int velocity) {
+    auto s = score();
+    if (!s || role < DynamicsPlayback::Normal || role > DynamicsPlayback::Unstress) return;
+    velocity = std::clamp(velocity, 0, 127);
+    std::string text;
+    for (const auto& def : Dynamic::definitions()) {
+        const int level = def.type == DynamicType::OTHER ? DynamicsPlayback::level(s, def.type, role) : velocity;
+        text += std::to_string(level) + " ";
+    }
+    const Sid sid = DynamicsPlayback::mappingStyle(role);
+    const String levels = String::fromStdString(text);
+    if (DynamicsPlayback::enabled(s) && DynamicsPlayback::profile(s).styleSt(sid) == levels) return;
+    edit([&]() {
+        setScoreStyle(sid, levels);
+        setScoreStyle(Sid::evanDynamicsEnabled, true);
+    }, "Set all articulation velocities");
+}
 void DynamicsPanelModel::resetMappings() { edit([&]() {
     for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role) setScoreStyle(DynamicsPlayback::mappingStyle(role), String());
 }, "Reset dynamic mappings"); }

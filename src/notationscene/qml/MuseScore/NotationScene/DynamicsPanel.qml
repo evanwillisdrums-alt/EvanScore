@@ -13,6 +13,17 @@ Item {
     property alias model: dynamicsModel
     readonly property var state: model.state
     property string lastScope: ""
+    readonly property var mappingRoles: [
+        {key: "tap", role: 2, label: qsTrc("notation", "Tap")},
+        {key: "tenuto", role: 4, label: qsTrc("notation", "Tenuto")},
+        {key: "accent", role: 3, label: qsTrc("notation", "Accent")},
+        {key: "marcato", role: 5, label: qsTrc("notation", "Marcato")},
+        {key: "ghost", role: 6, label: qsTrc("notation", "Ghost")},
+        {key: "normal", role: 1, label: qsTrc("notation", "Normal")},
+        {key: "softAccent", role: 7, label: qsTrc("notation", "Soft accent")},
+        {key: "stress", role: 8, label: qsTrc("notation", "Stress")},
+        {key: "unstress", role: 9, label: qsTrc("notation", "Unstress")}
+    ]
     NavigationPanel {
         id: settingsNavigation
         name: "DynamicsSettings"
@@ -314,6 +325,29 @@ Item {
                         Caption { text: qsTrc("notation", "Dynamic mappings"); font.bold: true; Layout.fillWidth: true }
                         PanelButton { text: qsTrc("notation", "Reset"); onClicked: root.model.resetMappings() }
                     }
+                    Caption { text: qsTrc("notation", "Same velocity at every dynamic"); Layout.fillWidth: true; opacity: .7 }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        PanelCombo {
+                            id: columnCategory
+                            objectName: "dynamics-column-category"
+                            Layout.fillWidth: true
+                            model: root.mappingRoles.map(function(role) { return role.label })
+                            Accessible.name: qsTrc("notation", "Articulation to set across all dynamics")
+                        }
+                        LevelSpin {
+                            id: columnVelocity
+                            objectName: "dynamics-column-velocity"
+                            value: 49
+                            Accessible.name: qsTrc("notation", "Velocity for every dynamic in this articulation")
+                        }
+                        PanelButton {
+                            objectName: "dynamics-column-apply"
+                            text: qsTrc("notation", "Set all")
+                            onClicked: root.model.setColumnMapping(root.mappingRoles[columnCategory.currentIndex].role, columnVelocity.value)
+                        }
+                    }
+                    Caption { text: qsTrc("notation", "Updates only this articulation across all mappings. Other articulation values and local note overrides stay as set."); Layout.fillWidth: true; opacity: .6; font.pixelSize: 11 }
                     TextField { id: search; Layout.fillWidth: true; placeholderText: qsTrc("notation", "Find a dynamic, e.g. mp or ff"); Accessible.name: placeholderText }
                     Repeater {
                         // Stable row identities preserve focus while the velocity data changes.
@@ -337,17 +371,7 @@ Item {
                                     Layout.fillWidth: true
                                     columns: 3; columnSpacing: 6; rowSpacing: 7
                                     Repeater {
-                                        model: [
-                                            {key: "tap", role: 2, label: qsTrc("notation", "Tap")},
-                                            {key: "tenuto", role: 4, label: qsTrc("notation", "Tenuto")},
-                                            {key: "accent", role: 3, label: qsTrc("notation", "Accent")},
-                                            {key: "marcato", role: 5, label: qsTrc("notation", "Marcato")},
-                                            {key: "ghost", role: 6, label: qsTrc("notation", "Ghost")},
-                                            {key: "normal", role: 1, label: qsTrc("notation", "Normal")},
-                                            {key: "softAccent", role: 7, label: qsTrc("notation", "Soft accent")},
-                                            {key: "stress", role: 8, label: qsTrc("notation", "Stress")},
-                                            {key: "unstress", role: 9, label: qsTrc("notation", "Unstress")}
-                                        ]
+                                        model: root.mappingRoles
                                         ColumnLayout {
                                             id: mappingValue
                                             required property var modelData
@@ -358,7 +382,11 @@ Item {
                                                 objectName: "dynamics-mapping-" + mapping.modelData.name + "-" + mappingValue.modelData.key
                                                 Layout.fillWidth: true
                                                 value: mapping.values[mappingValue.modelData.key] || 0
-                                                onValueModified: root.model.setMapping(mapping.modelData.dynamic, mappingValue.modelData.role, value)
+                                                onValueModified: {
+                                                    columnCategory.currentIndex = root.mappingRoles.findIndex(function(role) { return role.role === mappingValue.modelData.role })
+                                                    columnVelocity.value = value
+                                                    root.model.setMapping(mapping.modelData.dynamic, mappingValue.modelData.role, value)
+                                                }
                                                 Accessible.name: mapping.modelData.name + " " + mappingValue.modelData.label + " " + qsTrc("notation", "velocity")
                                             }
                                         }

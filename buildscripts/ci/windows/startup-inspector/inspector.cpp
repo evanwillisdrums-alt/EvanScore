@@ -15,6 +15,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTest>
+#include <QSignalSpy>
 #include <QSet>
 
 class Inspector final : public QObject {
@@ -79,8 +80,15 @@ public:
                     // alone would miss an overlay intercepting the control.
                     const QPointF point = checkbox->mapToScene(QPointF(10, checkbox->height() / 2));
                     qWarning() << "DYNAMICS INSPECTOR switch position" << point << "size" << checkbox->size();
+                    QQuickItem* hit = window->contentItem();
+                    for (int depth = 0; hit && depth < 18; ++depth) {
+                        qWarning() << "DYNAMICS INSPECTOR pointer path" << hit->objectName() << hit->metaObject()->className();
+                        hit = hit->childAt(hit->mapFromScene(point).x(), hit->mapFromScene(point).y());
+                    }
+                    QSignalSpy clicked(checkbox, SIGNAL(clicked()));
                     QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, point.toPoint());
                     QTest::qWait(100);
+                    qWarning() << "DYNAMICS INSPECTOR click signal count" << clicked.count() << "checked" << checkbox->property("checked");
                     if (model->property("state").toMap().value("enabled").toBool() == originallyEnabled)
                         qFatal("Clicking the custom dynamics switch did not update the score");
                     qWarning() << "DYNAMICS INSPECTOR actual switch click changed score state";

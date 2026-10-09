@@ -23,3 +23,7 @@ Select notes, a dynamic marking, or a crescendo/decrescendo to reveal its local 
 **Make Default Dynamics** saves the current profile in the application's user data and remembers it across restarts. It applies only when creating a new score, including one from a template. **Apply Default Dynamics** explicitly applies the saved profile to an existing score. Opening existing scores does not replace their dynamics.
 
 These values are playback instructions; different sound libraries have different loudness responses. The core settings do not configure patch-specific Virtual Drumline techniques or sound mappings. Continuous audio automation is per voice, so simultaneous notes within one voice share its gain curve; their note velocities remain individually editable.
+
+## One velocity for an articulation across all dynamics
+
+In Full score → Dynamic mappings, choose an articulation (Tap, Accent, Tenuto, etc.), enter a MIDI velocity, and click **Set all**. For example, Tap → 10 sets all tap mappings to 10 while preserving the accent and other articulation columns. Editing an individual mapping prefills this control with that category and value. The batch operation enables custom dynamics, is one undoable change, and persists through normal score saves, preset export, and Make Default Dynamics. It does not replace local note overrides or link future individual edits.
