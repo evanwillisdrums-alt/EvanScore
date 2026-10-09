@@ -2,6 +2,8 @@
 
 Read `docs/evanscore/development-checkpoint.md` before resuming ongoing work. It records the Windows startup/build findings, release gates, preserved fixes, and remaining feature scope.
 
+Keep `docs/evanscore/goals.md` current as the complete user roadmap. The user added a mixer/effects overhaul; it follows the Logic-inspired design direction and remains planned alongside the mallet visualizer and spatial placement. Do not present proposed detailed mixer scope as already shipped.
+
 For every UI change, use the user's reference videos/images and the existing EvanScore UI as the design baseline. This applies to plugins, floating windows, dialogs, panels, and controls as well as the main app.
 
 Keep the connected, minimalist appearance, neutral palette, rounded panels and buttons, consistent spacing, and existing accent treatment. Follow the host app's current theme for docked controls. The floating keypad specifically uses the dark, translucent appearance in IMG_0532.jpeg, including over a light score; reuse the host blue accent. Avoid introducing a separate visual style for a new feature.
