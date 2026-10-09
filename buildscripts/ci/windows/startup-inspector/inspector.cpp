@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QPointer>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QSet>
 
 class Inspector final : public QObject {
@@ -69,6 +70,21 @@ public:
                         return -1;
                     };
                     const int original = tap();
+                    auto checkbox = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-enabled"));
+                    if (!checkbox || !checkbox->isVisible() || !checkbox->isEnabled())
+                        qFatal("The custom dynamics switch is not clickable");
+                    const bool originallyEnabled = model->property("state").toMap().value("enabled").toBool();
+                    // Send real window pointer events. Invoking clicked()
+                    // alone would miss an overlay intercepting the control.
+                    const QPointF point = checkbox->mapToScene(QPointF(10, checkbox->height() / 2));
+                    const QPointF global = window->mapToGlobal(point.toPoint());
+                    QMouseEvent press(QEvent::MouseButtonPress, point, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QMouseEvent release(QEvent::MouseButtonRelease, point, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                    QCoreApplication::sendEvent(window, &press);
+                    QCoreApplication::sendEvent(window, &release);
+                    if (model->property("state").toMap().value("enabled").toBool() == originallyEnabled)
+                        qFatal("Clicking the custom dynamics switch did not update the score");
+                    qWarning() << "DYNAMICS INSPECTOR actual switch click changed score state";
                     qWarning() << "DYNAMICS INSPECTOR editing ff taps from" << original << "to 10";
                     QObject* spin = nullptr;
                     for (QObject* object : objects(window)) {

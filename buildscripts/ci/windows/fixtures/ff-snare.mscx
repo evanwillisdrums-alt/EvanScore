@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.50">
+  <Score>
+    <Style>
+      <evanDynamicsEnabled>0</evanDynamicsEnabled>
+    </Style>
+    <Part id="1">
+      <Staff id="1">
+        <StaffType group="percussion">
+          <name>perc1Line</name>
+          <lines>1</lines>
+          <keysig>0</keysig>
+        </StaffType>
+        <defaultClef>PERC</defaultClef>
+      </Staff>
+      <trackName>Marching Snare Drum</trackName>
+      <Instrument id="marching-snare">
+        <longName>Snare Drum</longName>
+        <shortName>S.D.</shortName>
+        <trackName>Marching Snare Drum</trackName>
+        <instrumentId>drum.snare-drum</instrumentId>
+        <useDrumset>1</useDrumset>
+        <Drum pitch="48">
+          <head>normal</head>
+          <line>1</line>
+          <voice>0</voice>
+          <name>Buzz</name>
+          <shortcut>B</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>1</panelColumn>
+        </Drum>
+        <Drum pitch="50">
+          <head>normal</head>
+          <line>1</line>
+          <voice>0</voice>
+          <name>Battery Snare</name>
+          <shortcut>A</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>0</panelColumn>
+        </Drum>
+        <Drum pitch="52">
+          <head>normal</head>
+          <noteheads>
+            <quarter>noteheadXOrnate</quarter>
+            <half>noteheadXOrnate</half>
+            <whole>noteheadXOrnate</whole>
+            <breve>noteheadXOrnate</breve>
+          </noteheads>
+          <line>1</line>
+          <voice>0</voice>
+          <name>Rim Shot</name>
+          <shortcut>C</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>2</panelColumn>
+        </Drum>
+        <Drum pitch="53">
+          <head>cross</head>
+          <line>-1</line>
+          <voice>0</voice>
+          <name>Rim Click</name>
+          <shortcut>D</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>3</panelColumn>
+        </Drum>
+        <Drum pitch="55">
+          <head>plus</head>
+          <line>-1</line>
+          <voice>0</voice>
+          <name>Stick Click</name>
+          <shortcut>G</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>6</panelColumn>
+        </Drum>
+        <Drum pitch="57">
+          <head>slashed1</head>
+          <line>1</line>
+          <voice>0</voice>
+          <name>Stick Shot</name>
+          <shortcut>E</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>4</panelColumn>
+        </Drum>
+        <Drum pitch="59">
+          <head>cross</head>
+          <line>2</line>
+          <voice>0</voice>
+          <name>Shell</name>
+          <shortcut>H</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>7</panelColumn>
+        </Drum>
+        <Drum pitch="60">
+          <head>ti</head>
+          <line>1</line>
+          <voice>0</voice>
+          <name>Backstick</name>
+          <shortcut>F</shortcut>
+          <panelRow>0</panelRow>
+          <panelColumn>5</panelColumn>
+        </Drum>
+        <Drum pitch="72">
+          <head>cross</head>
+          <line>-2</line>
+          <voice>0</voice>
+          <name>Ride Cymbal 1</name>
+          <panelRow>1</panelRow>
+          <panelColumn>2</panelColumn>
+        </Drum>
+        <Drum pitch="74">
+          <head>xcircle</head>
+          <line>-1</line>
+          <voice>0</voice>
+          <name>Open Hi-Hat</name>
+          <panelRow>1</panelRow>
+          <panelColumn>1</panelColumn>
+        </Drum>
+        <Drum pitch="76">
+          <head>cross</head>
+          <line>-1</line>
+          <voice>0</voice>
+          <name>Closed Hi-Hat</name>
+          <panelRow>1</panelRow>
+          <panelColumn>0</panelColumn>
+        </Drum>
+        <Channel>
+          <program value="56" />
+          <controller ctrl="0" value="1" />
+        </Channel>
+      </Instrument>
+    </Part>
+    <Staff id="1">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+          </TimeSig>
+          <Dynamic>
+            <subtype>ff</subtype>
+          </Dynamic>
+          <Chord>
+            <durationType>quarter</durationType>
+            <StemDirection>up</StemDirection>
+            <Articulation>
+              <subtype>articAccentAbove</subtype>
+            </Articulation>
+            <Note>
+              <pitch>50</pitch>
+              <tpc>16</tpc>
+            </Note>
+          </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <StemDirection>up</StemDirection>
+            <Note>
+              <pitch>50</pitch>
+              <tpc>16</tpc>
+            </Note>
+          </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <StemDirection>up</StemDirection>
+            <Note>
+              <pitch>50</pitch>
+              <tpc>16</tpc>
+            </Note>
+          </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <StemDirection>up</StemDirection>
+            <Articulation>
+              <subtype>articAccentAbove</subtype>
+            </Articulation>
+            <Note>
+              <pitch>50</pitch>
+              <tpc>16</tpc>
+            </Note>
+          </Chord>
+        </voice>
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>
