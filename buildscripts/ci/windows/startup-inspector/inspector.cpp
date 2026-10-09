@@ -293,14 +293,16 @@ private:
     bool done = false;
     static void verifyFeatureDebug(QQuickWindow* mainWindow) {
         dispatchMenu(mainWindow, "command://app/feature-diagnostics");
-        QTest::qWait(500);
         QPointer<QQuickWindow> dialog;
         QQuickItem* report = nullptr;
-        for (QWindow* window : QGuiApplication::topLevelWindows()) {
-            auto quick = qobject_cast<QQuickWindow*>(window);
-            if (!quick || quick == mainWindow) continue;
-            report = findItem(quick->contentItem(), "feature-debug-report");
-            if (report) { dialog = quick; break; }
+        for (int attempt = 0; attempt < 50 && !report; ++attempt) {
+            QTest::qWait(100);
+            for (QWindow* window : QGuiApplication::topLevelWindows()) {
+                auto quick = qobject_cast<QQuickWindow*>(window);
+                if (!quick || quick == mainWindow) continue;
+                report = findItem(quick->contentItem(), "feature-debug-report");
+                if (report) { dialog = quick; break; }
+            }
         }
         if (!dialog || !report) qFatal("Feature diagnostics window did not open");
         auto readReport = [report]() {
@@ -319,6 +321,17 @@ private:
             if (row.toObject().value("dynamics").toArray().isEmpty()
                 || row.toObject().value("sampleApplication").toString() != "pending VDL playback integration")
                 qFatal("Feature diagnostics omitted note dynamics or misreported VDL application");
+        }
+        if (mainWindow->title().contains("ff-snare")) {
+            if (rows.size() != 4) qFatal("Snare sticking diagnostics did not report four onsets");
+            const QStringList expected { "right", "left", "right", "right" };
+            for (qsizetype index = 0; index < rows.size(); ++index) {
+                const auto row = rows.at(index).toObject();
+                const auto strokes = row.value("strokes").toArray();
+                if (row.value("recognition").toString() != "hands" || strokes.size() != 1
+                    || strokes.at(0).toObject().value("hand").toString() != expected.at(index))
+                    qFatal("Snare sticking diagnostics lost an explicit or repeated hand");
+            }
         }
         auto checkbox = findItem(dialog->contentItem(), "feature-debug-full-score");
         auto refresh = findItem(dialog->contentItem(), "feature-debug-refresh");

@@ -138,6 +138,7 @@
           <Dynamic>
             <subtype>ff</subtype>
           </Dynamic>
+          <Sticking><text>R</text></Sticking>
           <Chord>
             <durationType>quarter</durationType>
             <StemDirection>up</StemDirection>
@@ -149,6 +150,7 @@
               <tpc>16</tpc>
             </Note>
           </Chord>
+          <Sticking><text>L</text></Sticking>
           <Chord>
             <durationType>quarter</durationType>
             <StemDirection>up</StemDirection>
@@ -157,6 +159,7 @@
               <tpc>16</tpc>
             </Note>
           </Chord>
+          <Sticking><text>R</text></Sticking>
           <Chord>
             <durationType>quarter</durationType>
             <StemDirection>up</StemDirection>
@@ -165,6 +168,7 @@
               <tpc>16</tpc>
             </Note>
           </Chord>
+          <Sticking><text>R</text></Sticking>
           <Chord>
             <durationType>quarter</durationType>
             <StemDirection>up</StemDirection>
