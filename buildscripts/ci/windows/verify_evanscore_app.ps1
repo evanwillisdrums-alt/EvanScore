@@ -29,7 +29,9 @@ $stderr = Join-Path $artifacts 'Windows-app-stderr.log'
 $oldPlatform = $env:QT_QPA_PLATFORM
 
 try {
-    $env:QT_QPA_PLATFORM = 'offscreen'
+    # Exercise the Windows platform shipped in the ZIP. windeployqt does not
+    # include the optional offscreen platform used by SDK/build-machine tests.
+    $env:QT_QPA_PLATFORM = 'windows'
     $process = Start-Process -FilePath $app.FullName `
         -ArgumentList @('-o', ('"' + $pdf + '"'), ('"' + $score + '"')) `
         -WorkingDirectory $app.DirectoryName -PassThru `

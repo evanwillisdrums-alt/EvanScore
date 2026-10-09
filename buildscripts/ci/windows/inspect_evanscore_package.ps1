@@ -57,7 +57,21 @@ try {
 } finally {
     if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
 }
-foreach ($file in @('package-imports.log', 'package-loader.json', 'package-version-stdout.log', 'package-version-stderr.log')) {
+$oldPlatform = $env:QT_QPA_PLATFORM
+try {
+    $env:QT_QPA_PLATFORM = 'offscreen'
+    $probe = Start-Process $app.FullName -ArgumentList '--version' -WorkingDirectory $app.DirectoryName -PassThru `
+        -RedirectStandardOutput build.artifacts/package-offscreen-stdout.log -RedirectStandardError build.artifacts/package-offscreen-stderr.log
+    $exited = $probe.WaitForExit(5000)
+    $probe.Refresh()
+    $windows = if ($exited) { @() } else { @([EvanScoreLoaderWindows]::Inspect($probe.Id)) }
+    [ordered]@{platform='offscreen'; exited=$exited; exitCode=if ($exited) {$probe.ExitCode} else {$null}; windows=$windows} |
+        ConvertTo-Json -Depth 4 | Set-Content build.artifacts/package-offscreen.json
+} finally {
+    if ($probe -and -not $probe.HasExited) { Stop-Process -Id $probe.Id -Force }
+    $env:QT_QPA_PLATFORM = $oldPlatform
+}
+foreach ($file in @('package-imports.log', 'package-loader.json', 'package-version-stdout.log', 'package-version-stderr.log', 'package-offscreen.json', 'package-offscreen-stderr.log')) {
     $content = Get-Content (Join-Path build.artifacts $file) -Raw
     if ($content) {
         $message = ($file + "`n" + $content).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')

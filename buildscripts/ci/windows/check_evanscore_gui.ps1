@@ -67,7 +67,7 @@ try {
         # audio/view metadata can mark it changed and legitimately prompt on quit.
         # Round-trip it through this exact app before testing normal GUI closure.
         $scoreToOpen = Join-Path $output ([System.IO.Path]::GetFileNameWithoutExtension($ScorePath) + '.mscz')
-        $env:QT_QPA_PLATFORM = 'offscreen'
+        $env:QT_QPA_PLATFORM = 'windows'
         $prepare = Start-Process -FilePath $app.FullName `
             -ArgumentList @('-o', ('"' + $scoreToOpen + '"'), ('"' + (Resolve-Path $ScorePath).Path + '"')) `
             -WorkingDirectory $app.DirectoryName -PassThru `
