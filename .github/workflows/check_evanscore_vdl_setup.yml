@@ -1,6 +1,14 @@
 name: EvanScore VDL setup helper
 
 on:
+  workflow_call:
+    inputs:
+      base_run:
+        type: string
+        default: ''
+      verify_download:
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       base_run:

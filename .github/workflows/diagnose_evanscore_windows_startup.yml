@@ -28,6 +28,8 @@ on:
           - verify-package
           - dynamics
           - crash-kit
+          - vdl-setup
+          - vdl-package
         default: inspect-logs
 
 permissions:
@@ -35,6 +37,17 @@ permissions:
   contents: read
 
 jobs:
+  vdl-setup:
+    if: inputs.mode == 'vdl-setup'
+    uses: ./.github/workflows/check_evanscore_vdl_setup.yml
+    with:
+      verify_download: true
+  vdl-package:
+    if: inputs.mode == 'vdl-package'
+    uses: ./.github/workflows/check_evanscore_vdl_setup.yml
+    with:
+      base_run: ${{ inputs.run_id }}
+      verify_download: false
   crash-kit:
     if: inputs.mode == 'crash-kit'
     runs-on: windows-2025
