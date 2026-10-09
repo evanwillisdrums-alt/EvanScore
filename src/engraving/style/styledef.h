@@ -2291,6 +2291,7 @@ enum class Sid : short {
     evanDynamicsSoftAccent,
     evanDynamicsStress,
     evanDynamicsUnstress,
+    evanDynamicsSmoothArticulations,
 
     STYLES
 };

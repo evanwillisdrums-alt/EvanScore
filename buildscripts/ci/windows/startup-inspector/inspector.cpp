@@ -69,6 +69,38 @@ public:
                     auto checkbox = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-enabled"));
                     if (!checkbox || !checkbox->isVisible() || !checkbox->isEnabled())
                         qFatal("The custom dynamics switch is not clickable");
+                    const auto unchangedMappings = model->property("mappings");
+                    auto more = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-mapping-ff-extras"));
+                    auto ghost = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-mapping-ff-ghost"));
+                    auto mainTap = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-mapping-ff-tap"));
+                    if (!more || !ghost || !mainTap || ghost->isVisible() || !mainTap->isVisible())
+                        qFatal("Main articulations or collapsed extras have incorrect visibility");
+                    for (bool expanded : {true, false}) {
+                        reveal(more);
+                        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                            more->mapToScene(QPointF(more->width()/2, more->height()/2)).toPoint());
+                        QTest::qWait(100);
+                        if (ghost->isVisible() != expanded || model->property("mappings") != unchangedMappings)
+                            qFatal("Articulation disclosure failed or changed playback settings");
+                    }
+                    qWarning() << "DYNAMICS INSPECTOR compact articulations real clicks passed";
+                    auto smooth = qobject_cast<QQuickItem*>(findItem(window->contentItem(), "dynamics-smooth-articulations"));
+                    if (!smooth || !smooth->isVisible()) qFatal("Articulation smoothing switch is unavailable");
+                    const auto beforeSmooth = model->property("state").toMap();
+                    reveal(smooth);
+                    QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                        smooth->mapToScene(QPointF(10, smooth->height()/2)).toPoint());
+                    QTest::qWait(150);
+                    if (model->property("state").toMap().value("smoothArticulations").toBool()
+                        == beforeSmooth.value("smoothArticulations").toBool())
+                        qFatal("Articulation smoothing click did not update the native score");
+                    dispatchMenu(window, "command://notation/undo"); QTest::qWait(250);
+                    const auto afterSmooth = model->property("state").toMap();
+                    if (afterSmooth.value("smoothArticulations") != beforeSmooth.value("smoothArticulations")
+                        || afterSmooth.value("enabled") != beforeSmooth.value("enabled"))
+                        qFatal("Articulation smoothing did not undo in one step");
+                    qWarning() << "DYNAMICS INSPECTOR smoothing real click and native undo passed";
+                    reveal(checkbox);
                     const bool originallyEnabled = model->property("state").toMap().value("enabled").toBool();
                     // Send real window pointer events. Invoking clicked()
                     // alone would miss an overlay intercepting the control.

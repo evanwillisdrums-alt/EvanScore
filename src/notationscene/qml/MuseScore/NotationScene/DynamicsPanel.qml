@@ -135,6 +135,7 @@ Item {
                         anchors.margins: 10
                         spacing: 7
                         Caption { text: qsTrc("notation", "Presets & defaults"); font.bold: true }
+                        PanelButton { objectName: "dynamics-marching-defaults"; text: qsTrc("notation", "Marching Snare Defaults"); Layout.fillWidth: true; onClicked: root.model.applyMarchingDefaults() }
                         RowLayout {
                             PanelButton { objectName: "dynamics-save-preset"; text: qsTrc("notation", "Save Preset"); Layout.fillWidth: true; onClicked: root.model.savePreset() }
                             PanelButton { objectName: "dynamics-load-preset"; text: qsTrc("notation", "Load Preset"); Layout.fillWidth: true; onClicked: root.model.loadPreset() }
@@ -143,6 +144,24 @@ Item {
                         PanelButton { objectName: "dynamics-apply-default"; text: qsTrc("notation", "Apply Default Dynamics"); enabled: root.state.hasDefault === true; Layout.fillWidth: true; onClicked: root.model.applyDefault() }
                         Caption { text: root.state.notice || qsTrc("notation", "Defaults apply to new scores. Presets contain playback settings only."); Layout.fillWidth: true; opacity: .7; font.pixelSize: 11; Accessible.role: Accessible.StaticText }
                     }
+                }
+                UiComponents.CheckBox {
+                    objectName: "dynamics-smooth-articulations"
+                    visible: root.state.scope === "score" || root.state.scope === "hairpin"
+                    Layout.fillWidth: true
+                    text: qsTrc("notation", "Smooth through articulations")
+                    checked: root.state.smoothArticulations || false
+                    onClicked: root.model.setSmoothArticulations(!checked)
+                    font.pixelSize: 12
+                    navigation.panel: settingsNavigation
+                    navigation.order: 3
+                }
+                Caption {
+                    visible: root.state.scope === "score" || root.state.scope === "hairpin"
+                    Layout.fillWidth: true
+                    text: qsTrc("notation", "One hairpin curve across accents, tenutos, and taps. Explicit note overrides stay in effect.")
+                    opacity: .7
+                    font.pixelSize: 11
                 }
                 Rectangle {
                     visible: (root.state.scope === "score" || root.state.scope === "hairpin")
@@ -164,7 +183,7 @@ Item {
                             endLevel: root.state.endLevel === undefined ? 112 : root.state.endLevel
                             tapStartLevel: root.state.tapStartLevel === undefined ? 49 : root.state.tapStartLevel
                             tapEndLevel: root.state.tapEndLevel === undefined ? 49 : root.state.tapEndLevel
-                            showTapCurve: root.state.scope === "hairpin" && root.state.batteryHairpin
+                            showTapCurve: root.state.scope === "hairpin" && root.state.batteryHairpin && !root.state.smoothArticulations
                             endpointsEditable: root.state.scope === "hairpin"
                             onCurveEdited: function(shape, bend) { root.model.setCurve(shape, bend) }
                             onEndpointEdited: function(end, velocity) { root.model.setEndpoint(end, end ? root.state.endDynamic : root.state.startDynamic, end ? root.state.endRole : root.state.startRole, velocity) }
@@ -357,6 +376,7 @@ Item {
                             required property var modelData
                             required property int index
                             readonly property var values: root.model.mappings[index] || ({})
+                            property bool extraArticulationsOpen: false
                             visible: search.text === "" || modelData.name.indexOf(search.text.toLowerCase()) >= 0
                             Layout.fillWidth: true
                             implicitHeight: mappingCard.implicitHeight + 20
@@ -369,9 +389,9 @@ Item {
                                 Caption { text: mapping.modelData.name; font.bold: true; font.italic: true; font.pixelSize: 17; Accessible.name: qsTrc("notation", "%1 dynamic velocities").arg(text) }
                                 GridLayout {
                                     Layout.fillWidth: true
-                                    columns: 3; columnSpacing: 6; rowSpacing: 7
+                                    columns: 2; columnSpacing: 6; rowSpacing: 7
                                     Repeater {
-                                        model: root.mappingRoles
+                                        model: root.mappingRoles.slice(0, 4)
                                         ColumnLayout {
                                             id: mappingValue
                                             required property var modelData
@@ -392,10 +412,43 @@ Item {
                                         }
                                     }
                                 }
+                                PanelButton {
+                                    objectName: "dynamics-mapping-" + mapping.modelData.name + "-extras"
+                                    Layout.fillWidth: true
+                                    text: mapping.extraArticulationsOpen ? qsTrc("notation", "Hide extra articulations ▴") : qsTrc("notation", "More articulations ▾")
+                                    onClicked: mapping.extraArticulationsOpen = !mapping.extraArticulationsOpen
+                                    Accessible.description: mapping.extraArticulationsOpen ? qsTrc("notation", "Expanded") : qsTrc("notation", "Collapsed")
+                                }
+                                GridLayout {
+                                    visible: mapping.extraArticulationsOpen
+                                    Layout.fillWidth: true
+                                    columns: 2; columnSpacing: 6; rowSpacing: 7
+                                    Repeater {
+                                        model: root.mappingRoles.slice(4)
+                                        ColumnLayout {
+                                            id: extraMappingValue
+                                            required property var modelData
+                                            Layout.fillWidth: true
+                                            spacing: 3
+                                            Caption { text: extraMappingValue.modelData.label; font.pixelSize: 11; opacity: .7 }
+                                            LevelSpin {
+                                                objectName: "dynamics-mapping-" + mapping.modelData.name + "-" + extraMappingValue.modelData.key
+                                                Layout.fillWidth: true
+                                                value: mapping.values[extraMappingValue.modelData.key] || 0
+                                                onValueModified: {
+                                                    columnCategory.currentIndex = root.mappingRoles.findIndex(function(role) { return role.role === extraMappingValue.modelData.role })
+                                                    columnVelocity.value = value
+                                                    root.model.setMapping(mapping.modelData.dynamic, extraMappingValue.modelData.role, value)
+                                                }
+                                                Accessible.name: mapping.modelData.name + " " + extraMappingValue.modelData.label + " " + qsTrc("notation", "velocity")
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    Caption { Layout.fillWidth: true; text: qsTrc("notation", "Values are MIDI velocities, 0–127 (0 is silent). Battery taps default to piano; ghost notes use quiet levels. Accent and marcato are separate; combined articulations use marcato, then accent, then tenuto. Staccato and staccatissimo retain their note-length behavior. Score settings and local edits save with your score."); opacity: .6; font.pixelSize: 11 }
+                    Caption { Layout.fillWidth: true; text: qsTrc("notation", "Values are MIDI velocities, 0–127 (0 is silent). The marching profile keeps ordinary taps consistent and ghosts silent. All category velocities remain editable. Accent and marcato are separate; combined articulations use marcato, then accent, then tenuto. Staccato and staccatissimo retain their note-length behavior. Score settings and local edits save with your score."); opacity: .6; font.pixelSize: 11 }
                 }
             }
             Item { Layout.preferredHeight: 12 }

@@ -32,9 +32,11 @@ public:
     Q_INVOKABLE void followSelection();
     Q_INVOKABLE void setEnabled(bool enabled);
     Q_INVOKABLE void setBattery(bool enabled);
+    Q_INVOKABLE void setSmoothArticulations(bool enabled);
     Q_INVOKABLE void setMapping(int dynamic, int role, int velocity);
     Q_INVOKABLE void setColumnMapping(int role, int velocity);
     Q_INVOKABLE void resetMappings();
+    Q_INVOKABLE void applyMarchingDefaults();
     Q_INVOKABLE void savePreset();
     Q_INVOKABLE void loadPreset();
     Q_INVOKABLE void makeDefault();

@@ -2,7 +2,7 @@
 
 Open **View > Dynamics**. The panel starts with **Full score** settings. Choose **Use custom playback dynamics** to use the profile; closing the panel leaves playback settings active. Turning the checkbox off restores the original playback system without deleting the profile.
 
-Each dynamic marking has a compact card with independent **Tap, Tenuto, Accent, Marcato, Ghost, Normal, Soft accent, Stress, and Unstress** velocities. Values range from **0 to 127**; zero is silent. Search by marking to find ppp, mp, ff, sfz, fp, or another supported dynamic. Battery taps default to piano levels, while explicitly quiet markings use their own level.
+Each dynamic marking keeps **Tap, Tenuto, Accent, and Marcato** visible. **More articulations** expands **Ghost, Normal, Soft accent, Stress, and Unstress** in that card. Collapsing preserves every value. Values range from **0 to 127**; zero is silent. Search by marking to find ppp, mp, ff, sfz, fp, or another supported dynamic. Battery taps default to piano levels, while explicitly quiet markings use their own level.
 
 Playback recognizes the score's articulations, including combined accent/staccato and marcato/tenuto symbols. A combined accent/tenuto uses the accent mapping; marcato takes precedence over accent, and playback-disabled articulations are ignored. Ghost dynamics follow the note's native ghost flag. Changing an open/filled notehead alone leaves duration and velocity unchanged. Staccato and staccatissimo retain native duration behavior.
 
@@ -27,3 +27,25 @@ These values are playback instructions; different sound libraries have different
 ## One velocity for an articulation across all dynamics
 
 In Full score → Dynamic mappings, choose an articulation (Tap, Accent, Tenuto, etc.), enter a MIDI velocity, and click **Set all**. For example, Tap → 10 sets all tap mappings to 10 while preserving the accent and other articulation columns. Editing an individual mapping prefills this control with that category and value. The batch operation enables custom dynamics, is one undoable change, and persists through normal score saves, preset export, and Make Default Dynamics. It does not replace local note overrides or link future individual edits.
+
+## Smooth through articulations
+
+Enable **Smooth through articulations** for one curve between the chosen hairpin endpoints, even as printed notes change from accents to tenutos to taps. It is off initially. Full score sets the preference; a selected hairpin can override it, and **Use score defaults** restores inheritance. Explicit note overrides remain in effect. A ghost mapped to zero remains silent. Presets include the preference; older presets retain the original independent articulation lanes.
+
+Legacy imported marking velocities, such as p=64, no longer supersede a custom battery Tap mapping. Explicit note edits and the panel's precise marking override still take priority. Hairpins can still vary the actual note velocity while the Tap mapping is constant.
+
+## Marching snare starting profile
+
+New battery scores use this profile if you have not saved your own default. Use **Marching Snare Defaults** to apply it explicitly to an existing score, with one Undo. Opening an existing score keeps its settings. **Make Default Dynamics** saves your preferred adjustments for future scores.
+
+| Marking | Ordinary stroke | Tap | Tenuto | Accent / Marcato | Ghost |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| pp | 45 | 45 | 60 | 60 | 0 |
+| p | 60 | 60 | 64 | 64 | 0 |
+| mp | 72 | 60 | 72 | 72 | 0 |
+| mf | 84 | 60 | 72 | 84 | 0 |
+| f | 100 | 60 | 84 | 100 | 0 |
+| ff | 114 | 60 | 100 | 114 | 0 |
+| fff | 126 | 60 | 114 | 126 | 0 |
+
+The user's stroke reference is pp=1 inch, p=3, mp=6, mf=9, f=12, ff=15, fff=18; pp accents/tenutos=3, p accents/tenutos=4, and p+ taps=3. Ghosts in battery writing mean no stroke. These velocities are an editable starting calibration with a raised quiet end, not a universal inches-to-velocity formula or verified Virtual Drumline preset. Sound patches have different velocity layers and responses; audition and adjust with the actual library. Additional quieter/louder markings remain available. Soft accent follows Tenuto, Stress follows Accent, and Unstress follows Tap in this starting profile.

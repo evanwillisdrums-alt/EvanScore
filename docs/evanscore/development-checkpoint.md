@@ -2,6 +2,18 @@
 
 Updated 2026-10-09 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Current work: tap priority, optional shared ramps, and compact dynamics
+
+The user later reported 98% system memory; after closing Chrome running Codex they could no longer reproduce the slowdown/crash. Memory pressure is a plausible contributor, not a demonstrated native fix. Resume crash capture if it recurs; it is not blocking this new feature work.
+
+The user's private `Pad Lick #1.mscz` is in `/workspace/attachments/9ddfa0bd-e71d-4c4a-92f6-a4ac5699df7f/`. Its first snare bar has p with legacy velocity 64. The tap resolver previously allowed this imported value to defeat custom tap mappings. The fix gives custom Tap precedence over legacy marking velocities while retaining explicit precise marking/note overrides. Do not commit the private score. An isolated native read of that original score verifies all unaccented first-bar snare notes resolve to the new Tap 30 mapping.
+
+Native changes add optional “Smooth through articulations”, score default off, per-hairpin inherit/on/off, shared endpoints across accent/tenuto/tap changes, preset/XML/undo persistence, and silence for zero-valued ghosts inside ramps. Mapping cards keep four main categories open and collapse five extra categories per card. Transport text is larger with centered captions and wider fixed columns; the 42px toolbar height and left grower are preserved.
+
+Marching Snare Defaults is a starting profile, automatically used for newly created battery scores when no saved user dynamics default exists, with an explicit apply button for existing scores. User defaults take priority. pp/p/mp/mf/f/ff/fff Normal values are 45/60/72/84/100/114/126; taps pp45, p+60; accents/tenutos pp60,p64,mp72; higher tenutos one level below accents; battery ghosts zero. These reflect the user's stroke roles and request for a more audible low end, not researched VDL calibration. External PAS/Vic Firth/Yamaha/Tapspace/NI research requests remain proxy403. Required domains were additively saved in the environment draft; applying settings is still necessary before retrying. Never describe MIDI velocities as scientifically derived from inches.
+
+Validation currently includes 29 repository native Dynamics tests plus a private score regression (30 passed), using actual engraving/MIDI/audio-automation code with font/config/filesystem harness substitutes, and 10 QML checks including real pointer smoothing/disclosure clicks (host API/theme substitutes). The local undo regression passed; full Windows native build/release gates are pending. Isolated runner sources/logs are under `/tmp/evanscore-core-tests`, QML harness `/tmp/evanscore-ui-check`; preserve or recreate after reconnects. The diagnostic helper adds native smoothing/disclosure clicks and undo tests for the new package. No new Windows download has been produced from these changes yet.
+
 ## Current work: confirmed intermittent crash after repeated Dynamics edits
 
 The latest downloaded native build 27 is **not considered crash-fixed**. The user reports a busy cursor and eventual crash after editing multiple articulation mappings and then Tap → 30 → Set all, with Muse Drumline and playback initially stopped. Uploaded `MuseScoreStudio_261009_103644.log` confirms build 27, active WASAPI audio and MuseSampler 0.105.8. It ends with a Play command at 11:02:04.588 and SIGSEGV/invalid memory reference at 11:02:04.739. The user says the busy cursor started before they tried Play, and the triggering order is not consistent. The log has no fault stack; do not blame Muse Drumline or claim VDL integration will fix it.

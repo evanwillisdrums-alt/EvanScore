@@ -2272,6 +2272,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(evanDynamicsSoftAccent, String()),
     styleDef(evanDynamicsStress, String()),
     styleDef(evanDynamicsUnstress, String()),
+    styleDef(evanDynamicsSmoothArticulations, false),
 } };
 
 #undef styleDef

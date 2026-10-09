@@ -24,6 +24,7 @@
 
 #include <QFileInfo>
 #include <QFile>
+#include <algorithm>
 #include "engraving/dom/dynamicsplayback.h"
 
 #include "log.h"
@@ -342,6 +343,16 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
 
     // This path runs only for newly created scores (including templates), never when opening a score.
     const auto dynamicsDefault = settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath();
+    if (dynamicsDefault.empty()) {
+        const bool hasBattery = std::any_of(score->staves().begin(), score->staves().end(), [](const Staff* staff) {
+            const String& id = staff->part()->instrument()->id();
+            return id == u"marching-snare" || id == u"marching-tenor-drums" || id == u"marching-show-tenors" || id == u"marching-bass-drums";
+        });
+        if (hasBattery) {
+            const MStyle candidate = DynamicsPlayback::marchingSnareDefaults(score->style());
+            for (Sid sid : DynamicsPlayback::profileStyles()) score->style().set(sid, candidate.value(sid));
+        }
+    }
     if (!dynamicsDefault.empty()) {
         QFile file(dynamicsDefault.toQString());
         MStyle candidate = score->style();

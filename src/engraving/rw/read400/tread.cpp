@@ -2708,7 +2708,7 @@ void TRead::read(Hairpin* h, XmlReader& e, ReadContext& ctx)
         if (tag == "subtype") {
             h->setHairpinType(HairpinType(e.readInt()));
         } else if (TRead::readStyledProperty(h, tag, e, ctx)) {
-        } else if (tag == "dynamicsCurveShape" || tag == "dynamicsCurveBend" || tag == "dynamicsStartDynamic" || tag == "dynamicsEndDynamic" || tag == "dynamicsStartRole" || tag == "dynamicsEndRole" || tag == "dynamicsStartVelocity" || tag == "dynamicsEndVelocity") {
+        } else if (tag == "dynamicsCurveShape" || tag == "dynamicsCurveBend" || tag == "dynamicsStartDynamic" || tag == "dynamicsEndDynamic" || tag == "dynamicsStartRole" || tag == "dynamicsEndRole" || tag == "dynamicsStartVelocity" || tag == "dynamicsEndVelocity" || tag == "dynamicsSmoothArticulations") {
             readProperty(h, e, ctx, propertyId(tag));
         } else if (tag == "hairpinCircledTip") {
             h->setHairpinCircledTip(e.readInt());

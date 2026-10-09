@@ -77,6 +77,7 @@ QVariantMap DynamicsPanelModel::state() const {
         {"title", unsupported ? tr("Select notes, a dynamic, or a hairpin") : h ? (h->isCrescendo() ? tr("Selected crescendo") : tr("Selected decrescendo")) : dyn ? tr("Selected dynamic marking") : ns.empty() ? tr("Full score") : tr("%n selected note(s)", nullptr, static_cast<int>(ns.size()))},
         {"notice", m_notice}, {"hasDefault", !settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath().empty()},
         {"enabled", st.styleB(Sid::evanDynamicsEnabled)}, {"battery", st.styleB(Sid::evanDynamicsBattery)},
+        {"smoothArticulations", h ? DynamicsPlayback::smoothArticulations(h) : st.styleB(Sid::evanDynamicsSmoothArticulations)},
         {"batteryHairpin", h && h->staff() && h->staff()->isDrumStaff(h->tick()) && st.styleB(Sid::evanDynamicsBattery)},
         {"shape", shape}, {"bend", bend}, {"startLevel", h ? DynamicsPlayback::endpoint(h, false) : 49}, {"endLevel", h ? DynamicsPlayback::endpoint(h, true) : 112},
         {"tapStartLevel", h ? DynamicsPlayback::endpoint(h, false, DynamicsPlayback::Tap) : 49},
@@ -148,6 +149,14 @@ void DynamicsPanelModel::showScore() { m_forceScore = true; emit stateChanged();
 void DynamicsPanelModel::followSelection() { m_forceScore = false; emit stateChanged(); }
 void DynamicsPanelModel::setEnabled(bool enabled) { edit([&]() { setScoreStyle(Sid::evanDynamicsEnabled, enabled); }, "Change score dynamics"); }
 void DynamicsPanelModel::setBattery(bool enabled) { edit([&]() { setScoreStyle(Sid::evanDynamicsBattery, enabled); }, "Change accent and tap dynamics"); }
+void DynamicsPanelModel::setSmoothArticulations(bool enabled) {
+    if (!score() || state().value("scope").toString() == "none" || dynamic() || !notes().empty()) return;
+    edit([&]() {
+        if (auto h = hairpin()) h->undoChangeProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, enabled ? 1 : 0);
+        else setScoreStyle(Sid::evanDynamicsSmoothArticulations, enabled);
+        setScoreStyle(Sid::evanDynamicsEnabled, true);
+    }, "Smooth dynamics through articulations");
+}
 void DynamicsPanelModel::setMapping(int dynamic, int role, int velocity) {
     if (dynamic < 1 || dynamic >= static_cast<int>(Dynamic::definitions().size()) || role < 1 || role > DynamicsPlayback::Unstress) return;
     edit([&]() {
@@ -178,6 +187,13 @@ void DynamicsPanelModel::setColumnMapping(int role, int velocity) {
 void DynamicsPanelModel::resetMappings() { edit([&]() {
     for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role) setScoreStyle(DynamicsPlayback::mappingStyle(role), String());
 }, "Reset dynamic mappings"); }
+void DynamicsPanelModel::applyMarchingDefaults() {
+    if (!score()) return;
+    const MStyle candidate = DynamicsPlayback::marchingSnareDefaults(DynamicsPlayback::profile(score()));
+    edit([&]() { for (Sid sid : DynamicsPlayback::profileStyles()) setScoreStyle(sid, candidate.value(sid)); }, "Apply marching snare dynamics");
+    m_notice = tr("Marching snare starting profile applied. Local note and hairpin overrides are preserved.");
+    emit stateChanged();
+}
 void DynamicsPanelModel::setCurve(int shape, double bend) {
     shape = std::clamp(shape, 0, 2); bend = std::clamp(bend, -2.0, 2.0);
     if (!score() || state().value("scope").toString() == "none" || dynamic() || !notes().empty()) return;
@@ -236,7 +252,7 @@ void DynamicsPanelModel::adjustNotes(int operation, double amount, int category)
 void DynamicsPanelModel::resetSelection() {
     if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, -1); }, "Reset dynamic override"); return; }
     if (auto h = hairpin()) { edit([&]() {
-        for (Pid id : {Pid::DYNAMICS_CURVE_SHAPE, Pid::DYNAMICS_CURVE_BEND, Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC, Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE, Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY}) h->undoChangeProperty(id, h->propertyDefault(id));
+        for (Pid id : {Pid::DYNAMICS_CURVE_SHAPE, Pid::DYNAMICS_CURVE_BEND, Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC, Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE, Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY, Pid::DYNAMICS_SMOOTH_ARTICULATIONS}) h->undoChangeProperty(id, h->propertyDefault(id));
     }, "Use score hairpin defaults"); }
     else { auto ns = notes(); if (!ns.empty()) edit([&]() { for (auto n : ns) { n->undoChangeProperty(Pid::VELO_TYPE, VeloType::OFFSET_VAL); n->undoChangeProperty(Pid::USER_VELOCITY, 0); n->undoChangeProperty(Pid::PLAY, true); } }, "Use score note dynamics"); }
 }

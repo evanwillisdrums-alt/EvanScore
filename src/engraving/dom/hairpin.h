@@ -180,6 +180,7 @@ public:
     void setSnapToItemAfter(bool v) { m_snapToItemAfter = v; }
 
     int dynamicsCurveShape() const { return m_dynamicsCurveShape; }
+    int dynamicsSmoothArticulations() const { return m_dynamicsSmoothArticulations; }
     double dynamicsCurveBend() const { return m_dynamicsCurveBend; }
     int dynamicsStartDynamic() const { return m_dynamicsStartDynamic; }
     int dynamicsEndDynamic() const { return m_dynamicsEndDynamic; }
@@ -199,6 +200,7 @@ private:
     Sid getPropertyStyle(Pid) const override;
 
     int m_dynamicsCurveShape = -1;
+    int m_dynamicsSmoothArticulations = -1;
     double m_dynamicsCurveBend = -100.0;
     int m_dynamicsStartDynamic = -1;
     int m_dynamicsEndDynamic = -1;

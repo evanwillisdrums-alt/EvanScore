@@ -527,6 +527,7 @@ static constexpr PropertyMetaData propertyList[] = {
     { Pid::DYNAMICS_END_ROLE, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsEndRole", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsEndRole") },
     { Pid::DYNAMICS_START_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsStartVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsStartVelocity") },
     { Pid::DYNAMICS_END_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsEndVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsEndVelocity") },
+    { Pid::DYNAMICS_SMOOTH_ARTICULATIONS, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsSmoothArticulations", QT_TRANSLATE_NOOP("engraving/propertyName", "smooth dynamics through articulations") },
     { Pid::END,                                 P_TYPE::INT,                       PropertyGroup::NONE,       false, "++end++",                         nullptr }
 };
 /* *INDENT-ON* */

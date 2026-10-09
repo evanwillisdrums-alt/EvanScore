@@ -129,6 +129,67 @@ TEST_F(Engraving_DynamicsPlaybackTests, TapsAndAccentsHaveSeparateExactMappings)
     EXPECT_EQ(DynamicsPlayback::velocity(notes[0], 80), 80);
 }
 
+TEST_F(Engraving_DynamicsPlaybackTests, LegacyQuietMarkingCannotOverrideCustomTaps) {
+    mapping(Sid::evanDynamicsTap, DynamicType::P, 30);
+    Dynamic* d = mark(0, DynamicType::P);
+    d->setProperty(Pid::VELOCITY, 64); // Uploaded Pad Lick #1 first bar.
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[0], 80), 30);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 30);
+    d->setVisible(false);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 30);
+    // A deliberate new precise override remains explicit, including zero.
+    d->setProperty(Pid::DYNAMICS_MARK_VELOCITY, 0);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 0);
+    d->setProperty(Pid::DYNAMICS_MARK_VELOCITY, -1);
+    notes[1]->setProperty(Pid::VELO_TYPE, VeloType::USER_VAL);
+    notes[1]->setProperty(Pid::USER_VELOCITY, 57);
+    EXPECT_EQ(notes[1]->customizeVelocity(DynamicsPlayback::velocity(notes[1], 80)), 57);
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, SmoothRampUsesOneEnvelopeAcrossIntermediateArticulations) {
+    mapping(Sid::evanDynamicsAccent, DynamicType::FF, 110);
+    mapping(Sid::evanDynamicsTenuto, DynamicType::FF, 80);
+    mapping(Sid::evanDynamicsTap, DynamicType::MP, 30);
+    accent(0);
+    Articulation* tenuto = Factory::createArticulation(notes[1]->chord());
+    tenuto->setSymId(SymId::articTenutoAbove); notes[1]->chord()->add(tenuto);
+    Hairpin* h = ramp();
+    EXPECT_FALSE(DynamicsPlayback::smoothArticulations(h));
+    // Existing articulation lanes remain available with the switch off.
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 63);
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[0], 80), 110);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 83);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[2], 80), 57);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[3], 80), 30);
+    EXPECT_EQ(DynamicsPlayback::velocityAt(notes[1], Fraction(3, 8), 80), 70);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, .5, DynamicsPlayback::Ghost), 70);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[4], 80), 30);
+    h->setProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, 0);
+    EXPECT_FALSE(DynamicsPlayback::smoothArticulations(h));
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 63);
+    h->setProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, -1);
+    EXPECT_TRUE(DynamicsPlayback::smoothArticulations(h));
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, SmoothRampInfersPrintedEndpointRolesAndWorksBothDirections) {
+    mapping(Sid::evanDynamicsAccent, DynamicType::MF, 100);
+    mapping(Sid::evanDynamicsTap, DynamicType::P, 30);
+    mark(0, DynamicType::MF); mark(3, DynamicType::P);
+    accent(0);
+    Hairpin* h = ramp();
+    for (Pid id : {Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC}) h->setProperty(id, -1);
+    for (Pid id : {Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE}) h->setProperty(id, 0);
+    h->setProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, 1);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, 0, DynamicsPlayback::Tenuto), 100);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, .5, DynamicsPlayback::Tap), 65);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, 1, DynamicsPlayback::Accent), 30);
+    h->setHairpinType(HairpinType::CRESC_HAIRPIN);
+    h->setProperty(Pid::DYNAMICS_START_VELOCITY, 30);
+    h->setProperty(Pid::DYNAMICS_END_VELOCITY, 100);
+    EXPECT_EQ(DynamicsPlayback::hairpinValue(h, .5, DynamicsPlayback::Tenuto), 65);
+}
+
 TEST_F(Engraving_DynamicsPlaybackTests, AccentToTapDecrescendoResolvesCorrectEndpointAndHolds) {
     mapping(Sid::evanDynamicsAccent, DynamicType::FF, 116);
     mapping(Sid::evanDynamicsAccent, DynamicType::MP, 75);
@@ -176,10 +237,11 @@ TEST_F(Engraving_DynamicsPlaybackTests, CompoundAttackDoesNotOverwriteSettledLev
 TEST_F(Engraving_DynamicsPlaybackTests, HairpinAndMarkingPropertiesSurviveNativeXml) {
     Hairpin* h = ramp();
     h->setProperty(Pid::DYNAMICS_CURVE_SHAPE, 1); h->setProperty(Pid::DYNAMICS_CURVE_BEND, .65);
+    h->setProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, 1);
     h->setProperty(Pid::DYNAMICS_START_VELOCITY, 127); h->setProperty(Pid::DYNAMICS_END_VELOCITY, 0);
     auto copy = roundTrip(h);
     for (Pid id : {Pid::DYNAMICS_CURVE_SHAPE, Pid::DYNAMICS_CURVE_BEND, Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC,
-                   Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE, Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY}) {
+                   Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE, Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY, Pid::DYNAMICS_SMOOTH_ARTICULATIONS}) {
         EXPECT_EQ(copy->getProperty(id), h->getProperty(id));
     }
     Dynamic* d = mark(0, DynamicType::FF); d->setProperty(Pid::DYNAMICS_MARK_VELOCITY, 0);
@@ -315,13 +377,14 @@ TEST_F(Engraving_DynamicsPlaybackTests, PresetRoundTripIncludesEveryRoleAndPrese
     }
     score->style().set(Sid::evanDynamicsCurveShape, 1);
     score->style().set(Sid::evanDynamicsCurveBend, .73);
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
     const auto data = DynamicsPlayback::preset(score.get());
     MStyle restored;
     restored.set(Sid::musicalSymbolFont, String(u"Bravura"));
     const auto musicalFont = restored.value(Sid::musicalSymbolFont);
     ASSERT_TRUE(DynamicsPlayback::readPreset(data, restored));
     EXPECT_EQ(restored.value(Sid::musicalSymbolFont), musicalFont);
-    for (Sid sid : { Sid::evanDynamicsEnabled, Sid::evanDynamicsBattery, Sid::evanDynamicsCurveShape, Sid::evanDynamicsCurveBend }) {
+    for (Sid sid : { Sid::evanDynamicsEnabled, Sid::evanDynamicsBattery, Sid::evanDynamicsCurveShape, Sid::evanDynamicsCurveBend, Sid::evanDynamicsSmoothArticulations }) {
         EXPECT_EQ(restored.value(sid), score->style().value(sid));
     }
     auto second = std::unique_ptr<MasterScore>(compat::ScoreAccess::createMasterScore(nullptr));
@@ -347,6 +410,7 @@ TEST_F(Engraving_DynamicsPlaybackTests, InvalidPresetNeverPartiallyChangesSettin
         for (Sid sid : DynamicsPlayback::profileStyles()) EXPECT_EQ(target.value(sid), before.value(sid));
     };
     auto version = valid; version["version"] = 2; check(version);
+    auto smoothing = valid; smoothing["smoothArticulations"] = "yes"; check(smoothing);
     auto shape = valid; shape["curveShape"] = 9e30; check(shape);
     auto missing = valid; missing["mappings"] = muse::JsonObject(); check(missing);
     for (double invalid : {-1.0, 128.0, 25.5, 9e30}) {
@@ -360,6 +424,7 @@ TEST_F(Engraving_DynamicsPlaybackTests, InvalidPresetNeverPartiallyChangesSettin
 }
 
 TEST_F(Engraving_DynamicsPlaybackTests, EveryRoleMappingSurvivesStyleXml) {
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
     for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role) mapping(DynamicsPlayback::mappingStyle(role), DynamicType::PP, role * 13);
     auto buffer = muse::io::Buffer::opened(muse::io::IODevice::WriteOnly);
     ASSERT_TRUE(score->style().write(&buffer)); buffer.close();
@@ -416,4 +481,102 @@ TEST_F(Engraving_DynamicsPlaybackTests, CombinedAccentTenutoAndPlaybackDisabledA
     EXPECT_EQ(DynamicsPlayback::role(notes[0]), DynamicsPlayback::Accent);
     a->setPlayArticulation(false);
     EXPECT_EQ(DynamicsPlayback::role(notes[0]), DynamicsPlayback::Tap);
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, OlderPresetRetainsIndependentArticulationLanes) {
+    const auto current = muse::JsonDocument::fromJson(DynamicsPlayback::preset(score.get())).rootObject();
+    muse::JsonObject legacy;
+    for (const auto& key : current.keys()) if (key != "smoothArticulations") legacy[key] = current.value(key);
+    MStyle target;
+    target.set(Sid::evanDynamicsSmoothArticulations, true);
+    ASSERT_TRUE(DynamicsPlayback::readPreset(muse::JsonDocument(legacy).toJson(), target));
+    EXPECT_FALSE(target.styleB(Sid::evanDynamicsSmoothArticulations));
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, MarchingStartingProfileFollowsStrokeRolesAndPreservesNotation) {
+    score->style().set(Sid::musicalSymbolFont, String(u"Bravura"));
+    score->setStyle(DynamicsPlayback::marchingSnareDefaults(score->style()));
+    EXPECT_EQ(score->style().styleSt(Sid::musicalSymbolFont), String(u"Bravura"));
+    EXPECT_TRUE(DynamicsPlayback::enabled(score.get()));
+    EXPECT_FALSE(score->style().styleB(Sid::evanDynamicsSmoothArticulations));
+    const std::array<std::pair<DynamicType, int>, 7> levels {{
+        {DynamicType::PP, 45}, {DynamicType::P, 60}, {DynamicType::MP, 72},
+        {DynamicType::MF, 84}, {DynamicType::F, 100}, {DynamicType::FF, 114}, {DynamicType::FFF, 126}
+    }};
+    for (const auto& [type, normal] : levels) {
+        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Normal), normal);
+        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Tap), type == DynamicType::PP ? 45 : 60);
+        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Ghost), 0);
+    }
+    for (auto type : {DynamicType::PP, DynamicType::P, DynamicType::MP}) {
+        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Accent),
+                  DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Tenuto));
+    }
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::PP, DynamicsPlayback::Accent), 60);
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::P, DynamicsPlayback::Accent), 64);
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::MP, DynamicsPlayback::Accent), 72);
+    for (const auto& def : Dynamic::definitions()) {
+        for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role) {
+            const int value = DynamicsPlayback::level(score.get(), def.type, role);
+            EXPECT_GE(value, 0); EXPECT_LE(value, 127);
+        }
+    }
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, SilentGhostRemainsSilentInsideAndAfterSharedRamp) {
+    score->setStyle(DynamicsPlayback::marchingSnareDefaults(score->style()));
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
+    mark(0, DynamicType::FF); accent(0); ramp();
+    notes[1]->setGhost(true); notes[4]->setGhost(true);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[1], 80), 0);
+    EXPECT_EQ(DynamicsPlayback::velocityAt(notes[1], Fraction(3, 8), 80), 0);
+    EXPECT_EQ(DynamicsPlayback::velocity(notes[4], 80), 0);
+    EXPECT_GT(DynamicsPlayback::velocity(notes[2], 80), 0);
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, SharedRampMatchesMidiAndAudioAtTenutoAndTapNotes) {
+    mapping(Sid::evanDynamicsAccent, DynamicType::FF, 110);
+    mapping(Sid::evanDynamicsTenuto, DynamicType::FF, 80);
+    mapping(Sid::evanDynamicsTap, DynamicType::MP, 30);
+    mark(0, DynamicType::FF); accent(0); ramp();
+    Articulation* tenuto = Factory::createArticulation(notes[1]->chord());
+    tenuto->setSymId(SymId::articTenutoAbove); notes[1]->chord()->add(tenuto);
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
+    score->rebuildMidiMapping(); score->updateRepeatList();
+    EventsHolder events; CompatMidiRender::renderScore(score.get(), events, {}, true);
+    std::map<int, int> velocities;
+    for (size_t channel = 0; channel < events.size(); ++channel) {
+        for (const auto& [tick, event] : events[channel]) {
+            if (event.type() == ME_NOTEON && event.velo() > 0) velocities[tick] = event.velo();
+        }
+    }
+    PlaybackContext context(score.get());
+    const auto layers = context.dynamicLevelLayers(0, 4);
+    ASSERT_EQ(layers.size(), 1);
+    const auto& layer = layers.begin()->second;
+    const auto& timeline = score->tempoTimeline(true);
+    for (int index = 0; index < 4; ++index) {
+        const int tick = notes[index]->tick().ticks();
+        const int expected = DynamicsPlayback::velocity(notes[index], 80);
+        ASSERT_TRUE(velocities.contains(tick));
+        EXPECT_EQ(velocities.at(tick), expected);
+        const auto time = timeline.utick2utime(tick) * 1000000;
+        ASSERT_TRUE(layer.contains(time));
+        EXPECT_NEAR(layer.at(time).outValue, expected / 127.0, .00001);
+    }
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, LocalSmoothingUndoReturnsToInheritedScoreSetting) {
+    Hairpin* h = ramp();
+    score->lockUpdates(true);
+    score->style().set(Sid::evanDynamicsSmoothArticulations, true);
+    score->startCmd(muse::TranslatableString::untranslatable("Local smoothing"));
+    h->undoChangeProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, 0);
+    score->endCmd();
+    EXPECT_FALSE(DynamicsPlayback::smoothArticulations(h));
+    score->undoStack()->undo(nullptr);
+    EXPECT_EQ(h->dynamicsSmoothArticulations(), -1);
+    EXPECT_TRUE(DynamicsPlayback::smoothArticulations(h));
+    score->undoStack()->redo();
+    EXPECT_FALSE(DynamicsPlayback::smoothArticulations(h));
 }

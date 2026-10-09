@@ -58,7 +58,7 @@ Item {
         objectName: "playback-control-display"
         x: buttonsListView.x + buttonsListView.width + 8
         y: 1
-        width: 310
+        width: 400
         height: 40
         radius: 7
         color: root.displayColor
@@ -70,10 +70,10 @@ Item {
             spacing: 0
             Repeater {
                 model: [
-                    { label: qsTrc("playback", "TIME"), size: 80 },
-                    { label: qsTrc("playback", "BAR · BEAT"), size: 64 },
-                    { label: qsTrc("playback", "TEMPO"), size: 72 },
-                    { label: qsTrc("playback", "METER · KEY"), size: 76 }
+                    { label: qsTrc("playback", "TIME"), size: 110 },
+                    { label: qsTrc("playback", "BAR · BEAT"), size: 78 },
+                    { label: qsTrc("playback", "TEMPO"), size: 86 },
+                    { label: qsTrc("playback", "METER · KEY"), size: 110 }
                 ]
                 Text {
                     required property var modelData
@@ -81,12 +81,13 @@ Item {
                     text: modelData.label
                     color: root.captionColor
                     font.family: ui.theme.bodyFont.family
-                    font.pixelSize: 8
+                    font.pixelSize: 10
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
         Repeater {
-            model: [84, 148, 220]
+            model: [118, 196, 282]
             Rectangle {
                 required property int modelData
                 x: modelData; y: 6; width: 1; height: 28
@@ -95,16 +96,17 @@ Item {
             }
         }
         Text {
-            x: 224; y: 18
-            width: 78
+            x: 286; y: 17
+            width: 106
             text: root.playbackModel.scoreInfo.timeSignature + "  " + root.playbackModel.scoreInfo.key
             elide: Text.ElideRight
             color: root.displayTextColor
             font.family: ui.theme.bodyFont.family
-            font.pixelSize: 11
+            font.pixelSize: 14
+            horizontalAlignment: Text.AlignHCenter
         }
         MouseArea {
-            x: 222; width: 86; height: parent.height
+            x: 284; width: 112; height: parent.height
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
             onEntered: ui.tooltip.show(lcd, root.playbackModel.scoreInfo.keyDescription)
@@ -181,16 +183,16 @@ Item {
     TransportTimeField {
         id: timeField
 
-        x: lcd.x + 8
+        x: lcd.x + 8 + (110 - width) / 2
         y: 13
         foregroundColor: root.displayTextColor
         font.family: "Consolas"
-        font.pixelSize: 12
+        font.pixelSize: 15
 
         //! NOTE: explicit width prevents the content from jumping around
         // when a score is being played
         // See: https://github.com/musescore/MuseScore/issues/9633
-        width: 72
+        width: 100
 
         maxTime: root.playbackModel.maxPlayTime
         maxMillisecondsNumber: 9
@@ -207,7 +209,7 @@ Item {
     MeasureAndBeatFields {
         id: measureAndBeatFields
 
-        x: lcd.x + 90
+        x: lcd.x + 118 + (78 - width) / 2
         y: 13
         foregroundColor: root.displayTextColor
 
@@ -233,14 +235,14 @@ Item {
     Loader {
         id: tempoLoader
 
-        x: lcd.x + 150
+        x: lcd.x + 198
         y: 13
 
         readonly property int navigationOrderEnd: item?.navigation?.order ?? measureAndBeatFields.navigationOrderEnd
 
         // Fixed width prevents items from jumping around; but we
         // scale it according to the font size to prevent clipping
-        readonly property real tempoViewWidth: 68
+        readonly property real tempoViewWidth: 82
 
         sourceComponent: root.floating ? tempoViewComponent : tempoButtonComponent
 

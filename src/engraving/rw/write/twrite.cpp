@@ -1746,6 +1746,7 @@ void TWrite::write(const Hairpin* item, XmlWriter& xml, WriteContext& ctx)
     xml.tag("subtype", int(item->hairpinType()));
     writeProperty(item, xml, Pid::VELO_CHANGE);
     writeProperty(item, xml, Pid::DYNAMICS_CURVE_SHAPE);
+    writeProperty(item, xml, Pid::DYNAMICS_SMOOTH_ARTICULATIONS);
     writeProperty(item, xml, Pid::DYNAMICS_CURVE_BEND);
     writeProperty(item, xml, Pid::DYNAMICS_START_DYNAMIC);
     writeProperty(item, xml, Pid::DYNAMICS_END_DYNAMIC);

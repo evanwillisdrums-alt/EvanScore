@@ -160,13 +160,21 @@ const Hairpin* DynamicsPlayback::activeHairpin(const Score* score, const Fractio
     return active;
 }
 
+bool DynamicsPlayback::smoothArticulations(const Hairpin* h)
+{
+    return h->dynamicsSmoothArticulations() < 0 ? profile(h->score()).styleB(Sid::evanDynamicsSmoothArticulations)
+        : h->dynamicsSmoothArticulations() != 0;
+}
+
 double DynamicsPlayback::hairpinValue(const Hairpin* h, double position, int noteRole)
 {
     int shape = h->dynamicsCurveShape();
     double bend = h->dynamicsCurveBend();
     if (shape < 0) shape = profile(h->score()).styleI(Sid::evanDynamicsCurveShape);
     if (bend < -2.0) bend = profile(h->score()).styleD(Sid::evanDynamicsCurveBend);
-    const int lane = noteRole;
+    // Optional shared envelope: printed articulations do not switch velocity
+    // lanes mid-ramp. Explicit note overrides are still applied by callers.
+    const int lane = smoothArticulations(h) ? Auto : noteRole;
     const int from = endpoint(h, false, lane), to = endpoint(h, true, lane);
     return std::clamp(from + (to - from) * progress(position, shape, bend), 0.0, 127.0);
 }
@@ -195,9 +203,9 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
         else type = static_cast<int>(end ? (h->isCrescendo() ? DynamicType::F : DynamicType::P) : DynamicType::MF);
     }
     int value = level(h->score(), static_cast<DynamicType>(type), role);
-    if (typeFromNotation && dynamic && (role != Tap || type <= static_cast<int>(DynamicType::MP))) {
+    if (typeFromNotation && dynamic) {
         if (dynamic->preciseVelocity() >= 0) value = dynamic->preciseVelocity();
-        else if (dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) value = dynamic->velocity();
+        else if (role != Tap && dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) value = dynamic->velocity();
     }
     if (inferredEnd) value += (h->isCrescendo() ? 1 : -1) * (h->veloChange() ? std::abs(h->veloChange()) : 16);
     return std::clamp(value, 0, 127);
@@ -206,6 +214,8 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
 int DynamicsPlayback::velocityAt(const Note* note, const Fraction& position, int fallback)
 {
     if (!enabled(note->score())) return fallback;
+    // A silent battery ghost stays silent through shared articulation curves.
+    if (note->ghost() && velocity(note, fallback) == 0) return 0;
     const Hairpin* h = activeHairpin(note->score(), position, note->track());
     if (!h) h = activeHairpin(note->score(), note->tick(), note->track());
     if (h && h->ticks().ticks() > 0) {
@@ -219,13 +229,14 @@ int DynamicsPlayback::velocity(const Note* note, int fallback)
 {
     const Score* score = note->score();
     if (!profile(score).styleB(Sid::evanDynamicsEnabled)) return fallback;
+    const Segment* segment = note->chord() ? note->chord()->segment() : nullptr;
+    const Dynamic* dynamic = previousDynamic(segment, note->track());
+    if (note->ghost() && level(score, dynamic ? dynamic->dynamicType() : DynamicType::MF, Ghost) == 0) return 0;
     const Hairpin* active = activeHairpin(score, note->tick(), note->track());
     if (active && active->ticks().ticks() > 0) {
         const double t = double((note->tick() - active->tick()).ticks()) / active->ticks().ticks();
         return static_cast<int>(std::lround(hairpinValue(active, t, role(note))));
     }
-    const Segment* segment = note->chord() ? note->chord()->segment() : nullptr;
-    const Dynamic* dynamic = previousDynamic(segment, note->track());
     auto type = dynamic ? dynamic->dynamicType() : DynamicType::MF;
     bool settledCompound = false;
     if (dynamic && dynamic->tick() < note->tick()) {
@@ -240,10 +251,10 @@ int DynamicsPlayback::velocity(const Note* note, int fallback)
     // A local velocity on a dynamic marking remains an explicit override.
     if (dynamic && !settledCompound) {
         const int role = DynamicsPlayback::role(note);
-        if (role != Tap || static_cast<int>(type) <= static_cast<int>(DynamicType::MP)) {
-            if (dynamic->preciseVelocity() >= 0) result = dynamic->preciseVelocity();
-            else if (dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) result = dynamic->velocity();
-        }
+        if (dynamic->preciseVelocity() >= 0) result = dynamic->preciseVelocity();
+        // Legacy markings often contain imported playback velocities (e.g.
+        // p=64). They must not supersede a custom battery tap mapping.
+        else if (role != Tap && dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) result = dynamic->velocity();
     }
     // A completed playback-only ramp holds its destination until the next written dynamic.
     const Hairpin* completed = nullptr;
@@ -273,14 +284,67 @@ Sid DynamicsPlayback::mappingStyle(int role)
     }
 }
 
-std::array<Sid, 13> DynamicsPlayback::profileStyles()
+std::array<Sid, 14> DynamicsPlayback::profileStyles()
 {
     return { Sid::evanDynamicsEnabled, Sid::evanDynamicsBattery, Sid::evanDynamicsCurveShape,
              Sid::evanDynamicsCurveBend, Sid::evanDynamicsNormal, Sid::evanDynamicsTap,
-             Sid::evanDynamicsAccent, Sid::evanDynamicsTenuto, Sid::evanDynamicsMarcato, Sid::evanDynamicsGhost, Sid::evanDynamicsSoftAccent, Sid::evanDynamicsStress, Sid::evanDynamicsUnstress };
+             Sid::evanDynamicsAccent, Sid::evanDynamicsTenuto, Sid::evanDynamicsMarcato, Sid::evanDynamicsGhost, Sid::evanDynamicsSoftAccent, Sid::evanDynamicsStress, Sid::evanDynamicsUnstress, Sid::evanDynamicsSmoothArticulations };
 }
 
 static constexpr std::array<const char*, 9> ROLE_NAMES { "normal", "tap", "accent", "tenuto", "marcato", "ghost", "softAccent", "stress", "unstress" };
+
+MStyle DynamicsPlayback::marchingSnareDefaults(const MStyle& base)
+{
+    MStyle result = base;
+    // Starting calibration, not a physical inches-to-MIDI conversion. Raise
+    // quiet strokes above the original scale; sample libraries still need auditioning.
+    const auto ordinary = [](DynamicType type, int fallback) {
+        switch (type) {
+        case DynamicType::PP: return 45;
+        case DynamicType::P: return 60;
+        case DynamicType::MP: return 72;
+        case DynamicType::MF: return 84;
+        case DynamicType::F: return 100;
+        case DynamicType::FF: return 114;
+        case DynamicType::FFF: return 126;
+        default: return std::max(0, fallback);
+        }
+    };
+    const int tap = ordinary(DynamicType::P, 0);
+    const int mp = ordinary(DynamicType::MP, 0);
+    for (int role = Normal; role <= Unstress; ++role) {
+        std::string values;
+        for (const auto& def : Dynamic::definitions()) {
+            int value = ordinary(def.type, def.velocity);
+            if (role == Tap || role == Unstress) value = std::min(value, tap);
+            if (role == Ghost) value = 0; // Battery ghost notation means no stroke.
+            if (role == Accent || role == Marcato || role == Stress || role == Tenuto || role == SoftAccent) {
+                if (def.type == DynamicType::PP) value = tap; // 1-inch base, 3-inch accent/tenuto.
+                if (def.type == DynamicType::P) value = tap + (mp - tap) / 3; // 4-inch accent/tenuto.
+                if (role == Tenuto || role == SoftAccent) {
+                    // Above mp, intermediate strokes stay one height below the accent.
+                    switch (def.type) {
+                    case DynamicType::MF: value = mp; break;
+                    case DynamicType::F: value = ordinary(DynamicType::MF, 0); break;
+                    case DynamicType::FF: value = ordinary(DynamicType::F, 0); break;
+                    case DynamicType::FFF: value = ordinary(DynamicType::FF, 0); break;
+                    case DynamicType::FFFF: value = ordinary(DynamicType::FFF, 0); break;
+                    default: break;
+                    }
+                }
+            }
+            if (def.type == DynamicType::OTHER || def.type == DynamicType::N) value = 0;
+            values += std::to_string(std::clamp(value, 0, 127)) + " ";
+        }
+        result.set(mappingStyle(role), String::fromStdString(values));
+    }
+    result.set(Sid::evanDynamicsEnabled, true);
+    result.set(Sid::evanDynamicsBattery, true);
+    result.set(Sid::evanDynamicsCurveShape, 0);
+    result.set(Sid::evanDynamicsCurveBend, 0.0);
+    result.set(Sid::evanDynamicsSmoothArticulations, false);
+    return result;
+}
 
 muse::ByteArray DynamicsPlayback::preset(const Score* score)
 {
@@ -289,6 +353,7 @@ muse::ByteArray DynamicsPlayback::preset(const Score* score)
     root["version"] = 1;
     root["enabled"] = profile(score).styleB(Sid::evanDynamicsEnabled);
     root["battery"] = profile(score).styleB(Sid::evanDynamicsBattery);
+    root["smoothArticulations"] = profile(score).styleB(Sid::evanDynamicsSmoothArticulations);
     root["curveShape"] = profile(score).styleI(Sid::evanDynamicsCurveShape);
     root["curveBend"] = profile(score).styleD(Sid::evanDynamicsCurveBend);
     muse::JsonObject mappings;
@@ -316,7 +381,8 @@ bool DynamicsPlayback::readPreset(const muse::ByteArray& data, MStyle& target)
         || !root.value("enabled").isBool() || !root.value("battery").isBool()
         || !shape.isNumber() || shape.toDouble() < 0 || shape.toDouble() > 2 || shape.toDouble() != shape.toInt()
         || !bend.isNumber() || !std::isfinite(bend.toDouble()) || bend.toDouble() < -2.0 || bend.toDouble() > 2.0
-        || !root.value("mappings").isObject()) return false;
+        || !root.value("mappings").isObject()
+        || (root.contains("smoothArticulations") && !root.value("smoothArticulations").isBool())) return false;
     MStyle candidate = target;
     const auto mappings = root.value("mappings").toObject();
     for (int role = Normal; role <= Unstress; ++role) {
@@ -336,6 +402,7 @@ bool DynamicsPlayback::readPreset(const muse::ByteArray& data, MStyle& target)
     }
     candidate.set(Sid::evanDynamicsEnabled, root.value("enabled").toBool());
     candidate.set(Sid::evanDynamicsBattery, root.value("battery").toBool());
+    candidate.set(Sid::evanDynamicsSmoothArticulations, root.value("smoothArticulations").toBool());
     candidate.set(Sid::evanDynamicsCurveShape, shape.toInt());
     candidate.set(Sid::evanDynamicsCurveBend, bend.toDouble());
     target = candidate;
