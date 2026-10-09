@@ -58,13 +58,10 @@ jobs:
               fs.mkdirSync('checks', {recursive: true});
               const log = typeof result.data === 'string' ? result.data : Buffer.from(result.data).toString();
               fs.writeFileSync('checks/job.log', log);
-              const lines = log.split('\n'), selected = new Set();
-              lines.forEach((line, index) => {
-                if (/FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK/i.test(line)) {
-                  for (let i = Math.max(0, index-4); i <= Math.min(lines.length-1, index+8); i++) selected.add(i);
-                }
-              });
-              fs.writeFileSync('checks/compiler-errors.log', [...selected].sort((a,b)=>a-b).map(i=>lines[i]).join('\n'));
+              // Keep huge compiler command lines from hiding other failures in
+              // the bounded check annotations. The full log remains available.
+              const errors = log.split('\n').filter(line => /FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK/i.test(line));
+              fs.writeFileSync('checks/compiler-errors.log', errors.join('\n'));
             } catch (error) {
               core.notice('Job log retrieval failed: ' + error.message);
               throw error;

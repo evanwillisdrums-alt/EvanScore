@@ -96,7 +96,25 @@ jobs:
           cmd /c "buildscripts\ci\windows\build.bat -n $env:BUILD_NUMBER --dockwidgets_v2 ON" 2>&1 | Tee-Object -FilePath build.artifacts/Windows-build.log
           $buildExit = $LASTEXITCODE
           $ErrorActionPreference = 'Stop'
-          if ($buildExit -ne 0) { throw "Native compilation failed with code $buildExit" }
+          if ($buildExit -ne 0) {
+            # Collect further independent compiler failures in the same runner.
+            # Ninja still returns failure; this never permits packaging a failed build.
+            if (Test-Path build.release/build.ninja) {
+              $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+              $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+              $vcvars = Join-Path $vsInstall 'VC/Auxiliary/Build/vcvars64.bat'
+              @"
+          @echo off
+          call "$vcvars" > nul
+          if errorlevel 1 exit /b %errorlevel%
+          cmake --build build.release --parallel 4 -- -k 0
+          "@ | Set-Content build.artifacts/collect-compiler-errors.bat -Encoding ascii
+              $ErrorActionPreference = 'Continue'
+              cmd /c build.artifacts\collect-compiler-errors.bat 2>&1 | Tee-Object -FilePath build.artifacts/Windows-build.log -Append
+              $ErrorActionPreference = 'Stop'
+            }
+            throw "Native compilation failed with code $buildExit"
+          }
 
       - name: Retain matching native symbols for startup diagnostics
         uses: actions/upload-artifact@v7
