@@ -241,6 +241,18 @@ jobs:
                   print('::notice title=Windows launch diagnostics::' + message)
                   notices += 1
           PY
+      - name: Report exception stacks separately from layout dumps
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for file in Path('checks').rglob('*exceptions.log'):
+              lines = file.read_text(encoding='utf-8-sig', errors='replace').splitlines()
+              content = '\n'.join(line for line in lines if re.match(r'Observer |Exception |MSVC |Symbol|Unwound|  0x|Main thread snapshot|Thread name:|Stack observation:', line))[-24000:]
+              for offset in range(0, len(content), 2800):
+                  message = (str(file) + '\n' + content[offset:offset+2800]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Native exception stack::' + message)
+          PY
       - name: Report beginning of failed snare launch
         run: |
           python3 - <<'PY'

@@ -35,3 +35,5 @@ The user also requests automatic Muse Drumline-to-VDL conversion without remappi
 The source audit confirms the MuseHub integration path in `muse/framework/musesampler/internal/musesamplerresolver.cpp`, `src/playback/qml/MuseScore/Playback/inputresourceitem.cpp`, and `src/playback/internal/drumsetloader.cpp`. Existing Dynamics settings feed the host playback system; their numeric scale is not an independently verified VDL loudness calibration.
 
 Neither licensed VDL edition is installed in the cloud workspace. VDL-specific sound loading, live audio, articulation behavior, dynamics, save/reopen, and instrument changes remain untested. The user's earlier Muse Drumline crash is not evidence that VDL fixes it. Complete playback verification needs the installed licensed library and a compatible runtime on Windows.
+
+[Conversion validation](vdl-conversion-validation.md) records the requested Muse Drumline switching tests, independent guide expectations, notation preservation checks, and licensed Windows playback gate. The converter is not considered ready until those checks actually run and pass.
