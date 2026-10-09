@@ -63,8 +63,8 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Center
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             compactPriorityOrder: 1
 
@@ -88,8 +88,8 @@ DockPage {
 
             separatorsVisible: false
             alignment: DockToolBarAlignment.Right
-            contentTopPadding: 4
-            contentBottomPadding: 2
+            contentTopPadding: 3
+            contentBottomPadding: 3
 
             navigationSection: root.topToolbarKeyNavSec
 
@@ -115,8 +115,8 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             navigationSection: root.topToolbarKeyNavSec
 

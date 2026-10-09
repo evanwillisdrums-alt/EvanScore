@@ -57,8 +57,8 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Center
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             navigationSection: root.topToolbarKeyNavSec
 
@@ -85,8 +85,8 @@ DockPage {
 
             alignment: DockToolBarAlignment.Right
 
-            contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 4
+            contentBottomPadding: floating ? 8 : 3
+            contentTopPadding: floating ? 8 : 3
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right }
@@ -120,8 +120,8 @@ DockPage {
             orientation: Qt.Horizontal
             alignment: DockToolBarAlignment.Right
 
-            contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 14
+            contentBottomPadding: 8
+            contentTopPadding: 8
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right },
@@ -154,8 +154,8 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             navigationSection: root.topToolbarKeyNavSec
 

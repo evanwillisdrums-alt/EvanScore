@@ -67,7 +67,8 @@ WorkspaceDockWindow {
 
             // Match the 48px score row through content padding, retaining
             // DockToolBar's original minimum-size binding during bootstrap.
-            contentTopPadding: 12
+            contentTopPadding: 6
+            contentBottomPadding: 6
 
             thickness: 48
             objectName: "mainToolBar"

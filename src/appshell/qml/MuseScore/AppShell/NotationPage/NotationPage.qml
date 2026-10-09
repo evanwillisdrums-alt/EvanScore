@@ -130,8 +130,8 @@ DockPage {
             // Let this toolbar absorb the row's spare width. Fixed center
             // padding otherwise repeatedly changes dock minimums during polish.
             alignment: DockToolBarAlignment.Left
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             compactPriorityOrder: 1
 
@@ -156,8 +156,8 @@ DockPage {
             alignment: DockToolBarAlignment.Right
             resizable: !floating
 
-            contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 4
+            contentBottomPadding: floating ? 8 : 3
+            contentTopPadding: floating ? 8 : 3
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right }
@@ -184,8 +184,8 @@ DockPage {
             orientation: Qt.Horizontal
             alignment: DockToolBarAlignment.Right
 
-            contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 14
+            contentBottomPadding: 8
+            contentTopPadding: 8
 
             //! NOTE: Opened by page model when there are extensions with toolbar actions
             visible: false
@@ -218,8 +218,8 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
-            contentTopPadding: 14
-            contentBottomPadding: 2
+            contentTopPadding: 8
+            contentBottomPadding: 8
 
             navigationSection: root.topToolbarKeyNavSec
 
