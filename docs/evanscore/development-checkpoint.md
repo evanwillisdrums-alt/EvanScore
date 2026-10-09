@@ -2,6 +2,10 @@
 
 Updated 2026-10-09 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Virtual Drumline edition clarification
+
+The user pointed out the separately sold MuseHub version. Tapspace's official crossgrade article confirms that MuseSounds Virtual Drumline and Virtual Percussion are exclusive to MuseHub and priced separately from the Kontakt library. The earlier blanket statement that VDL always needs Kontakt was too broad: the user's existing VDL 2.5.5 files need Kontakt, while the MuseHub edition uses the existing native MuseSampler path. The source audit found native resource discovery, vendor/pack Mixer menus, and library-supplied drum-map loading already present. No new basic-loading plugin is necessary. See [virtual-drumline.md](virtual-drumline.md) for setup and verification prerequisites. Neither licensed library is installed here; do not claim VDL playback is tested or that the old Kontakt license grants MuseHub access. The user confirmed they own only Kontakt VDL 2.5.5 and authorized the Player route. An optional Windows Native Access setup helper is being verified. No paid purchase, runtime installation on their computer, or library conversion was performed. New requirements: automatic technique-preserving Muse Drumline conversion, staff-text aliases/options for all supported VDL techniques, and coverage of every instrument in their library. Actual patch/key maps are not provided; acquire the user's Documentation guide before implementing mappings.
+
 ## Current work: tap priority, optional shared ramps, and compact dynamics
 
 The user later reported 98% system memory; after closing Chrome running Codex they could no longer reproduce the slowdown/crash. Memory pressure is a plausible contributor, not a demonstrated native fix. Resume crash capture if it recurs; it is not blocking this new feature work.

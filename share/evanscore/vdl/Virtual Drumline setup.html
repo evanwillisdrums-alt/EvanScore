@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual Drumline setup — EvanScore</title>
+<style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#24272b;color:#f0f2f4}
+body{max-width:760px;margin:48px auto;padding:0 24px;line-height:1.6}
+h1{font-size:32px;line-height:1.2;margin-bottom:12px}h2{font-size:21px;margin:0 0 8px}
+p{margin:8px 0;color:#cbd0d6}section{background:#30353b;border:1px solid #444b54;border-radius:16px;padding:22px;margin:16px 0}
+a{color:#82c5ff;text-underline-offset:3px}a:focus-visible{outline:2px solid #82c5ff;outline-offset:4px}
+.step{color:#82c5ff;font-size:14px;font-weight:bold;letter-spacing:.06em}.note{font-size:14px}
+</style>
+<h1>Your VDL sounds, inside EvanScore</h1>
+<p>This setup uses your existing Virtual Drumline 2.5 library and the free Kontakt Player. You do not need to buy the separate MuseHub edition.</p>
+<section><div class="step">1 · PLAYER</div><h2>Install Kontakt Player with VST3</h2>
+<p>The setup helper opens Native Access, or downloads its signed official installer. Sign in to your Native Instruments account and install free Kontakt Player, including the Windows VST3 plug-in.</p>
+<p><a href="https://www.native-instruments.com/en/specials/native-access-2/">Download Native Access</a> · <a href="https://www.native-instruments.com/en/products/komplete/samplers/kontakt-8-player/">Free Kontakt Player</a></p>
+<p class="note">Tapspace explicitly documents VDL support in Kontakt 7. EvanScore hosts VST3; Kontakt 6's older VST2 plug-in is not the route for this app. A newer Player still needs a playback check with your library.</p></section>
+<section><div class="step">2 · LIBRARY</div><h2>Activate and locate Virtual Drumline</h2>
+<p>In Native Access, add your VDL serial if it is not already registered, then locate the complete Virtual Drumline library folder. Keep its Instruments and sample files together. Enter your account details and serial only in Native Access.</p>
+<p><a href="https://support.tapspace.com/support/solutions/articles/26000029912-activating-your-library-with-native-access">Tapspace activation instructions</a> · <a href="https://support.tapspace.com/support/solutions/articles/26000050384-using-virtual-drumline-2-5-in-kontakt-7">Finding VDL in Kontakt 7's Side Pane</a></p>
+<p class="note">Registration or a folder being present does not prove playback works. Confirm that Kontakt can open your patch without a Samples Missing or Demo message.</p></section>
+<section><div class="step">3 · EVANSCORE</div><h2>Choose Kontakt in the Mixer</h2>
+<p>Restart EvanScore after installing the plug-in. Open your score and the Mixer. On the percussion channel, open the Sound selector, choose Kontakt under VST3, and open its editor. Load one matching VDL instrument for that channel; set its MIDI input to Omni.</p>
+<p>Use a separate channel instance for each instrument. Save the score after configuring its sounds. Audition a few notes and reopen the saved score to confirm the patch and settings return.</p></section>
+<section><div class="step">4 · NOTATION</div><h2>Check the percussion map</h2>
+<p>A Muse Drumline score and a Kontakt VDL patch can assign different sounds to the same note numbers. Choosing Kontakt alone does not convert the score.</p>
+<p class="note">Automatic Muse Drumline-to-VDL technique conversion is planned, but is not included in this setup helper. Until a verified map is provided, do not assume hits, rims, backsticks, rolls, or left/right sounds are translated correctly.</p></section>
+<p class="note">This helper installs no samples, collects no account information, and does not replace your existing VDL library. Live VDL playback still needs verification on your Windows computer.</p>
+</html>

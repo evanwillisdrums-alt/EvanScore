@@ -20,6 +20,10 @@
 
 subdirs(testflowscripts icons templates wallpapers locale styles sound manual instruments)
 
+if (OS_IS_WIN)
+    install (DIRECTORY evanscore/vdl DESTINATION ".")
+endif()
+
 install (DIRECTORY
     plugins
     DESTINATION ${MUSE_APP_INSTALL_RESOURCES_LOCATION}

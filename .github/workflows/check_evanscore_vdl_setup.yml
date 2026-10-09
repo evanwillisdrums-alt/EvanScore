@@ -1,0 +1,153 @@
+name: EvanScore VDL setup helper
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_run:
+        description: Optional successful native Windows build to package with the setup helper
+        type: string
+        default: ''
+      verify_download:
+        description: Verify the official Native Access download and its signature without installing it
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  setup:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Parse and exercise setup checks without launching installers
+        shell: pwsh
+        run: |
+          $helper = (Resolve-Path 'share/evanscore/vdl/Set up Virtual Drumline.ps1').Path
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($helper, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
+          $fixture = Join-Path $env:RUNNER_TEMP 'VDL setup checks with spaces'
+          New-Item -ItemType Directory -Force -Path $fixture | Out-Null
+          $originalProgramFiles = $env:ProgramFiles
+          $originalCommonProgramFiles = $env:CommonProgramFiles
+          $originalProgramFilesX86 = ${env:ProgramFiles(x86)}
+          $originalCommonProgramFilesX86 = ${env:CommonProgramFiles(x86)}
+          try {
+            $env:ProgramFiles = Join-Path $fixture 'Programs'
+            $env:CommonProgramFiles = Join-Path $fixture 'Common'
+            ${env:ProgramFiles(x86)} = $env:ProgramFiles
+            ${env:CommonProgramFiles(x86)} = $env:CommonProgramFiles
+            $empty = & powershell.exe -NoProfile -File $helper -CheckOnly | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $empty.NativeAccess -or $empty.KontaktVst3Candidates.Count) {
+              throw 'Clean-machine detection failed'
+            }
+            $accessDir = Join-Path $env:ProgramFiles 'Native Instruments/Native Access'
+            $vstDir = Join-Path $env:CommonProgramFiles 'VST3'
+            $libraryDir = Join-Path $fixture 'Virtual Drumline 2.5'
+            $instrumentsDir = Join-Path $libraryDir 'Instruments/Battery'
+            New-Item -ItemType Directory -Force -Path $accessDir, $vstDir, $instrumentsDir | Out-Null
+            # Deliberately invalid binaries: CheckOnly must never launch or
+            # treat discovered files as verified activation/playback.
+            Set-Content (Join-Path $accessDir 'Native Access.exe') 'fixture only'
+            Set-Content (Join-Path $vstDir 'Kontakt 7.vst3') 'fixture only'
+            $incomplete = & powershell.exe -NoProfile -File $helper -CheckOnly -LibraryPath $libraryDir | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $incomplete.VdlLibrary -ne 'Library folder missing or incomplete') {
+              throw 'Incomplete library was accepted'
+            }
+            Set-Content (Join-Path $libraryDir 'Virtual Drumline_Library_part1.nkx') 'fixture only'
+            Set-Content (Join-Path $instrumentsDir 'Snare.nki') 'fixture only'
+            $found = & powershell.exe -NoProfile -File $helper -CheckOnly -LibraryPath $libraryDir | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $found.NativeAccess -or $found.KontaktVst3Candidates.Count -ne 1 -or
+                $found.ActivationVerified -or $found.PlaybackVerified -or
+                $found.VdlLibrary -notlike 'Library files found*') {
+              throw 'Installed-file detection or unverified state failed'
+            }
+            & powershell.exe -NoProfile -File $helper -CheckOnly -DownloadOnly
+            if ($LASTEXITCODE -eq 0) { throw 'Conflicting modes were accepted' }
+            'Setup parser and Windows PowerShell detection checks passed.'
+          } finally {
+            $env:ProgramFiles = $originalProgramFiles
+            $env:CommonProgramFiles = $originalCommonProgramFiles
+            ${env:ProgramFiles(x86)} = $originalProgramFilesX86
+            ${env:CommonProgramFiles(x86)} = $originalCommonProgramFilesX86
+          }
+      - name: Verify official installer retrieval without running it
+        if: inputs.verify_download
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -File 'share/evanscore/vdl/Set up Virtual Drumline.ps1' -DownloadOnly -OutputDirectory (Join-Path $env:RUNNER_TEMP 'VDL official installer')
+          if ($LASTEXITCODE -ne 0) { throw 'Official signed installer retrieval failed' }
+      - name: Upload optional setup helper
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-VDL-Setup
+          path: share/evanscore/vdl/
+          if-no-files-found: error
+          retention-days: 14
+
+  package:
+    if: inputs.base_run != ''
+    needs: setup
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate the native base build
+        id: base
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_RUN: ${{ inputs.base_run }}
+        run: |
+          if ($env:BASE_RUN -notmatch '^\d+$') { throw 'Invalid native build ID' }
+          $base = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:BASE_RUN" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $base.conclusion -ne 'success' -or
+              $base.path -ne '.github/workflows/build_evanscore_windows.yml') {
+            throw 'The base must be a successful full native Windows build'
+          }
+          "native_sha=$($base.head_sha)" >> $env:GITHUB_OUTPUT
+      - uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-x64
+          path: build.install
+          run-id: ${{ inputs.base_run }}
+          github-token: ${{ github.token }}
+      - name: Include the optional helper while preserving native binaries
+        shell: pwsh
+        run: |
+          $before = @(Get-ChildItem build.install -File -Recurse |
+            Where-Object { $_.Extension -in @('.exe', '.dll', '.qml') } |
+            Get-FileHash -Algorithm SHA256)
+          Copy-Item -LiteralPath share/evanscore/vdl -Destination build.install -Recurse -Force
+          foreach ($hash in $before) {
+            if ((Get-FileHash -LiteralPath $hash.Path -Algorithm SHA256).Hash -ne $hash.Hash) {
+              throw "Native package changed: $($hash.Path)"
+            }
+          }
+      - name: Verify the full extracted app on a fresh Windows machine
+        shell: pwsh
+        env:
+          EVANSCORE_NATIVE_SOURCE_SHA: ${{ steps.base.outputs.native_sha }}
+        run: |
+          ./buildscripts/ci/windows/verify_evanscore_app.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Native app verification failed' }
+          Add-Content build.install/EvanScore-README.txt "`nOptional VDL setup: open vdl/Set up Virtual Drumline.cmd. The helper obtains Native Access; Kontakt Player and your licensed VDL library still require installation and activation. Automatic VDL conversion and VDL staff-text technique mapping are not implemented yet."
+      - name: Upload verified Windows app with setup helper
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-x64
+          path: build.install/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload desktop verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-portable-checks
+          path: build.artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
