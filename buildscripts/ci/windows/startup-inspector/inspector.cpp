@@ -69,12 +69,27 @@ public:
                             Q_ARG(int, 10), Q_ARG(int, 2), Q_ARG(int, 10))) qFatal("Could not invoke dynamics mapping edit");
                     if (tap() != 10) qFatal("The ff tap mapping did not change to 10");
                     qWarning() << "DYNAMICS INSPECTOR ff taps changed to 10; testing native undo";
-                    QKeyEvent press(QEvent::KeyPress, Qt::Key_Z, Qt::ControlModifier, "z");
-                    QKeyEvent release(QEvent::KeyRelease, Qt::Key_Z, Qt::ControlModifier, "z");
-                    QCoreApplication::sendEvent(window, &press);
-                    QCoreApplication::sendEvent(window, &release);
-                    if (tap() != original) qFatal("Native undo did not restore the ff tap mapping");
-                    qWarning() << "DYNAMICS INSPECTOR mapping restored after native undo";
+                    bool undoRequested = false;
+                    for (QObject* menu : objects(window)) {
+                        if (!QByteArray(menu->metaObject()->className()).endsWith("AppMenuModel")) continue;
+                        undoRequested = QMetaObject::invokeMethod(menu, "handleMenuItem", Qt::DirectConnection,
+                            Q_ARG(QString, QStringLiteral("command://notation/undo")));
+                        if (undoRequested) break;
+                    }
+                    if (!undoRequested) qFatal("The diagnostic could not request Edit > Undo");
+                    // Command dispatch settles asynchronously; verify after
+                    // it completes rather than aborting inside its request.
+                    QTimer::singleShot(500, window, [model = QPointer<QObject>(model), original] {
+                        if (!model) qFatal("Dynamics panel disappeared after undo");
+                        for (const QVariant& entry : model->property("mappings").toList()) {
+                            const auto row = entry.toMap();
+                            if (row.value("dynamic").toInt() != 10) continue;
+                            if (row.value("tap").toInt() != original) qFatal("Native undo did not restore the ff tap mapping");
+                            qWarning() << "DYNAMICS INSPECTOR mapping restored after native undo";
+                            return;
+                        }
+                        qFatal("The ff tap row disappeared after undo");
+                    });
                     return;
                 }
                 qFatal("The native DynamicsPanelModel was not found");
