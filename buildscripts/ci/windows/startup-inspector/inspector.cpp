@@ -42,21 +42,14 @@ public:
                     qWarning() << "DYNAMICS INSPECTOR empty workspace: skipped";
                     return;
                 }
-                bool opened = false;
-                for (QObject* object : objects(window)) {
-                    if (QByteArray(object->metaObject()->className()).contains("DynamicsPanelModel")) {
-                        opened = true;
-                        break;
-                    }
+                // Loaded models survive while a different sidebar tab is
+                // active. Reopen through the native command so real clicks
+                // target the visible Dynamics tab, including saved layouts.
+                if (dockOpen(window, "dynamicsPanel")) {
+                    dispatchMenu(window, "command://app/dock/toggle-dynamics");
+                    QTest::qWait(100);
                 }
-                for (QObject* object : objects(window)) {
-                    if (opened) break;
-                    if (!QByteArray(object->metaObject()->className()).endsWith("AppMenuModel")) continue;
-                    opened = QMetaObject::invokeMethod(object, "handleMenuItem", Qt::DirectConnection,
-                        Q_ARG(QString, QStringLiteral("command://app/dock/toggle-dynamics")));
-                    if (opened) break;
-                }
-                if (!opened) qFatal("The diagnostic could not open View > Dynamics");
+                dispatchMenu(window, "command://app/dock/toggle-dynamics");
                 QTimer::singleShot(1000, window, [window] {
                 if (!window) return;
                 for (QObject* model : objects(window)) {
@@ -197,10 +190,17 @@ public:
                                     QTest::qWait(100);
                                 }
                                 for (int cycle = 0; cycle < 2; ++cycle) {
-                                    for (const char* dock : {"palettes", "properties", "percussion", "mixer", "undo-history", "navigator"}) {
-                                        const QByteArray command = QByteArray("command://app/dock/toggle-") + dock;
+                                    const char* commands[] = {"palettes", "properties", "percussion", "mixer", "undo-history", "navigator"};
+                                    const char* panels[] = {"palettesPanel", "propertiesPanel", "percussionPanel", "mixerPanel", "undoHistoryPanel", "notationNavigatorPanel"};
+                                    for (int index = 0; index < 6; ++index) {
+                                        const bool wasOpen = dockOpen(window, panels[index]);
+                                        const QByteArray command = QByteArray("command://app/dock/toggle-") + commands[index];
                                         dispatchMenu(window, command.constData()); QTest::qWait(80);
+                                        if (dockOpen(window, panels[index]) == wasOpen)
+                                            qFatal("Panel did not toggle: %s", panels[index]);
                                         dispatchMenu(window, command.constData()); QTest::qWait(80);
+                                        if (dockOpen(window, panels[index]) != wasOpen)
+                                            qFatal("Panel did not restore: %s", panels[index]);
                                     }
                                 }
                                 if (!model) qFatal("Dynamics model vanished during general panel checks");
@@ -241,6 +241,16 @@ public:
     }
 private:
     bool done = false;
+    static bool dockOpen(QObject* window, const char* name) {
+        for (QObject* object : objects(window)) {
+            if (object->objectName() != QString::fromUtf8(name)
+                || object->metaObject()->indexOfMethod("isOpen()") < 0) continue;
+            bool open = false;
+            if (QMetaObject::invokeMethod(object, "isOpen", Qt::DirectConnection, Q_RETURN_ARG(bool, open))) return open;
+        }
+        qFatal("Could not read native panel state: %s", name);
+        return false;
+    }
     static void reveal(QQuickItem* item) {
         for (auto ancestor = item->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
             if (ancestor->metaObject()->indexOfProperty("contentY") < 0) continue;

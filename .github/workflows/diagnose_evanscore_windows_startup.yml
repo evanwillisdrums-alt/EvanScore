@@ -396,8 +396,10 @@ jobs:
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath buildscripts/ci/windows/fixtures/ff-snare.mscx -MinimumOpenSeconds $interactionTime
               foreach ($folder in @('score', 'drum-score')) {
                 $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-                if ($logs -notmatch 'DYNAMICS INSPECTOR mapping restored after native undo') {
-                  throw "The native dynamics edit and undo did not complete in $folder"
+                foreach ($marker in @('mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mapping save requested')) {
+                  if (-not $logs.Contains("DYNAMICS INSPECTOR $marker")) {
+                    throw "The native interaction check did not complete in ${folder}: $marker"
+                  }
                 }
               }
               python buildscripts/ci/windows/startup-inspector/verify_saved_dynamics.py
