@@ -26,6 +26,7 @@ on:
           - exceptions
           - layout
           - verify-package
+          - dynamics
         default: inspect-logs
 
 permissions:
@@ -246,18 +247,18 @@ jobs:
           retention-days: 3
 
   layout:
-    if: inputs.mode == 'layout'
+    if: inputs.mode == 'layout' || inputs.mode == 'dynamics'
     runs-on: windows-2025
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        trial: [baseline, left, wide]
+        trial: ${{ fromJSON(inputs.mode == 'dynamics' && '["dynamics"]' || '["baseline", "left", "wide"]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v5
         with:
-          name: EvanScore-Windows-diagnostic-only
+          name: ${{ inputs.artifact_name }}
           path: downloaded-app
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
@@ -317,6 +318,14 @@ jobs:
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx
+            if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
+              ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath src/engraving/tests/beam_data/drumKitBeam.mscx
+              foreach ($folder in @('score', 'drum-score')) {
+                if ((Get-Content "checks/$folder/stderr.log" -Raw) -notmatch 'DYNAMICS INSPECTOR mapping restored after native undo') {
+                  throw "The native dynamics edit and undo did not complete in $folder"
+                }
+              }
+            }
           } catch {
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Host "::notice title=Layout trial failure::$message"

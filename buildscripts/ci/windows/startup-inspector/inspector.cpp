@@ -10,6 +10,9 @@
 #include <QQuickItem>
 #include <QDebug>
 #include <QVariant>
+#include <QTimer>
+#include <QPointer>
+#include <QKeyEvent>
 
 class Inspector final : public QObject {
 public:
@@ -27,6 +30,41 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
+        if (mode == "dynamics") {
+            QTimer::singleShot(4000, window, [root = QPointer<QObject>(root), window = QPointer<QQuickWindow>(window)] {
+                if (!root || !window) return;
+                for (QObject* model : root->findChildren<QObject*>()) {
+                    if (!QByteArray(model->metaObject()->className()).contains("DynamicsPanelModel")) continue;
+                    if (!model->property("state").toMap().value("available").toBool()) {
+                        qWarning() << "DYNAMICS INSPECTOR empty workspace: skipped";
+                        return;
+                    }
+                    const auto tap = [model] {
+                        for (const QVariant& entry : model->property("mappings").toList()) {
+                            const auto row = entry.toMap();
+                            if (row.value("dynamic").toInt() == 10) return row.value("tap").toInt();
+                        }
+                        return -1;
+                    };
+                    const int original = tap();
+                    qWarning() << "DYNAMICS INSPECTOR editing ff taps from" << original << "to 10";
+                    // DynamicType::FF = 10, DynamicsPlayback::Tap = 2. This is
+                    // the exact native method called by the sidebar SpinBox.
+                    if (!QMetaObject::invokeMethod(model, "setMapping", Qt::DirectConnection,
+                            Q_ARG(int, 10), Q_ARG(int, 2), Q_ARG(int, 10))) qFatal("Could not invoke dynamics mapping edit");
+                    if (tap() != 10) qFatal("The ff tap mapping did not change to 10");
+                    qWarning() << "DYNAMICS INSPECTOR ff taps changed to 10; testing native undo";
+                    QKeyEvent press(QEvent::KeyPress, Qt::Key_Z, Qt::ControlModifier, "z");
+                    QKeyEvent release(QEvent::KeyRelease, Qt::Key_Z, Qt::ControlModifier, "z");
+                    QCoreApplication::sendEvent(window, &press);
+                    QCoreApplication::sendEvent(window, &release);
+                    if (tap() != original) qFatal("Native undo did not restore the ff tap mapping");
+                    qWarning() << "DYNAMICS INSPECTOR mapping restored after native undo";
+                    return;
+                }
+                qFatal("The native DynamicsPanelModel was not found");
+            });
+        }
         if (mode == "left") {
             // DockToolBarAlignment::Left == 0. Keep the left grower resizable.
             toolbar->setProperty("alignment", 0);
