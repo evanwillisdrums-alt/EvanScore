@@ -14,6 +14,7 @@
 #include <QPointer>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QTest>
 #include <QSet>
 
 class Inspector final : public QObject {
@@ -77,11 +78,9 @@ public:
                     // Send real window pointer events. Invoking clicked()
                     // alone would miss an overlay intercepting the control.
                     const QPointF point = checkbox->mapToScene(QPointF(10, checkbox->height() / 2));
-                    const QPointF global = window->mapToGlobal(point.toPoint());
-                    QMouseEvent press(QEvent::MouseButtonPress, point, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-                    QMouseEvent release(QEvent::MouseButtonRelease, point, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-                    QCoreApplication::sendEvent(window, &press);
-                    QCoreApplication::sendEvent(window, &release);
+                    qWarning() << "DYNAMICS INSPECTOR switch position" << point << "size" << checkbox->size();
+                    QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, point.toPoint());
+                    QTest::qWait(100);
                     if (model->property("state").toMap().value("enabled").toBool() == originallyEnabled)
                         qFatal("Clicking the custom dynamics switch did not update the score");
                     qWarning() << "DYNAMICS INSPECTOR actual switch click changed score state";
