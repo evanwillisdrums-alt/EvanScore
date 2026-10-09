@@ -53,7 +53,6 @@ DockPage {
             id: notationToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.objectName + "_notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
@@ -64,6 +63,7 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Center
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             compactPriorityOrder: 1
@@ -82,13 +82,13 @@ DockPage {
             id: playbackToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.objectName + "_playbackToolBar"
             title: qsTrc("appshell", "Playback controls")
 
             separatorsVisible: false
             alignment: DockToolBarAlignment.Right
+            contentTopPadding: 4
             contentBottomPadding: 2
 
             navigationSection: root.topToolbarKeyNavSec
@@ -105,7 +105,6 @@ DockPage {
             id: undoRedoToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.objectName + "_undoRedoToolBar"
             title: qsTrc("appshell", "Undo/redo toolbar")
@@ -116,6 +115,7 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             navigationSection: root.topToolbarKeyNavSec

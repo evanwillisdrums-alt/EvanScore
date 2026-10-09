@@ -47,7 +47,6 @@ DockPage {
             id: notationToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.objectName + "_notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
@@ -58,6 +57,7 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Center
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             navigationSection: root.topToolbarKeyNavSec
@@ -74,7 +74,6 @@ DockPage {
             id: playbackToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.pageModel.playbackToolBarName()
             title: qsTrc("appshell", "Playback controls")
@@ -87,7 +86,7 @@ DockPage {
             alignment: DockToolBarAlignment.Right
 
             contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 0
+            contentTopPadding: floating ? 8 : 4
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right }
@@ -109,7 +108,6 @@ DockPage {
             id: extDockToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.pageModel.extensionsToolBarName()
             title: qsTrc("appshell", "Extensions toolbar")
@@ -123,7 +121,7 @@ DockPage {
             alignment: DockToolBarAlignment.Right
 
             contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 0
+            contentTopPadding: floating ? 8 : 14
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right },
@@ -146,7 +144,6 @@ DockPage {
             id: undoRedoToolBar
 
             thickness: 48
-            minimumHeight: 48
 
             objectName: root.pageModel.undoRedoToolBarName()
             title: qsTrc("appshell", "Undo/redo")
@@ -157,6 +154,7 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             navigationSection: root.topToolbarKeyNavSec

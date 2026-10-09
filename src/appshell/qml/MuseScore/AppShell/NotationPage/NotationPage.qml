@@ -119,7 +119,6 @@ DockPage {
             id: notationToolBar
 
             thickness: 48
-            minimumHeight: 48
             objectName: "notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
 
@@ -131,6 +130,7 @@ DockPage {
             // Let this toolbar absorb the row's spare width. Fixed center
             // padding otherwise repeatedly changes dock minimums during polish.
             alignment: DockToolBarAlignment.Left
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             compactPriorityOrder: 1
@@ -149,7 +149,6 @@ DockPage {
             id: playbackToolBar
 
             thickness: 48
-            minimumHeight: floating ? Math.max(48, Math.min(contentHeight, maximumHeight)) : 48
             objectName: root.pageModel.playbackToolBarName()
             title: qsTrc("appshell", "Playback controls")
 
@@ -158,7 +157,7 @@ DockPage {
             resizable: !floating
 
             contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 0
+            contentTopPadding: floating ? 8 : 4
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right }
@@ -178,7 +177,6 @@ DockPage {
             id: extDockToolBar
 
             thickness: 48
-            minimumHeight: floating ? Math.max(48, Math.min(contentHeight, maximumHeight)) : 48
             objectName: root.pageModel.extensionsToolBarName()
             title: qsTrc("appshell", "Extensions toolbar")
 
@@ -187,7 +185,7 @@ DockPage {
             alignment: DockToolBarAlignment.Right
 
             contentBottomPadding: floating ? 8 : 2
-            contentTopPadding: floating ? 8 : 0
+            contentTopPadding: floating ? 8 : 14
 
             //! NOTE: Opened by page model when there are extensions with toolbar actions
             visible: false
@@ -211,9 +209,6 @@ DockPage {
             id: undoRedoToolBar
 
             thickness: 48
-            // Non-resizable docks use their minimum as their maximum. Keep
-            // this stable even before the action delegates are instantiated.
-            minimumHeight: 48
             objectName: root.pageModel.undoRedoToolBarName()
             title: qsTrc("appshell", "Undo/redo")
 
@@ -223,6 +218,7 @@ DockPage {
             separatorsVisible: false
 
             alignment: DockToolBarAlignment.Right
+            contentTopPadding: 14
             contentBottomPadding: 2
 
             navigationSection: root.topToolbarKeyNavSec

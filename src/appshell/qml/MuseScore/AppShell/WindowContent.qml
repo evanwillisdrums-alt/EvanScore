@@ -65,10 +65,11 @@ WorkspaceDockWindow {
         DockToolBar {
             id: mainToolBar
 
+            // Match the 48px score row through content padding, retaining
+            // DockToolBar's original minimum-size binding during bootstrap.
+            contentTopPadding: 12
+
             thickness: 48
-            // Fix the row height before the lazy toolbar content loads. A
-            // restored 36px row cannot accommodate the larger transport.
-            minimumHeight: 48
             objectName: "mainToolBar"
             title: qsTrc("appshell", "Main toolbar")
 
