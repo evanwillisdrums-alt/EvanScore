@@ -31,6 +31,17 @@
 #include "playback/playbackcommands.h"
 
 #include "ui/toolconfig.h"
+#include "notation/inotationelements.h"
+#include "notation/inotation.h"
+#include "notation/imasternotation.h"
+#include "notation/inotationinteraction.h"
+#include "notation/inotationplayback.h"
+#include "notation/inotationselection.h"
+#include "engraving/dom/key.h"
+#include "engraving/dom/measure.h"
+#include "engraving/dom/score.h"
+#include "engraving/dom/staff.h"
+#include "engraving/types/typesconv.h"
 
 using namespace mu::playback;
 using namespace mu::engraving;
@@ -75,6 +86,8 @@ void PlaybackToolBarModel::load()
 
 void PlaybackToolBarModel::setupConnections()
 {
+    globalContext()->currentNotationChanged().onNotify(this, [this]() { onNotationChanged(); });
+    onNotationChanged();
     playbackController()->isPlayAllowedChanged().onReceive(this, [this](bool) {
         emit isPlayAllowedChanged();
     });
@@ -96,6 +109,58 @@ void PlaybackToolBarModel::setupConnections()
     playbackController()->currentTempoChanged().onNotify(this, [this]() {
         emit tempoChanged();
     });
+}
+
+void PlaybackToolBarModel::onNotationChanged()
+{
+    m_notationReceiver.async_disconnectAll();
+    if (auto notation = globalContext()->currentNotation()) {
+        notation->notationChanged().onReceive(&m_notationReceiver, [this](const RectF&) { emit scoreInfoChanged(); });
+        notation->interaction()->selectionChanged().onNotify(&m_notationReceiver, [this]() { emit scoreInfoChanged(); });
+    }
+    emit scoreInfoChanged();
+}
+
+QVariantMap PlaybackToolBarModel::scoreInfo() const
+{
+    QVariantMap result { { "timeSignature", QStringLiteral("—") }, { "key", QStringLiteral("—") },
+                         { "keyDescription", tr("No score open") } };
+    auto notation = globalContext()->currentNotation();
+    if (!notation) {
+        return result;
+    }
+    Score* score = notation->elements()->msScore();
+    if (!score || score->noStaves()) {
+        return result;
+    }
+    auto masterNotation = globalContext()->currentMasterNotation();
+    const Fraction tick = masterNotation ? Fraction::fromTicks(masterNotation->playback()->secToTick(m_playbackPositionSecs)) : Fraction();
+    if (const Measure* measure = score->tick2measure(tick)) {
+        const Fraction signature = measure->timesig();
+        result["timeSignature"] = QStringLiteral("%1/%2").arg(signature.numerator()).arg(signature.denominator());
+    }
+    const EngravingItem* selected = notation->interaction()->selection()->element();
+    const Staff* staff = selected && selected->staff() ? selected->staff() : score->staff(0);
+    if (staff->isDrumStaff(tick)) {
+        result["keyDescription"] = tr("Unpitched percussion has no key signature");
+        return result;
+    }
+    const KeySigEvent signature = staff->keySigEvent(tick);
+    if (signature.isAtonal() || signature.custom()) {
+        result["key"] = signature.isAtonal() ? tr("Open") : tr("Custom");
+    } else if (signature.isValid()) {
+        static const QStringList major { "C♭", "G♭", "D♭", "A♭", "E♭", "B♭", "F", "C", "G", "D", "A", "E", "B", "F♯", "C♯" };
+        static const QStringList minor { "A♭m", "E♭m", "B♭m", "Fm", "Cm", "Gm", "Dm", "Am", "Em", "Bm", "F♯m", "C♯m", "G♯m", "D♯m", "A♯m" };
+        const int index = static_cast<int>(signature.key()) + 7;
+        if (index >= 0 && index < major.size()) {
+            result["key"] = signature.mode() == KeyMode::MAJOR ? major[index]
+                            : signature.mode() == KeyMode::MINOR ? minor[index] : major[index] + "/" + minor[index];
+        }
+    }
+    if (signature.isValid() || signature.custom() || signature.isAtonal()) {
+        result["keyDescription"] = TConv::translatedUserName(signature.key(), signature.isAtonal(), signature.custom()).toQString();
+    }
+    return result;
 }
 
 void PlaybackToolBarModel::updateActions()
@@ -248,6 +313,7 @@ void PlaybackToolBarModel::updatePlayPosition(secs_t secs)
 
     m_playbackPositionSecs = secs;
     emit playPositionChanged();
+    emit scoreInfoChanged();
 }
 
 void PlaybackToolBarModel::rewind(secs_t secs)

@@ -57,7 +57,7 @@ inline QVariantMap buildItem(const QString& title, const QString& uri, const QSt
 }
 
 MainToolBarModel::MainToolBarModel(QObject* parent)
-    : QAbstractListModel(parent), muse::Contextable(muse::iocCtxForQmlObject(this)), m_currentUri(NOTATION_PAGE)
+    : QAbstractListModel(parent), muse::Contextable(muse::iocCtxForQmlObject(this)), m_currentUri(HOME_PAGE)
 {
 }
 
@@ -100,8 +100,8 @@ void MainToolBarModel::load()
     beginResetModel();
 
     m_items.clear();
+    m_items << buildItem(muse::qtrc("appshell", "Home"), HOME_PAGE, m_currentUri);
     m_items << buildItem(muse::qtrc("appshell", "Score"), NOTATION_PAGE, m_currentUri);
-    m_items << buildItem(muse::qtrc("appshell", "Files"), HOME_PAGE, m_currentUri);
 
     endResetModel();
 

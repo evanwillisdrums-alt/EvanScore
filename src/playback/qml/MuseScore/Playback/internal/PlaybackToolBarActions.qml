@@ -37,15 +37,14 @@ Item {
 
     property NavigationPanel navPanel: null
     readonly property int navigationOrderEnd: tempoLoader.navigationOrderEnd
+    readonly property color displayColor: (ui.theme.borderWidth > 1) ? ui.theme.backgroundPrimaryColor : "#202b3b"
+    readonly property color displayTextColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#edf2f8"
+    readonly property color captionColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#a9b7c8"
 
     property bool floating: false
 
-    // Not `+ endSeparator.width`: this way, the separator itself is outside the view,
-    // which means that it will be exactly at the position of the KDDockWidgets separator
-    // between this toolbar and the undo/redo toolbar.
-    width: endSeparator.visible ? endSeparator.x
-                                : tempoLoader.x + tempoLoader.width
-    height: 30
+    width: lcd.x + lcd.width + 4
+    height: 42
 
     Rectangle {
         anchors.fill: parent
@@ -54,11 +53,71 @@ Item {
         opacity: 0.55
     }
 
+    Rectangle {
+        id: lcd
+        objectName: "playback-control-display"
+        x: buttonsListView.x + buttonsListView.width + 8
+        y: 1
+        width: 310
+        height: 40
+        radius: 7
+        color: root.displayColor
+        border.width: 1
+        border.color: (ui.theme.borderWidth > 1) ? ui.theme.strokeColor : "#39475a"
+
+        Row {
+            x: 8; y: 3
+            spacing: 0
+            Repeater {
+                model: [
+                    { label: qsTrc("playback", "TIME"), size: 80 },
+                    { label: qsTrc("playback", "BAR · BEAT"), size: 64 },
+                    { label: qsTrc("playback", "TEMPO"), size: 72 },
+                    { label: qsTrc("playback", "METER · KEY"), size: 76 }
+                ]
+                Text {
+                    required property var modelData
+                    width: modelData.size
+                    text: modelData.label
+                    color: root.captionColor
+                    font.family: ui.theme.bodyFont.family
+                    font.pixelSize: 8
+                }
+            }
+        }
+        Repeater {
+            model: [84, 148, 220]
+            Rectangle {
+                required property int modelData
+                x: modelData; y: 6; width: 1; height: 28
+                color: root.captionColor
+                opacity: 0.18
+            }
+        }
+        Text {
+            x: 224; y: 18
+            width: 78
+            text: root.playbackModel.scoreInfo.timeSignature + "  " + root.playbackModel.scoreInfo.key
+            elide: Text.ElideRight
+            color: root.displayTextColor
+            font.family: ui.theme.bodyFont.family
+            font.pixelSize: 11
+        }
+        MouseArea {
+            x: 222; width: 86; height: parent.height
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            onEntered: ui.tooltip.show(lcd, root.playbackModel.scoreInfo.keyDescription)
+            onExited: ui.tooltip.hide(lcd)
+        }
+    }
+
     ListView {
         id: buttonsListView
 
         anchors.left: parent.left
         anchors.leftMargin: 4
+        anchors.verticalCenter: parent.verticalCenter
 
         width: contentWidth
         height: contentHeight
@@ -119,31 +178,19 @@ Item {
         }
     }
 
-    SeparatorLine {
-        id: buttonsSeparator
-
-        anchors.left: buttonsListView.right
-        anchors.leftMargin: 6
-        anchors.topMargin: 2
-        anchors.bottomMargin: 2
-
-        orientation: Qt.Vertical
-        opacity: 0.35
-        visible: !root.floating
-    }
-
-    TimeInputField {
+    TransportTimeField {
         id: timeField
 
-        anchors.left: buttonsSeparator.right
-        anchors.leftMargin: 12
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: 1 // for nicer visual alignment
+        x: lcd.x + 8
+        y: 13
+        foregroundColor: root.displayTextColor
+        font.family: "Consolas"
+        font.pixelSize: 12
 
         //! NOTE: explicit width prevents the content from jumping around
         // when a score is being played
         // See: https://github.com/musescore/MuseScore/issues/9633
-        width: 64
+        width: 72
 
         maxTime: root.playbackModel.maxPlayTime
         maxMillisecondsNumber: 9
@@ -160,10 +207,9 @@ Item {
     MeasureAndBeatFields {
         id: measureAndBeatFields
 
-        anchors.left: timeField.right
-        anchors.leftMargin: 6
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: 1 // for nicer visual alignment
+        x: lcd.x + 90
+        y: 13
+        foregroundColor: root.displayTextColor
 
         measureNumber: root.playbackModel.measureNumber
         maxMeasureNumber: root.playbackModel.maxMeasureNumber
@@ -187,14 +233,14 @@ Item {
     Loader {
         id: tempoLoader
 
-        anchors.left: measureAndBeatFields.right
-        anchors.leftMargin: 6
+        x: lcd.x + 150
+        y: 13
 
         readonly property int navigationOrderEnd: item?.navigation?.order ?? measureAndBeatFields.navigationOrderEnd
 
         // Fixed width prevents items from jumping around; but we
         // scale it according to the font size to prevent clipping
-        readonly property real tempoViewWidth: 5 * ui.theme.bodyFont.pixelSize
+        readonly property real tempoViewWidth: 68
 
         sourceComponent: root.floating ? tempoViewComponent : tempoButtonComponent
 
@@ -203,19 +249,19 @@ Item {
 
             Item {
                 implicitWidth: tempoLoader.tempoViewWidth
-                implicitHeight: root.height
+                implicitHeight: 26
 
                 TempoView {
                     id: tempoView
-                    anchors.right: parent.right
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.verticalCenterOffset: 1 // for nicer visual alignment
 
                     noteSymbol: root.playbackModel.tempo.noteSymbol
                     tempoValue: root.playbackModel.tempo.value
 
                     noteSymbolFont.pixelSize: ui.theme.iconsFont.pixelSize
                     tempoValueFont: timeField.font
+                    foregroundColor: root.displayTextColor
                 }
             }
         }
@@ -229,9 +275,10 @@ Item {
                 backgroundRadius: 8
 
                 implicitWidth: tempoLoader.tempoViewWidth
-                implicitHeight: root.height
+                implicitHeight: 26
 
-                transparent: !root.isPopupOpened
+                transparent: !isPopupOpened
+                iconColor: root.displayTextColor
 
                 toolTipTitle: qsTrc("playback", "Speed")
 
@@ -240,13 +287,13 @@ Item {
 
                 contentItem: TempoView {
                     anchors.centerIn: parent
-                    anchors.verticalCenterOffset: 1 // for nicer visual alignment
 
                     noteSymbol: root.playbackModel.tempo.noteSymbol
                     tempoValue: root.playbackModel.tempo.value
 
                     noteSymbolFont.pixelSize: ui.theme.iconsFont.pixelSize
                     tempoValueFont: timeField.font
+                    foregroundColor: root.displayTextColor
                 }
 
                 property PlaybackToolBarModel playbackModel: root.playbackModel
@@ -258,15 +305,4 @@ Item {
         }
     }
 
-    SeparatorLine {
-        id: endSeparator
-        anchors.left: tempoLoader.right
-        anchors.leftMargin: 6
-        anchors.topMargin: 2
-        anchors.bottomMargin: 2
-
-        orientation: Qt.Vertical
-        opacity: 0.35
-        visible: !root.floating
-    }
 }

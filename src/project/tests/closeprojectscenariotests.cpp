@@ -98,10 +98,10 @@ protected:
         return await(m_scenario->closeOpenedProject(goToHome));
     }
 
-    static ::testing::Matcher<const UriQuery&> IsScoreWorkspace()
+    static ::testing::Matcher<const UriQuery&> IsHomePage()
     {
         return ::testing::Truly([](const UriQuery& q) {
-            return q.uri().toString() == "musescore://notation";
+            return q.uri().toString() == "musescore://home";
         });
     }
 
@@ -155,7 +155,7 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_NoProject_Succeeds)
 
 // ─── A score with no pending changes ─────────────────────────────────────────
 
-TEST_F(CloseProjectScenarioTests, CloseOpenedProject_SavedScore_ClosesAndShowsScoreWorkspace)
+TEST_F(CloseProjectScenarioTests, CloseOpenedProject_SavedScore_ClosesAndShowsHomePage)
 {
     //! [GIVEN] An opened score whose changes are all written already
     ON_CALL(*m_project, isNeedSave()).WillByDefault(Return(false));
@@ -166,7 +166,7 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_SavedScore_ClosesAndShowsSc
     EXPECT_CALL(*m_interactive, warning(_, _, _, _, _, _)).Times(0);
     EXPECT_CALL(*m_interactive, closeAllDialogs()).Times(1);
     EXPECT_CALL(*m_globalContext, setCurrentProject(INotationProjectPtr())).Times(1);
-    EXPECT_CALL(*m_interactive, open(IsScoreWorkspace())).Times(1);
+    EXPECT_CALL(*m_interactive, open(IsHomePage())).Times(1);
 
     //! [WHEN] Closing...
     Ret ret = closeOpenedProject();
@@ -185,7 +185,7 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_WaitsForTheDialogsToClose)
 
     //! [THEN] The score is not pulled out from under a window that is still on its way out
     EXPECT_CALL(*m_globalContext, setCurrentProject(_)).Times(0);
-    EXPECT_CALL(*m_interactive, open(IsScoreWorkspace())).Times(0);
+    EXPECT_CALL(*m_interactive, open(IsHomePage())).Times(0);
 
     //! [WHEN] Closing...
     bool resolved = false;
@@ -201,7 +201,7 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_WaitsForTheDialogsToClose)
 TEST_F(CloseProjectScenarioTests, CloseOpenedProject_NotLeavingWorkspace_LeavesThePageAlone)
 {
     //! [THEN] The caller has its own plans for the page, so the home page is not opened...
-    EXPECT_CALL(*m_interactive, open(IsScoreWorkspace())).Times(0);
+    EXPECT_CALL(*m_interactive, open(IsHomePage())).Times(0);
 
     //! [THEN] ...but the score is still let go of
     EXPECT_CALL(*m_globalContext, setCurrentProject(INotationProjectPtr())).Times(1);
@@ -212,13 +212,13 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_NotLeavingWorkspace_LeavesT
     EXPECT_TRUE(ret);
 }
 
-TEST_F(CloseProjectScenarioTests, CloseOpenedProject_WorkspaceAlreadyOpen_DoesNotOpenItAgain)
+TEST_F(CloseProjectScenarioTests, CloseOpenedProject_HomeAlreadyOpen_DoesNotOpenItAgain)
 {
-    //! [GIVEN] The score workspace is already on screen
+    //! [GIVEN] The Home page is already on screen
     ON_CALL(*m_interactive, isOpened(::testing::An<const Uri&>())).WillByDefault(Return(RetVal<bool>::make_ok(true)));
 
     //! [THEN] It is not opened a second time
-    EXPECT_CALL(*m_interactive, open(IsScoreWorkspace())).Times(0);
+    EXPECT_CALL(*m_interactive, open(IsHomePage())).Times(0);
 
     //! [WHEN] Closing...
     Ret ret = closeOpenedProject();
@@ -249,7 +249,7 @@ TEST_F(CloseProjectScenarioTests, CloseOpenedProject_UnsavedChanges_UserCancels_
     EXPECT_CALL(*m_saveScenario, saveProject(_)).Times(0);
     EXPECT_CALL(*m_globalContext, setCurrentProject(_)).Times(0);
     EXPECT_CALL(*m_interactive, closeAllDialogs()).Times(0);
-    EXPECT_CALL(*m_interactive, open(IsScoreWorkspace())).Times(0);
+    EXPECT_CALL(*m_interactive, open(IsHomePage())).Times(0);
 
     //! [WHEN] Closing...
     Ret ret = closeOpenedProject();

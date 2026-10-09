@@ -33,6 +33,7 @@ RowLayout {
 
     property alias noteSymbolFont: noteSymbolLabel.font
     property alias tempoValueFont: tempoValueLabel.font
+    property color foregroundColor: ui.theme.fontPrimaryColor
 
     property alias noteSymbolTopPadding: noteSymbolLabel.topPadding
 
@@ -40,6 +41,7 @@ RowLayout {
 
     StyledTextLabel {
         id: noteSymbolLabel
+        color: root.foregroundColor
 
         topPadding: 10
         lineHeightMode: Text.FixedHeight
@@ -52,6 +54,7 @@ RowLayout {
 
     StyledTextLabel {
         id: tempoValueLabel
+        color: root.foregroundColor
 
         text: " = " + root.tempoValue
     }

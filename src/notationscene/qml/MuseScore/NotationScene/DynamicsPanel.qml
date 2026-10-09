@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Muse.Ui
+import Muse.UiComponents as UiComponents
 import MuseScore.NotationScene
 Item {
     id: root
@@ -12,6 +13,13 @@ Item {
     property alias model: dynamicsModel
     readonly property var state: model.state
     property string lastScope: ""
+    NavigationPanel {
+        id: settingsNavigation
+        name: "DynamicsSettings"
+        section: root.navigationSection
+        order: root.navigationOrderStart
+        enabled: root.enabled && root.visible
+    }
     onStateChanged: {
         if (state.scope !== lastScope) {
             if (scroll.contentItem) scroll.contentItem.contentY = 0
@@ -86,20 +94,24 @@ Item {
                 visible: root.state.available
                 Layout.fillWidth: true
                 spacing: 10
-                CheckBox {
+                UiComponents.CheckBox {
                     objectName: "dynamics-enabled"
-                    visible: root.state.scope === "score"
+                    Layout.fillWidth: true
                     text: qsTrc("notation", "Use custom playback dynamics")
                     checked: root.state.enabled || false
-                    onClicked: root.model.setEnabled(checked)
-                    palette.windowText: ui.theme.fontPrimaryColor; font.pixelSize: 12
+                    onClicked: root.model.setEnabled(!checked)
+                    font.pixelSize: 12
+                    navigation.panel: settingsNavigation
+                    navigation.order: 1
                 }
-                CheckBox {
+                UiComponents.CheckBox {
                     visible: root.state.scope === "score"
                     text: qsTrc("notation", "Separate battery accents and taps")
                     checked: root.state.battery || false
-                    onClicked: root.model.setBattery(checked)
-                    palette.windowText: ui.theme.fontPrimaryColor; font.pixelSize: 12
+                    onClicked: root.model.setBattery(!checked)
+                    font.pixelSize: 12
+                    navigation.panel: settingsNavigation
+                    navigation.order: 2
                 }
                 Rectangle {
                     visible: root.state.scope === "score"
@@ -222,20 +234,51 @@ Item {
                     visible: (root.state.scope === "notes" || root.state.scope === "dynamic")
                     Layout.fillWidth: true
                     Caption { text: qsTrc("notation", "Note playback"); font.bold: true }
+                    Caption {
+                        visible: root.state.velocityKnown === false
+                        Layout.fillWidth: true
+                        text: qsTrc("notation", "Auto: using standard playback. Enable custom dynamics to see accent/tap mapping levels, or enter a note velocity override.")
+                        opacity: .7
+                    }
                     Caption { text: root.state.mixed ? qsTrc("notation", "Mixed values — editing applies to all selected notes.") : root.state.localOverride ? qsTrc("notation", "Local override") : qsTrc("notation", "Following score dynamics"); Layout.fillWidth: true; opacity: .7 }
                     Caption { visible: root.state.scope === "notes"; text: qsTrc("notation", "Category: %1").arg(root.state.noteCategory || ""); opacity: .7 }
                     RowLayout {
                         Caption { text: qsTrc("notation", "Velocity"); Layout.fillWidth: true }
-                        LevelSpin { objectName: "dynamics-note-velocity"; value: root.state.effectiveVelocity === undefined ? 80 : root.state.effectiveVelocity; onValueModified: root.model.setNoteVelocity(value); Accessible.name: qsTrc("notation", "Selected note velocity") }
+                        LevelSpin {
+                            id: noteVelocitySpin
+                            objectName: "dynamics-note-velocity"
+                            value: root.state.effectiveVelocity === undefined ? 80 : root.state.effectiveVelocity
+                            contentItem: TextInput {
+                                text: root.state.velocityKnown === false && !activeFocus ? qsTrc("notation", "Auto") : noteVelocitySpin.displayText
+                                font: noteVelocitySpin.font
+                                color: ui.theme.fontPrimaryColor
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                readOnly: !noteVelocitySpin.editable
+                                validator: noteVelocitySpin.validator
+                                inputMethodHints: Qt.ImhDigitsOnly
+                                selectByMouse: true
+                                onActiveFocusChanged: if (activeFocus) selectAll()
+                            }
+                            onValueModified: root.model.setNoteVelocity(value)
+                            Accessible.name: qsTrc("notation", "Selected note velocity")
+                        }
                     }
                     Slider {
                         objectName: "dynamics-note-slider"
+                        visible: root.state.velocityKnown !== false
                         Layout.fillWidth: true
                         from: 0; to: 127; stepSize: 1; value: root.state.effectiveVelocity === undefined ? 80 : root.state.effectiveVelocity
                         onPressedChanged: if (!pressed) root.model.setNoteVelocity(Math.round(value))
                         Accessible.name: qsTrc("notation", "Selected note velocity")
                     }
-                    CheckBox { text: qsTrc("notation", "Play selected notes"); checked: root.state.notePlay === true; onClicked: root.model.setNotePlayback(checked); palette.windowText: ui.theme.fontPrimaryColor }
+                    UiComponents.CheckBox {
+                        text: qsTrc("notation", "Play selected notes")
+                        checked: root.state.notePlay === true
+                        onClicked: root.model.setNotePlayback(!checked)
+                        navigation.panel: settingsNavigation
+                        navigation.order: 3
+                    }
                     ColumnLayout {
                         visible: root.state.scope === "notes"
                         Layout.fillWidth: true

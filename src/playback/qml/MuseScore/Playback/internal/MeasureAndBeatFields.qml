@@ -36,6 +36,7 @@ Item {
     property alias maxBeatNumber: beatNumberField.maxValue
 
     property font font: ui.theme.largeBodyFont
+    property color foregroundColor: ui.theme.fontPrimaryColor
 
     property NavigationPanel navigationPanel: null
     property int navigationOrderStart: 0
@@ -60,7 +61,7 @@ Item {
             // See: https://github.com/musescore/MuseScore/issues/9633
             Layout.preferredWidth: 26
 
-            NumberInputField {
+            TransportNumberField {
                 id: measureNumberField
 
                 anchors.right: parent.right
@@ -70,6 +71,7 @@ Item {
                 addLeadingZeros: false
 
                 font: root.font
+                color: root.foregroundColor
 
                 navigation.panel: root.navigationPanel
                 navigation.order: root.navigationOrderStart
@@ -85,6 +87,7 @@ Item {
         StyledTextLabel {
             text: "."
             font: root.font
+            color: root.foregroundColor
         }
 
         Item {
@@ -93,7 +96,7 @@ Item {
             // See: https://github.com/musescore/MuseScore/issues/9633
             Layout.preferredWidth: 20
 
-            NumberInputField {
+            TransportNumberField {
                 id: beatNumberField
 
                 anchors.left: parent.left
@@ -103,6 +106,7 @@ Item {
                 addLeadingZeros: false
 
                 font: root.font
+                color: root.foregroundColor
 
                 navigation.panel: root.navigationPanel
                 navigation.order: root.navigationOrderStart + 1

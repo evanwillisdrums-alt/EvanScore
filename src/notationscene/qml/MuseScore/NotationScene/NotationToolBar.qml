@@ -37,7 +37,14 @@ Row {
         Component.onCompleted: load(true)
     }
     FlatButton {
-        text: workspace.percussionMode ? qsTrc("notation", "Percussion") : qsTrc("notation", "Regular")
+        width: 30
+        height: 30
+        icon: IconCode.PERCUSSION
+        transparent: !workspace.percussionMode
+        accentButton: workspace.percussionMode
+        toolTipTitle: qsTrc("notation", "Percussion mode")
+        toolTipDescription: workspace.percussionMode ? qsTrc("notation", "On — click to use regular mode") : qsTrc("notation", "Off — click to enable percussion mode")
+        accessible.name: toolTipTitle + ": " + (workspace.percussionMode ? qsTrc("global", "On") : qsTrc("global", "Off"))
         backgroundRadius: 8
         navigation.panel: toolBar.navigationPanel
         navigation.order: 0

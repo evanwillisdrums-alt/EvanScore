@@ -90,6 +90,7 @@ QVariantMap DynamicsPanelModel::state() const {
     if (dyn) {
         result["noteVelocity"] = dyn->preciseVelocity() >= 0 ? dyn->preciseVelocity() : 0; result["mixed"] = false;
         result["effectiveVelocity"] = dyn->preciseVelocity() >= 0 ? dyn->preciseVelocity() : DynamicsPlayback::level(s, dyn->dynamicType(), DynamicsPlayback::Normal); result["notePlay"] = dyn->playDynamic();
+        result["velocityKnown"] = DynamicsPlayback::enabled(s) || dyn->preciseVelocity() >= 0;
         result["localOverride"] = dyn->preciseVelocity() >= 0;
     }
     if (!ns.empty()) {
@@ -103,6 +104,8 @@ QVariantMap DynamicsPanelModel::state() const {
         result["noteCategory"] = categories[std::clamp(DynamicsPlayback::role(ns.front()), 0, 9)];
         const int base = DynamicsPlayback::velocity(ns.front(), 80);
         result["effectiveVelocity"] = !ns.front()->getProperty(Pid::PLAY).toBool() ? 0 : ns.front()->userVelocity() ? ns.front()->customizeVelocity(base) : base;
+        result["velocityKnown"] = !result["notePlay"].toBool() || DynamicsPlayback::enabled(s)
+            || (value != 0 && ns.front()->getProperty(Pid::VELO_TYPE).value<VeloType>() == VeloType::USER_VAL);
     }
     return result;
 }

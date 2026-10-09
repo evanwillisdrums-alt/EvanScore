@@ -2,6 +2,18 @@
 
 Updated 2026-10-09 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Current work: Dynamics interaction checks and Logic control bar
+
+The user reported a stopped-playback freeze while changing ff taps to 10 in a Muse Drumline marching-snare score (four quarter notes at ff, accents on beats 1 and 4). They subsequently reported that the app no longer crashes, but the custom-dynamics switch still does not work. Uploaded log `MuseScoreStudio_261009_080606.log` identifies native build 25 (the verified build below); it has no fatal stack trace and ends with a successful autosave. Do not assign the cause to Muse Drumline without further evidence.
+
+Windows diagnostic run `37935476160`, check `113836337057`, passed real sidebar SpinBox edits and native Undo in both the tuplet fixture and drum-kit fixture, with sustained response and clean closure. Runs `37936655111` and `37937171584` reproduced a switch click that did not change score state (the latter uses QtTest window-system mouse events and waits for delivery). The inspector's explicit qFatal assertion aborts these diagnostic runs; distinguish this from the original intermittent user crash. The current source replaces the switch with the native host checkbox, keeps it available during note selection, and marks automatic note velocities as Auto when custom mappings are off. This replacement still needs complete Windows pointer validation.
+
+Current source restores Home at empty startup and after closing the last score, with Home/Score navigation. It adds a Logic-inspired transport display using actual time, bar/beat, tempo, meter, and selected-staff key signature, and replaces the wide percussion-mode box with a compact native icon. Sharing toolbar rows use matching 48-pixel height limits to avoid introducing contradictory dock constraints. New app-owned transport fields reuse native numeric-edit logic without modifying the pinned muse submodule.
+
+Local validation: all four affected native C++ source checks pass without PCH. The actual QML controls pass four functional Qt 6.8 component cases (six QtTest entries including setup/cleanup): native checkbox pointer toggling and selection visibility, ff tap mapping/editor retention, transport geometry, and Auto/explicit-override readouts. These use host API/model stubs and do not replace complete-app verification. All 13 close-project tests pass; the isolated ASan test harness reports fixture/mock allocations at exit even after IoC reset, so it is not a clean sanitizer pass. No complete Linux app exists in this partial build.
+
+The diagnostic fixture `buildscripts/ci/windows/fixtures/ff-snare.mscx` recreates the reported four-note pattern with custom dynamics initially off. It uses standard playback on CI; Muse Drumline is not installed on the runner. Full hardware/library playback remains unverified. The user requested a broader interaction/crash pass and asked for articulation heights; clarification is pending on whether that means playing stick heights or printed symbol spacing.
+
 ## Immediate priority: a verified Windows download
 
 The user reported that the latest fully extracted Windows ZIP never leaves the splash screen. Do not provide another download until the full native package passes the Windows desktop checks. An isolated startup experiment, a successful compilation, or a diagnostic artifact is insufficient.

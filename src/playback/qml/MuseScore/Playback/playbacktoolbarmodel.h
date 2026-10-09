@@ -49,6 +49,7 @@ class PlaybackToolBarModel : public muse::uicomponents::AbstractMenuModel
 
     Q_PROPERTY(QVariant tempo READ tempo NOTIFY tempoChanged)
     Q_PROPERTY(qreal tempoMultiplier READ tempoMultiplier WRITE setTempoMultiplier NOTIFY tempoChanged)
+    Q_PROPERTY(QVariantMap scoreInfo READ scoreInfo NOTIFY scoreInfoChanged)
 
     QML_ELEMENT
 
@@ -73,6 +74,7 @@ public:
 
     QVariant tempo() const;
     qreal tempoMultiplier() const;
+    QVariantMap scoreInfo() const;
 
     Q_INVOKABLE void load() override;
 
@@ -90,9 +92,11 @@ signals:
     void maxPlayTimeChanged();
     void playPositionChanged();
     void tempoChanged();
+    void scoreInfoChanged();
 
 private:
     void setupConnections();
+    void onNotationChanged();
     muse::uicomponents::MenuItem* makeInputPitchMenu();
 
     void updateActions();
@@ -112,5 +116,6 @@ private:
 
     bool m_isToolbarFloating = false;
     muse::secs_t m_playbackPositionSecs = 0.0;
+    muse::async::Asyncable m_notationReceiver;
 };
 }

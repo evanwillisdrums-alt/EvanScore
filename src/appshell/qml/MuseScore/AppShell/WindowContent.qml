@@ -65,6 +65,7 @@ WorkspaceDockWindow {
         DockToolBar {
             id: mainToolBar
 
+            thickness: 48
             objectName: "mainToolBar"
             title: qsTrc("appshell", "Main toolbar")
 

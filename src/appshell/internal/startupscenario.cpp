@@ -56,6 +56,20 @@ static StartupModeType modeTypeTromString(const std::string& str)
     return StartupModeType::StartEmpty;
 }
 
+static const Uri& startupPageUri(StartupModeType modeType)
+{
+    switch (modeType) {
+    case StartupModeType::StartEmpty:
+    case StartupModeType::StartWithNewScore:
+    case StartupModeType::Recovery:
+        return HOME_URI;
+    case StartupModeType::StartWithScore:
+    case StartupModeType::ContinueLastSession:
+        return NOTATION_URI;
+    }
+    return HOME_URI;
+}
+
 void StartupScenario::setStartupType(const std::optional<std::string>& type)
 {
     m_startupTypeStr = type ? type.value() : "";
@@ -132,7 +146,7 @@ void StartupScenario::runAfterSplashScreen()
         modeType = resolveStartupModeType();
     }
 
-    const Uri& startupUri = NOTATION_URI;
+    const Uri& startupUri = startupPageUri(modeType);
     auto promise = interactive()->open(startupUri);
     promise.onResolve(this, [this, modeType](const Val&) {
         onStartupPageOpened(modeType);
