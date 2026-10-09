@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QImage>
 #include <QEvent>
 #include <QQuickWindow>
 #include <QQuickItem>
@@ -331,6 +332,12 @@ private:
                 if (row.value("recognition").toString() != "hands" || strokes.size() != 1
                     || strokes.at(0).toObject().value("hand").toString() != expected.at(index))
                     qFatal("Snare sticking diagnostics lost an explicit or repeated hand");
+                const auto dynamics = row.value("dynamics").toArray().at(0).toObject();
+                const bool tap = index == 1 || index == 2;
+                if (!dynamics.value("velocityKnown").toBool()
+                    || dynamics.value("category").toString() != (tap ? "tap" : "accent")
+                    || (tap && dynamics.value("velocity").toInt() != 30))
+                    qFatal("Snare diagnostics did not report the real tap/ accent mapping");
             }
         }
         auto checkbox = findItem(dialog->contentItem(), "feature-debug-full-score");
@@ -348,6 +355,9 @@ private:
         QTest::qWait(100);
         if (QGuiApplication::clipboard()->text() != report->property("text").toString())
             qFatal("Feature diagnostics copy report failed");
+        const QString capturePath = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        if (!capturePath.isEmpty() && !dialog->grabWindow().save(capturePath))
+            qFatal("Could not capture the actual feature diagnostics window");
         dialog->setWidth(680);
         dialog->setHeight(490);
         QTest::qWait(100);

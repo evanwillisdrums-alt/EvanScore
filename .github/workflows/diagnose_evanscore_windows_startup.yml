@@ -17,6 +17,13 @@ on:
       log_artifact:
         description: Diagnostic log artifact to inspect
         default: EvanScore-Windows-build-checks
+      image_name:
+        description: Screenshot to inspect
+        type: choice
+        options:
+          - desktop.png
+          - feature-debug.png
+        default: desktop.png
       mode:
         description: Inspect launch logs or run desktop checks
         type: choice
@@ -267,15 +274,21 @@ jobs:
                   print('::notice title=Snare launch beginning::' + message)
           PY
       - name: Report small desktop capture for startup inspection
+        env:
+          INSPECT_IMAGE_NAME: ${{ inputs.image_name }}
         run: |
           python3 -m venv /tmp/capture-tools
           /tmp/capture-tools/bin/pip install --quiet pillow
           /tmp/capture-tools/bin/python - <<'PY'
           from pathlib import Path
           import base64
+          import os
           from io import BytesIO
           from PIL import Image
-          files = sorted(Path('checks').rglob('desktop.png'))
+          image_name = os.environ.get('INSPECT_IMAGE_NAME') or 'desktop.png'
+          if image_name not in ('desktop.png', 'feature-debug.png'):
+              raise RuntimeError('Unsupported capture name')
+          files = sorted(Path('checks').rglob(image_name))
           if files:
               file = next((f for f in files if f.parent.name.endswith('score')), files[0])
               data = file.read_bytes()
@@ -442,8 +455,10 @@ jobs:
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
             $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } else { 0 }
+            $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx -MinimumOpenSeconds $interactionTime
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
+              $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/drum-score/feature-debug.png')
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath buildscripts/ci/windows/fixtures/ff-snare.mscx -MinimumOpenSeconds $interactionTime
               foreach ($folder in @('score', 'drum-score')) {
                 $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
