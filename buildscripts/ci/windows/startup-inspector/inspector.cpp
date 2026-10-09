@@ -17,6 +17,7 @@
 #include <QTest>
 #include <QSignalSpy>
 #include <QSet>
+#include <algorithm>
 
 class Inspector final : public QObject {
 public:
@@ -130,13 +131,31 @@ public:
                                     qFatal("Native undo did not restore the custom dynamics switch");
                                 qWarning() << "DYNAMICS INSPECTOR switch restored after native undo";
                                 const QVariantList before = model->property("mappings").toList();
-                                if (!QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
-                                        Q_ARG(int, 2), Q_ARG(int, 10))) qFatal("Bulk tap mapping is unavailable");
+                                auto velocity = findItem(window->contentItem(), "dynamics-column-velocity");
+                                auto apply = findItem(window->contentItem(), "dynamics-column-apply");
+                                if (!velocity || !apply) qFatal("Bulk tap controls are unavailable");
+                                reveal(velocity);
+                                auto editor = qvariant_cast<QQuickItem*>(velocity->property("contentItem"));
+                                if (!editor) qFatal("Bulk velocity editor is unavailable");
+                                editor->forceActiveFocus();
+                                QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
+                                QTest::keyClick(window, Qt::Key_3);
+                                QTest::keyClick(window, Qt::Key_0);
+                                // Click while the edit still has focus, matching typing 30
+                                // then pressing Set all without an intermediate Enter.
+                                reveal(apply);
+                                QSignalSpy applied(apply, SIGNAL(clicked()));
+                                QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                                                  apply->mapToScene(QPointF(apply->width()/2, apply->height()/2)).toPoint());
+                                QTest::qWait(250);
+                                qWarning() << "DYNAMICS INSPECTOR Set all real click" << applied.count()
+                                           << "editor value" << velocity->property("value");
+                                if (applied.count() != 1) qFatal("Set all pointer click was not delivered");
                                 auto verifyColumn = [model, before] {
                                     const auto after = model->property("mappings").toList();
                                     if (after.size() != before.size()) qFatal("Bulk mapping changed the dynamic rows");
                                     for (qsizetype i = 0; i < after.size(); ++i) {
-                                        auto expected = before[i].toMap(); expected["tap"] = 10;
+                                        auto expected = before[i].toMap(); expected["tap"] = 30;
                                         if (after[i].toMap() != expected) qFatal("Bulk tap edit changed another articulation or missed a row");
                                     }
                                 };
@@ -184,6 +203,17 @@ public:
     }
 private:
     bool done = false;
+    static void reveal(QQuickItem* item) {
+        for (auto ancestor = item->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+            if (ancestor->metaObject()->indexOfProperty("contentY") < 0) continue;
+            const double target = item->mapToItem(ancestor, QPointF(0, item->height()/2)).y();
+            const double current = ancestor->property("contentY").toDouble();
+            const double maximum = std::max(0.0, ancestor->property("contentHeight").toDouble() - ancestor->height());
+            ancestor->setProperty("contentY", std::clamp(current + target - ancestor->height()/2, 0.0, maximum));
+            QTest::qWait(100);
+            break;
+        }
+    }
     static void dispatchMenu(QObject* window, const char* command) {
         for (QObject* menu : objects(window)) {
             if (!QByteArray(menu->metaObject()->className()).endsWith("AppMenuModel")) continue;

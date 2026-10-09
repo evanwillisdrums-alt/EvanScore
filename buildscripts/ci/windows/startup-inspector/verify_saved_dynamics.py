@@ -17,7 +17,7 @@ for folder in ('score', 'drum-score'):
     assert style is not None, 'Missing saved style'
     assert style.findtext('evanDynamicsEnabled') == '1', 'Custom dynamics did not persist'
     values = style.findtext('evanDynamicsTap', '').split()
-    assert len(values) > 10 and all(int(value) == 10 for value in values[1:]), 'Bulk taps did not persist'
+    assert len(values) > 10 and all(int(value) == 30 for value in values[1:]), 'Bulk taps did not persist'
     if folder == 'drum-score':
         voice = score.find('./Score/Staff/Measure/voice')
         assert voice is not None
@@ -26,4 +26,4 @@ for folder in ('score', 'drum-score'):
         assert all(c.findtext('durationType') == 'quarter' for c in chords)
         assert [bool(c.findall('Articulation')) for c in chords] == [True, False, False, True], 'Accents changed'
         assert voice.findtext('Dynamic/subtype') == 'ff', 'Written ff changed'
-    print(f'Native saved Dynamics validated: {folder}, taps=10, notation preserved')
+    print(f'Native saved Dynamics validated: {folder}, taps=30, notation preserved')
