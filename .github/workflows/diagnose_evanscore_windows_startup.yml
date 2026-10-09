@@ -27,6 +27,7 @@ on:
           - layout
           - verify-package
           - dynamics
+          - crash-kit
         default: inspect-logs
 
 permissions:
@@ -34,6 +35,76 @@ permissions:
   contents: read
 
 jobs:
+  crash-kit:
+    if: inputs.mode == 'crash-kit'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compile normal and faulting capture fixtures
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force capture-test | Out-Null
+          @'
+          #include <windows.h>
+          int main(void) {
+            SetErrorMode(SEM_NOGPFAULTERRORBOX);
+          #ifdef CAPTURE_FAULT
+            volatile int *address = 0;
+            return *address;
+          #else
+            return 0;
+          #endif
+          }
+          '@ | Set-Content capture-test/fixture.c
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $vcvars = Join-Path $vsInstall 'VC/Auxiliary/Build/vcvars64.bat'
+          @"
+          @echo off
+          call "$vcvars" > nul
+          if errorlevel 1 exit /b %errorlevel%
+          cd capture-test
+          cl /nologo /Zi fixture.c /Fe:normal.exe
+          if errorlevel 1 exit /b %errorlevel%
+          cl /nologo /Zi /DCAPTURE_FAULT fixture.c /Fe:fault.exe
+          "@ | Set-Content capture-test/build.bat
+          cmd /c capture-test\build.bat
+          if ($LASTEXITCODE -ne 0) { throw 'Capture fixture compilation failed' }
+      - name: Verify clean exit and capture a real access violation
+        shell: pwsh
+        run: |
+          powershell.exe -NoProfile -File buildscripts/ci/windows/capture_evanscore_crash.ps1 -AppPath capture-test/normal.exe -OutputDirectory capture-test/normal-report
+          if ($LASTEXITCODE -ne 0) { throw 'Normal capture fixture failed' }
+          if (Get-ChildItem capture-test/normal-report -Filter '*.dmp') { throw 'Clean fixture produced a false fault report' }
+          powershell.exe -NoProfile -File buildscripts/ci/windows/capture_evanscore_crash.ps1 -AppPath capture-test/fault.exe -OutputDirectory capture-test/fault-report
+          if ($LASTEXITCODE -ne 0) { throw 'Fault capture fixture failed' }
+          $dump = Get-ChildItem capture-test/fault-report -Filter '*.dmp' | Select-Object -First 1
+          if (-not $dump -or $dump.Length -lt 1024) { throw 'The native access violation did not produce a dump' }
+          $bytes = [System.IO.File]::ReadAllBytes($dump.FullName)
+          if ([System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne 'MDMP') { throw 'Invalid minidump header' }
+          Write-Host "::notice title=Crash capture verified::Normal native exit and actual access-violation capture passed; dump=$($dump.Length) bytes"
+      - name: Stage the standalone capture launcher
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force crash-kit | Out-Null
+          Copy-Item buildscripts/ci/windows/capture_evanscore_crash.ps1 crash-kit/
+          Copy-Item 'buildscripts/ci/windows/Debug EvanScore.cmd' crash-kit/
+          @'
+          This is a diagnostic launcher, not a fixed app.
+          Extract these two files into your existing EvanScore folder, next to bin.
+          Double-click Debug EvanScore.cmd. Open your score and reproduce the crash.
+          Zip the new crash-report folder and attach it to the chat, along with the affected score.
+          It saves a fault minidump, a capture transcript, and the latest app log locally.
+          Dumps can contain fragments of the open score and other process memory.
+          Nothing is uploaded automatically. No registry or application settings are changed.
+          Closing the capture console does not intentionally terminate the app.
+          '@ | Set-Content crash-kit/README.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Crash-Capture
+          path: crash-kit/
+          retention-days: 7
   verify-package:
     if: inputs.mode == 'verify-package'
     runs-on: windows-2025

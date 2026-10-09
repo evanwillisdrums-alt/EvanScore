@@ -168,6 +168,29 @@ public:
                                 QTest::qWait(250);
                                 verifyColumn();
                                 qWarning() << "DYNAMICS INSPECTOR bulk taps, other columns, undo and redo passed";
+                                // Exercise accumulated edit state: change two separate
+                                // articulation mappings, batch taps, then undo all three.
+                                for (int cycle = 0; cycle < 12; ++cycle) {
+                                    const auto rows = model->property("mappings").toList();
+                                    for (int editIndex = 0; editIndex < 2; ++editIndex) {
+                                        const auto row = rows[editIndex].toMap();
+                                        const int role = editIndex == 0 ? 3 : 4;
+                                        const char* key = editIndex == 0 ? "accent" : "tenuto";
+                                        QMetaObject::invokeMethod(model, "setMapping", Qt::DirectConnection,
+                                            Q_ARG(int, row.value("dynamic").toInt()), Q_ARG(int, role),
+                                            Q_ARG(int, (row.value(key).toInt() + 1) % 128));
+                                        QTest::qWait(40);
+                                    }
+                                    QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
+                                                              Q_ARG(int, 2), Q_ARG(int, 31 + cycle));
+                                    QTest::qWait(40);
+                                    for (int undoIndex = 0; undoIndex < 3; ++undoIndex) {
+                                        dispatchMenu(window, "command://notation/undo");
+                                        QTest::qWait(40);
+                                    }
+                                    verifyColumn();
+                                }
+                                qWarning() << "DYNAMICS INSPECTOR repeated mixed edits: 12 cycles, 36 edits and 36 undo passed";
                                 dispatchMenu(window, "command://notation/select-all");
                                 QTest::qWait(250);
                                 QMetaObject::invokeMethod(model, "followSelection", Qt::DirectConnection);
