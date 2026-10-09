@@ -2,6 +2,11 @@
 #include <qpa/qplatformthemeplugin.h>
 #ifdef Q_OS_WIN
 #include <qpa/qplatformintegration.h>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
 #include <private/qguiapplication_p.h>
 #endif
 #include <QCoreApplication>
@@ -195,6 +200,7 @@ public:
                                 qWarning() << "DYNAMICS INSPECTOR bulk taps, other columns, undo and redo passed";
                                 // Exercise accumulated edit state: change two separate
                                 // articulation mappings, batch taps, then undo all three.
+                                reportMemory("before repeated edits");
                                 for (int cycle = 0; cycle < 12; ++cycle) {
                                     const auto rows = model->property("mappings").toList();
                                     for (int editIndex = 0; editIndex < 2; ++editIndex) {
@@ -214,6 +220,7 @@ public:
                                         QTest::qWait(40);
                                     }
                                     verifyColumn();
+                                    reportMemory("after edit cycle", cycle + 1);
                                 }
                                 qWarning() << "DYNAMICS INSPECTOR repeated mixed edits: 12 cycles, 36 edits and 36 undo passed";
                                 const QSize originalSize = window->size();
@@ -278,6 +285,19 @@ public:
     }
 private:
     bool done = false;
+    static void reportMemory(const char* phase, int cycle = 0) {
+#ifdef Q_OS_WIN
+        PROCESS_MEMORY_COUNTERS_EX memory {};
+        memory.cb = sizeof(memory);
+        if (!K32GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory), sizeof(memory)))
+            qFatal("Could not measure native app memory");
+        qWarning() << "DYNAMICS INSPECTOR memory" << phase << "cycle" << cycle
+                   << "working set bytes" << quint64(memory.WorkingSetSize)
+                   << "private bytes" << quint64(memory.PrivateUsage);
+#else
+        Q_UNUSED(phase); Q_UNUSED(cycle);
+#endif
+    }
     static void dumpDockState(QObject* window, const char* name) {
         for (QObject* object : objects(window)) {
             if (object->objectName() != QString::fromUtf8(name)) continue;
