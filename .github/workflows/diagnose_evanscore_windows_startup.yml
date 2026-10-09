@@ -63,6 +63,9 @@ jobs:
           path: build.install
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Inspect downloaded runtime dependencies
+        shell: pwsh
+        run: ./buildscripts/ci/windows/inspect_evanscore_package.ps1 -InstallRoot build.install
       - name: Verify the downloaded full Windows package
         shell: pwsh
         env:
