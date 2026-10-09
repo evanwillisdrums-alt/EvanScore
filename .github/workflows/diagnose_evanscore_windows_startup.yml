@@ -476,9 +476,21 @@ jobs:
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Host "::notice title=Layout trial failure::$message"
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics' -and (Test-Path checks/drum-score/ff-snare.mscz)) {
-              pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app -ScorePath checks/drum-score/ff-snare.mscz > inspector-exceptions.log 2>&1
+              pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app -ScorePath checks/drum-score/ff-snare.mscz > checks/inspector-exceptions.log 2>&1
             }
             throw
+          }
+      - name: Report captured fault stack
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path checks/inspector-exceptions.log) {
+            $content = ((Get-Content checks/inspector-exceptions.log) | Where-Object { $_ -match '^Observer |^Exception |^MSVC |^Symbol|^Unwound|^  0x|^Main thread snapshot|^Thread name:|^Stack observation:' }) -join "`n"
+            if ($content.Length -gt 24000) { $content = $content.Substring($content.Length - 24000) }
+            for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {
+              $chunk = $content.Substring($offset, [Math]::Min(2800, $content.Length - $offset)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Host "::notice title=Native exception stack::$chunk"
+            }
           }
       - name: Report bounded inspector diagnostics
         if: always()
