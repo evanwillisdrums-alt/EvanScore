@@ -105,13 +105,24 @@ public:
                     if (!undoRequested) qFatal("The diagnostic could not request Edit > Undo");
                     // Command dispatch settles asynchronously; verify after
                     // it completes rather than aborting inside its request.
-                    QTimer::singleShot(500, window, [model = QPointer<QObject>(model), original] {
+                    QTimer::singleShot(500, window, [model = QPointer<QObject>(model), window, original, originallyEnabled] {
                         if (!model) qFatal("Dynamics panel disappeared after undo");
                         for (const QVariant& entry : model->property("mappings").toList()) {
                             const auto row = entry.toMap();
                             if (row.value("dynamic").toInt() != 10) continue;
                             if (row.value("tap").toInt() != original) qFatal("Native undo did not restore the ff tap mapping");
                             qWarning() << "DYNAMICS INSPECTOR mapping restored after native undo";
+                            for (QObject* menu : objects(window)) {
+                                if (!QByteArray(menu->metaObject()->className()).endsWith("AppMenuModel")) continue;
+                                QMetaObject::invokeMethod(menu, "handleMenuItem", Qt::DirectConnection,
+                                    Q_ARG(QString, QStringLiteral("command://notation/undo")));
+                                break;
+                            }
+                            QTimer::singleShot(500, window, [model, originallyEnabled] {
+                                if (!model || model->property("state").toMap().value("enabled").toBool() != originallyEnabled)
+                                    qFatal("Native undo did not restore the custom dynamics switch");
+                                qWarning() << "DYNAMICS INSPECTOR switch restored after native undo";
+                            });
                             return;
                         }
                         qFatal("The ff tap row disappeared after undo");
