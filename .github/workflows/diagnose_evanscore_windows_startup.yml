@@ -326,6 +326,8 @@ jobs:
                   throw "The native dynamics edit and undo did not complete in $folder"
                 }
               }
+              python buildscripts/ci/windows/startup-inspector/verify_saved_dynamics.py
+              if ($LASTEXITCODE -ne 0) { throw 'Native score dynamics persistence verification failed' }
             }
           } catch {
             $message = $_.ToString().Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')

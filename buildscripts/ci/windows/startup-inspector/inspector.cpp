@@ -125,10 +125,42 @@ public:
                                     Q_ARG(QString, QStringLiteral("command://notation/undo")));
                                 break;
                             }
-                            QTimer::singleShot(500, window, [model, originallyEnabled] {
+                            QTimer::singleShot(500, window, [model, window, originallyEnabled] {
                                 if (!model || model->property("state").toMap().value("enabled").toBool() != originallyEnabled)
                                     qFatal("Native undo did not restore the custom dynamics switch");
                                 qWarning() << "DYNAMICS INSPECTOR switch restored after native undo";
+                                const QVariantList before = model->property("mappings").toList();
+                                if (!QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
+                                        Q_ARG(int, 2), Q_ARG(int, 10))) qFatal("Bulk tap mapping is unavailable");
+                                auto verifyColumn = [model, before] {
+                                    const auto after = model->property("mappings").toList();
+                                    if (after.size() != before.size()) qFatal("Bulk mapping changed the dynamic rows");
+                                    for (qsizetype i = 0; i < after.size(); ++i) {
+                                        auto expected = before[i].toMap(); expected["tap"] = 10;
+                                        if (after[i].toMap() != expected) qFatal("Bulk tap edit changed another articulation or missed a row");
+                                    }
+                                };
+                                verifyColumn();
+                                dispatchMenu(window, "command://notation/undo");
+                                QTest::qWait(250);
+                                if (model->property("mappings").toList() != before)
+                                    qFatal("Bulk tap edit did not undo in one step");
+                                dispatchMenu(window, "command://notation/redo");
+                                QTest::qWait(250);
+                                verifyColumn();
+                                qWarning() << "DYNAMICS INSPECTOR bulk taps, other columns, undo and redo passed";
+                                dispatchMenu(window, "command://notation/select-all");
+                                QTest::qWait(250);
+                                QMetaObject::invokeMethod(model, "followSelection", Qt::DirectConnection);
+                                const auto state = model->property("state").toMap();
+                                if (state.value("scope").toString() != "notes" || !state.value("velocityKnown").toBool())
+                                    qFatal("Selected notes did not expose a known custom velocity");
+                                qWarning() << "DYNAMICS INSPECTOR selected notes" << state.value("title")
+                                           << state.value("noteCategory") << state.value("effectiveVelocity");
+                                dispatchMenu(window, "command://project/save");
+                                QTimer::singleShot(1000, window, [] {
+                                    qWarning() << "DYNAMICS INSPECTOR mapping save requested; verify the native score archive";
+                                });
                             });
                             return;
                         }
@@ -152,6 +184,14 @@ public:
     }
 private:
     bool done = false;
+    static void dispatchMenu(QObject* window, const char* command) {
+        for (QObject* menu : objects(window)) {
+            if (!QByteArray(menu->metaObject()->className()).endsWith("AppMenuModel")) continue;
+            if (QMetaObject::invokeMethod(menu, "handleMenuItem", Qt::DirectConnection,
+                    Q_ARG(QString, QString::fromUtf8(command)))) return;
+        }
+        qFatal("Could not dispatch the native menu command: %s", command);
+    }
     static QList<QObject*> objects(QObject* root) {
         QList<QObject*> result;
         QList<QObject*> queue { root };
