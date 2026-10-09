@@ -191,6 +191,21 @@ public:
                                     verifyColumn();
                                 }
                                 qWarning() << "DYNAMICS INSPECTOR repeated mixed edits: 12 cycles, 36 edits and 36 undo passed";
+                                const QSize originalSize = window->size();
+                                for (const QSize size : {QSize(880, 700), QSize(1280, 900), originalSize}) {
+                                    window->resize(size);
+                                    QTest::qWait(100);
+                                }
+                                for (int cycle = 0; cycle < 2; ++cycle) {
+                                    for (const char* dock : {"palettes", "properties", "percussion", "mixer", "undo-history", "navigator"}) {
+                                        const QByteArray command = QByteArray("command://app/dock/toggle-") + dock;
+                                        dispatchMenu(window, command.constData()); QTest::qWait(80);
+                                        dispatchMenu(window, command.constData()); QTest::qWait(80);
+                                    }
+                                }
+                                if (!model) qFatal("Dynamics model vanished during general panel checks");
+                                verifyColumn();
+                                qWarning() << "DYNAMICS INSPECTOR general panel and resize checks passed";
                                 dispatchMenu(window, "command://notation/select-all");
                                 QTest::qWait(250);
                                 QMetaObject::invokeMethod(model, "followSelection", Qt::DirectConnection);

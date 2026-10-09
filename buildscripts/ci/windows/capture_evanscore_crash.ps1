@@ -28,7 +28,7 @@ public static class EvanScoreCrashCapture {
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll")] static extern IntPtr OpenThread(uint access,bool inherit,uint tid);
     [DllImport("kernel32.dll")] static extern bool GetThreadContext(IntPtr thread,IntPtr context);
-    [StructLayout(LayoutKind.Sequential)] struct DumpExceptionInfo {
+    [StructLayout(LayoutKind.Sequential, Pack=4)] struct DumpExceptionInfo {
         public uint threadId; public IntPtr pointers; [MarshalAs(UnmanagedType.Bool)] public bool clientPointers;
     }
     [DllImport("dbghelp.dll",SetLastError=true)] static extern bool MiniDumpWriteDump(IntPtr process,uint pid,IntPtr file,uint type,ref DumpExceptionInfo exception,IntPtr user,IntPtr callbacks);

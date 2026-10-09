@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory = $true)][string]$InstallRoot,
     [string]$OutputDirectory = 'build.artifacts/gui',
     [string]$ScorePath = '',
-    [ValidateSet('default', 'software')][string]$Renderer = 'default'
+    [ValidateSet('default', 'software')][string]$Renderer = 'default',
+    [ValidateRange(0, 60)][int]$MinimumOpenSeconds = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -130,7 +131,7 @@ try {
         } | ConvertTo-Json | Set-Content (Join-Path $output 'startup-state.json')
         # Require the requested score title and sustained response, not a fleeting
         # initial window that can still freeze while startup tasks finish.
-        if ($readyChecks -ge 10) {
+        if ($readyChecks -ge 10 -and ((Get-Date) - $started).TotalSeconds -ge $MinimumOpenSeconds) {
             if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
             $interruptions = $windows | Where-Object {
                 $_.Title -match 'Welcome|First.?launch|MuseScore Studio Development' -or
