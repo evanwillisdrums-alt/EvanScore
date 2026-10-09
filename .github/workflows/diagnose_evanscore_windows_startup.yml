@@ -399,6 +399,22 @@ jobs:
           path: downloaded-app
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Get matching symbols for repeated-score crash tracing
+        if: inputs.mode == 'dynamics'
+        uses: actions/download-artifact@v5
+        with:
+          name: EvanScore-Windows-native-symbols
+          path: native-symbols
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Place matching symbols beside the tested executable
+        if: inputs.mode == 'dynamics'
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem downloaded-app -Filter 'MuseScore*.exe' -Recurse | Select-Object -First 1
+          $symbols = @(Get-ChildItem native-symbols -Filter '*.pdb' -Recurse)
+          if (-not $app -or $symbols.Count -eq 0) { throw 'Matching native crash symbols are missing' }
+          $symbols | ForEach-Object { Copy-Item $_.FullName $app.DirectoryName }
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
