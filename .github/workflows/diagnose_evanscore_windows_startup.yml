@@ -25,6 +25,7 @@ on:
           - desktop
           - exceptions
           - layout
+          - verify-package
         default: inspect-logs
 
 permissions:
@@ -32,6 +33,56 @@ permissions:
   contents: read
 
 jobs:
+  verify-package:
+    if: inputs.mode == 'verify-package'
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Confirm the native build and source
+        id: native
+        uses: actions/github-script@v8
+        env:
+          EVANSCORE_NATIVE_RUN_ID: ${{ inputs.run_id }}
+        with:
+          script: |
+            const runId = Number(process.env.EVANSCORE_NATIVE_RUN_ID);
+            if (!Number.isSafeInteger(runId)) throw new Error('Invalid native run ID');
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner: context.repo.owner, repo: context.repo.repo, run_id: runId});
+            if (run.status !== 'completed' || run.path !== '.github/workflows/build_evanscore_windows.yml' || run.head_repository.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              throw new Error('The package must come from a completed native app build in this repository');
+            }
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {owner: context.repo.owner, repo: context.repo.repo, run_id: runId});
+            if (!jobs.some(job => job.steps?.some(step => step.name === 'Compile and deploy the native app' && step.conclusion === 'success'))) {
+              throw new Error('The native app did not compile and deploy successfully');
+            }
+            core.setOutput('sha', run.head_sha);
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: build.install
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify the downloaded full Windows package
+        shell: pwsh
+        env:
+          EVANSCORE_NATIVE_SOURCE_SHA: ${{ steps.native.outputs.sha }}
+        run: ./buildscripts/ci/windows/verify_evanscore_app.ps1
+      - name: Upload the verified runnable app
+        uses: actions/upload-artifact@v7
+        with:
+          name: EvanScore-Windows-x64
+          path: build.install/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: EvanScore-Windows-build-checks
+          path: build.artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+
   inspect:
     if: inputs.mode == 'inspect-logs'
     runs-on: ubuntu-latest

@@ -61,7 +61,8 @@ foreach ($renderer in @('default', 'software')) {
 }
 
 $relativeApp = [System.IO.Path]::GetRelativePath((Resolve-Path build.install).Path, $app.FullName)
-$source = "https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA"
+$sourceSha = if ($env:EVANSCORE_NATIVE_SOURCE_SHA) { $env:EVANSCORE_NATIVE_SOURCE_SHA } else { $env:GITHUB_SHA }
+$source = "https://github.com/$env:GITHUB_REPOSITORY/tree/$sourceSha"
 if (-not (Get-ChildItem build.install -Filter 'EvanScoreNoteInput.qml' -Recurse)) {
     throw 'The floating note-input plugin was not installed'
 }

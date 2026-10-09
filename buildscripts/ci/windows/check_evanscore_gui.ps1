@@ -61,13 +61,38 @@ $main = $null
 $ready = $false
 $closedCleanly = $false
 try {
+    $scoreToOpen = ''
+    if ($ScorePath) {
+        # Engraving reference XML is not a complete application project: absent
+        # audio/view metadata can mark it changed and legitimately prompt on quit.
+        # Round-trip it through this exact app before testing normal GUI closure.
+        $scoreToOpen = Join-Path $output ([System.IO.Path]::GetFileNameWithoutExtension($ScorePath) + '.mscz')
+        $env:QT_QPA_PLATFORM = 'offscreen'
+        $prepare = Start-Process -FilePath $app.FullName `
+            -ArgumentList @('-o', ('"' + $scoreToOpen + '"'), ('"' + (Resolve-Path $ScorePath).Path + '"')) `
+            -WorkingDirectory $app.DirectoryName -PassThru `
+            -RedirectStandardOutput (Join-Path $output 'prepare-score-stdout.log') `
+            -RedirectStandardError (Join-Path $output 'prepare-score-stderr.log')
+        if (-not $prepare.WaitForExit(120000)) {
+            $prepare.Kill()
+            throw 'The app did not finish saving the GUI test score'
+        }
+        $prepare.Refresh()
+        if ($prepare.ExitCode -ne 0 -or -not (Test-Path $scoreToOpen)) {
+            throw 'The app could not save a native GUI test score'
+        }
+        $savedScore = [System.IO.File]::ReadAllBytes($scoreToOpen)
+        if ($savedScore.Length -lt 1024 -or $savedScore[0] -ne 0x50 -or $savedScore[1] -ne 0x4B) {
+            throw 'The saved GUI test score is not a native MSCZ archive'
+        }
+    }
     # Use the real Windows desktop; a PDF export never loads the main QML window.
     $env:QT_QPA_PLATFORM = 'windows'
     if ($Renderer -eq 'software') { $env:QT_QUICK_BACKEND = 'software' }
     else { Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue }
     $launchArguments = @('--debug')
-    if ($ScorePath) {
-        $launchArguments += ('"' + (Resolve-Path $ScorePath).Path + '"')
+    if ($scoreToOpen) {
+        $launchArguments += ('"' + $scoreToOpen + '"')
     } else {
         $launchArguments += @('--session-type', 'start-empty')
     }
@@ -109,7 +134,7 @@ try {
             if ($main.Title -notlike '*EvanScore*') { throw "Unexpected main window title: $($main.Title)" }
             $interruptions = $windows | Where-Object {
                 $_.Title -match 'Welcome|First.?launch|MuseScore Studio Development' -or
-                ($_.Class -match '^Qt[0-9]+QWindow$' -and $_.Handle -ne $main.Handle)
+                ($_.Class -match '^Qt[0-9]+QWindow' -and $_.Handle -ne $main.Handle)
             }
             if ($interruptions) { throw 'An unexpected startup dialog covers the score workspace' }
             $ready = $true
