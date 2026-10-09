@@ -241,6 +241,19 @@ jobs:
                   print('::notice title=Windows launch diagnostics::' + message)
                   notices += 1
           PY
+      - name: Report beginning of failed snare launch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files = sorted(Path('checks').rglob('drum-score/stderr.log'))
+          files += sorted(Path('checks').rglob('drum-score/MuseScore*.log'))
+          for file in files:
+              content = file.read_text(encoding='utf-8-sig', errors='replace')
+              head = content[:12000]
+              for offset in range(0, len(head), 2800):
+                  message = (str(file) + f' length={len(content)} offset={offset}\n' + head[offset:offset+2800]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Snare launch beginning::' + message)
+          PY
       - name: Report small desktop capture for startup inspection
         run: |
           python3 -m venv /tmp/capture-tools
