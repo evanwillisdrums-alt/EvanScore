@@ -14,6 +14,8 @@ Source `1e1a95f83443b316206e5bd6b0b6f0edafdd5edc`, [run 37882347384](https://git
 
 After a full build passes, run the desktop diagnostic against the actual uploaded `EvanScore-Windows-x64` artifact on fresh Windows runners. The updated desktop check must also confirm normal exit after requesting window closure; do not silently accept a forced shutdown. These checks can use the newer script without rebuilding the native binary.
 
+The next full build is [run 37883676631](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/37883676631), job `113668793073`, source `85c8731f8463b8568c140569dc7c5d7a5b4cab01`. It is compiling at this checkpoint; its keep-going failure sweep should expose other independent errors if the initial build fails.
+
 ## Startup findings and fixes to preserve
 
 - `643cfebc6ed7ebb65f352177a3f2b384d3200046`: the notation toolbar must be resizable and left-aligned. A centered, fixed toolbar repeatedly changed minimum sizes/padding during Qt window polishing, trapping startup in layout. Windows experiment [37841470959](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/37841470959), left variant job `113531633141`, passed empty-workspace and score-open response checks. This was an isolated experiment; the new full native package must pass without its helper.
@@ -47,5 +49,7 @@ The reconnected cloud retained `/workspace`, the local SDK/build, and `/workspac
 ## Work after the download is verified
 
 The user authorized further UI polish, useful quality-of-life improvements, and optimization after finishing current build/startup work. Preserve the priority order. Audit the existing UI/keypad/dynamics against the supplied Logic-inspired references, retain native music fonts/glyphs, improve spacing/rounding/contrast and keyboard access, and verify controls/resizing/persistence on Windows. Avoid changes that needlessly restart a pending release build.
+
+One issue found during the pending-build audit: the DynamicsPanel note-velocity and bend sliders commit on mouse release but not on keyboard `moved` events. After current startup/build validation, make keyboard slider edits commit while preserving one edit on mouse release, and check them using the actual Qt controls. Curve keyboard editing itself already emits its edit signal.
 
 The mallet visualizer remains in planning. Do not claim it ships. The entire 36-page uploaded research synthesis and the original demonstration timeline were reviewed. [mallet-visualizer-plan.md](mallet-visualizer-plan.md) records the optional Mixer-like bottom dock, range-correct keyboard, mandatory overhead body/arms/mallets, front view, sticking, diagnostics, alternatives, audition/compare, and explicit undoable commit. [mallet-research-sources.md](mallet-research-sources.md) records citations, corrections, and primary sources still needing verification. Visual panning and expanded library-specific technique mapping are separate feature phases. Battery remains the user's main focus.
