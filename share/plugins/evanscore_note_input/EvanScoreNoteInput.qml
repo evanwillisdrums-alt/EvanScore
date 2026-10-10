@@ -246,7 +246,7 @@ MuseScore {
             }
         } catch (error) {
             curScore.endCmd(true);
-            hostServices.upgradeNotice(qsTr("Native articulation edit failed; no changes applied."));
+            showNotice("Native articulation edit failed; no changes applied.");
             return false;
         }
         curScore.endCmd();
@@ -301,7 +301,7 @@ MuseScore {
                 note.headType = type;
         } catch (error) {
             curScore.endCmd(true);
-            hostServices.upgradeNotice(qsTr("Notehead edit failed; no changes applied."));
+            showNotice("Notehead edit failed; no changes applied.");
             return false;
         }
         curScore.endCmd();
@@ -387,7 +387,7 @@ MuseScore {
             }
         } catch (error) {
             curScore.endCmd(true);
-            hostServices.upgradeNotice(qsTr("Fermata edit failed; no changes applied."));
+            showNotice("Fermata edit failed; no changes applied.");
             return false;
         }
         curScore.endCmd();
