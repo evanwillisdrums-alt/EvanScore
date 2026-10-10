@@ -386,6 +386,16 @@ private:
             if (dock) qWarning() << "DYNAMICS INSPECTOR toolbar" << name << "height" << dock->height()
                 << "min/max" << dock->property("minimumHeight") << dock->property("maximumHeight")
                 << "content" << dock->property("contentHeight");
+            for (auto* ancestor = dock; ancestor; ancestor = ancestor->parentItem()) {
+                qWarning() << "DYNAMICS INSPECTOR toolbar ancestor" << ancestor->metaObject()->className()
+                    << ancestor->objectName() << ancestor->size()
+                    << ancestor->property("kddockwidgets_min_size") << ancestor->property("kddockwidgets_max_size");
+            }
+            for (auto* obj : objects(window)) {
+                if (obj->objectName() == name) qWarning() << "DYNAMICS INSPECTOR toolbar object"
+                    << obj->metaObject()->className() << obj->property("height") << obj->property("minimumHeight")
+                    << obj->property("maximumHeight") << obj->property("contentHeight");
+            }
             if (!dock || qAbs(dock->height() - 36.0) > 0.5)
                 qFatal("Transport dock row height regression: %s", name);
         }
