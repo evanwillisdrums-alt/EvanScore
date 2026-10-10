@@ -40,14 +40,16 @@ New battery scores use this profile if you have not saved your own default. Use 
 
 | Marking | Ordinary stroke | Tap | Tenuto | Accent / Marcato | Ghost |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| pp | 45 | 45 | 60 | 60 | 0 |
-| p | 60 | 60 | 64 | 64 | 0 |
-| mp | 72 | 60 | 72 | 72 | 0 |
-| mf | 84 | 60 | 72 | 84 | 0 |
-| f | 100 | 60 | 84 | 100 | 0 |
-| ff | 114 | 60 | 100 | 114 | 0 |
-| fff | 126 | 60 | 114 | 126 | 0 |
+| pp | 48 | 48 | 58 | 58 | 0 |
+| p | 58 | 58 | 62 | 62 | 0 |
+| mp | 69 | 58 | 69 | 69 | 0 |
+| mf | 77 | 58 | 71 | 77 | 0 |
+| f | 88 | 58 | 80 | 88 | 0 |
+| ff | 97 | 58 | 90 | 97 | 0 |
+| fff | 113 | 58 | 107 | 113 | 0 |
 
 The user's stroke reference is pp=1 inch, p=3, mp=6, mf=9, f=12, ff=15, fff=18; pp accents/tenutos=3, p accents/tenutos=4, and p+ taps=3. Ghosts in battery writing mean no stroke. These velocities are an editable starting calibration with a raised quiet end, not a universal inches-to-velocity formula or verified Virtual Drumline preset. Sound patches have different velocity layers and responses; audition and adjust with the actual library. Additional quieter/louder markings remain available. Soft accent follows Tenuto, Stress follows Accent, and Unstress follows Tap in this starting profile.
 
-Research checked on 2026-10-09: [Vic Firth Marching Percussion 101](https://ae.vicfirth.com/education/marching-percussion-101/) explicitly teaches two-height control as a fundamental battery skill. [Tapspace Virtual Drumline 2.5](https://www.tapspace.com/virtual-drumline/) documents multi-sampled velocity layers, attack/release/EQ controls, automatic hand alternation, and loading through Kontakt Player. These support separate stroke roles and library-specific calibration, but do not specify a universal MIDI velocity for each physical height. The linked VDL user guide remains inaccessible from this environment until its support hostname is enabled.
+Research checked on 2026-10-09: [Vic Firth Marching Percussion 101](https://ae.vicfirth.com/education/marching-percussion-101/) explicitly teaches two-height control as a fundamental battery skill. [Tapspace Virtual Drumline 2.5](https://www.tapspace.com/virtual-drumline/) documents multi-sampled velocity layers, attack/release/EQ controls, automatic hand alternation, and loading through Kontakt Player. These support separate stroke roles and library-specific calibration, but do not specify a universal MIDI velocity for each physical height. The user subsequently supplied the VDL guide; actual licensed sample loudness still requires auditioning.
+
+The 2026-10-10 revision blends the user's uploaded `EvanScore-Dynamics.evands` with the earlier starting calibration. Its gentler accent range is retained while restoring clearer separation at f–fff. Untouched stock Normal/Soft accent/Stress/Unstress lanes follow the battery roles consistently; battery Ghost stays silent despite the uploaded file's nonzero ghost lane, honoring the explicit no-stroke preference. pp taps retain the softer one-inch exception; p and higher taps remain identical. Niente stays silent in every lane, and extra markings below pp remain quieter. The default curve bend is the midpoint 0.125; articulation smoothing remains enabled. Saved personal defaults and existing scores retain their settings.

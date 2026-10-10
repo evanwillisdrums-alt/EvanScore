@@ -302,22 +302,22 @@ static constexpr std::array<const char*, 9> ROLE_NAMES { "normal", "tap", "accen
 MStyle DynamicsPlayback::marchingSnareDefaults(const MStyle& base)
 {
     MStyle result = base;
-    // Starting calibration, not a physical inches-to-MIDI conversion. Raise
-    // quiet strokes above the original scale; sample libraries still need auditioning.
+    // Blend the user's EvanScore-Dynamics preset with our starting calibration.
+    // Untouched stock lanes are made consistent with the edited battery roles;
+    // this is not a physical inches-to-MIDI conversion or a VDL calibration.
     const auto ordinary = [](DynamicType type, int fallback) {
         switch (type) {
-        case DynamicType::PP: return 45;
-        case DynamicType::P: return 60;
-        case DynamicType::MP: return 72;
-        case DynamicType::MF: return 84;
-        case DynamicType::F: return 100;
-        case DynamicType::FF: return 114;
-        case DynamicType::FFF: return 126;
+        case DynamicType::PP: return 48;
+        case DynamicType::P: return 58;
+        case DynamicType::MP: return 69;
+        case DynamicType::MF: return 77;
+        case DynamicType::F: return 88;
+        case DynamicType::FF: return 97;
+        case DynamicType::FFF: return 113;
         default: return std::max(0, fallback);
         }
     };
     const int tap = ordinary(DynamicType::P, 0);
-    const int mp = ordinary(DynamicType::MP, 0);
     for (int role = Normal; role <= Unstress; ++role) {
         std::string values;
         for (const auto& def : Dynamic::definitions()) {
@@ -326,15 +326,15 @@ MStyle DynamicsPlayback::marchingSnareDefaults(const MStyle& base)
             if (role == Ghost) value = 0; // Battery ghost notation means no stroke.
             if (role == Accent || role == Marcato || role == Stress || role == Tenuto || role == SoftAccent) {
                 if (def.type == DynamicType::PP) value = tap; // 1-inch base, 3-inch accent/tenuto.
-                if (def.type == DynamicType::P) value = tap + (mp - tap) / 3; // 4-inch accent/tenuto.
+                if (def.type == DynamicType::P) value = 62; // 4-inch accent/tenuto; midpoint of 60 and 64.
                 if (role == Tenuto || role == SoftAccent) {
                     // Above mp, intermediate strokes stay one height below the accent.
                     switch (def.type) {
-                    case DynamicType::MF: value = mp; break;
-                    case DynamicType::F: value = ordinary(DynamicType::MF, 0); break;
-                    case DynamicType::FF: value = ordinary(DynamicType::F, 0); break;
-                    case DynamicType::FFF: value = ordinary(DynamicType::FF, 0); break;
-                    case DynamicType::FFFF: value = ordinary(DynamicType::FFF, 0); break;
+                    case DynamicType::MF: value = 71; break;
+                    case DynamicType::F: value = 80; break;
+                    case DynamicType::FF: value = 90; break;
+                    case DynamicType::FFF: value = 107; break;
+                    case DynamicType::FFFF: value = 120; break;
                     default: break;
                     }
                 }
@@ -347,7 +347,7 @@ MStyle DynamicsPlayback::marchingSnareDefaults(const MStyle& base)
     result.set(Sid::evanDynamicsEnabled, true);
     result.set(Sid::evanDynamicsBattery, true);
     result.set(Sid::evanDynamicsCurveShape, 0);
-    result.set(Sid::evanDynamicsCurveBend, 0.0);
+    result.set(Sid::evanDynamicsCurveBend, 0.125);
     result.set(Sid::evanDynamicsSmoothArticulations, true);
     return result;
 }

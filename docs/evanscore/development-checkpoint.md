@@ -2,6 +2,14 @@
 
 Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Balanced dynamics default — 2026-10-10
+
+User supplied `EvanScore-Dynamics.evands` and authorized a middle ground as the new default. Updated `marchingSnareDefaults`: pp/p/mp/mf/f/ff/fff ordinary 48/58/69/77/88/97/113; taps pp48 and p+58; accents/marcato 58/62/69/77/88/97/113; tenuto 58/62/69/71/80/90/107. Ghost remains zero, quiet tenuto=accent, stock auxiliary lanes follow their corresponding battery role, smoothing stays on, default bend 0.125. New battery scores and Marching Snare Defaults use this; existing scores and saved personal defaults retain precedence.
+
+The real native function exported `share/styles/EvanScore-Dynamics-Balanced.evands`. Rebuilt engraving and core harness; all 48 regression tests pass, including real preset parsing/round-trip and silent ghost ramps. Verified generated preset has constant p+ taps, silent ghosts and niente, all nine lanes. Do not claim sample loudness was measured in Kontakt.
+
+Preserve the first VDL build already compiling; this commit uses `[skip ci]` to avoid its cancellation. A deferred `/tmp/evanscore-balanced-build-queue.py` schedules the updated Windows build after 38074251521 finishes; its status is recorded in `/tmp/evanscore-balanced-build-queue.json`. The updated package still needs Windows desktop and feature validation.
+
 ## Latest priority — native VDL first build (2026-10-10)
 
 Pushed native source `2f14a185b3df0ef3af4756497044443c31ac0706`. Windows build [38074251521](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/38074251521) is running. The updated `/tmp/evanscore-final-build-watch.py` waits for this exact build/source, then dispatches Dynamics/mallet/keypad checks; inspect `/tmp/evanscore-final-build-watch.json` and its log for actual completion. No validated download yet.

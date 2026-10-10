@@ -531,21 +531,21 @@ TEST_F(Engraving_DynamicsPlaybackTests, MarchingStartingProfileFollowsStrokeRole
     EXPECT_TRUE(DynamicsPlayback::enabled(score.get()));
     EXPECT_TRUE(score->style().styleB(Sid::evanDynamicsSmoothArticulations));
     const std::array<std::pair<DynamicType, int>, 7> levels {{
-        {DynamicType::PP, 45}, {DynamicType::P, 60}, {DynamicType::MP, 72},
-        {DynamicType::MF, 84}, {DynamicType::F, 100}, {DynamicType::FF, 114}, {DynamicType::FFF, 126}
+        {DynamicType::PP, 48}, {DynamicType::P, 58}, {DynamicType::MP, 69},
+        {DynamicType::MF, 77}, {DynamicType::F, 88}, {DynamicType::FF, 97}, {DynamicType::FFF, 113}
     }};
     for (const auto& [type, normal] : levels) {
         EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Normal), normal);
-        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Tap), type == DynamicType::PP ? 45 : 60);
+        EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Tap), type == DynamicType::PP ? 48 : 58);
         EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Ghost), 0);
     }
     for (auto type : {DynamicType::PP, DynamicType::P, DynamicType::MP}) {
         EXPECT_EQ(DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Accent),
                   DynamicsPlayback::level(score.get(), type, DynamicsPlayback::Tenuto));
     }
-    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::PP, DynamicsPlayback::Accent), 60);
-    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::P, DynamicsPlayback::Accent), 64);
-    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::MP, DynamicsPlayback::Accent), 72);
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::PP, DynamicsPlayback::Accent), 58);
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::P, DynamicsPlayback::Accent), 62);
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::MP, DynamicsPlayback::Accent), 69);
     for (const auto& def : Dynamic::definitions()) {
         for (int role = DynamicsPlayback::Normal; role <= DynamicsPlayback::Unstress; ++role) {
             const int value = DynamicsPlayback::level(score.get(), def.type, role);
