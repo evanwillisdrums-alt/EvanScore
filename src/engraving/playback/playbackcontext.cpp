@@ -414,6 +414,7 @@ void PlaybackContext::clear(const track_idx_t trackFrom, const track_idx_t track
         }
     };
 
+    eraseTickRangeByTrack(m_percussionFlags);
     eraseTickRangeByTrack(m_soundPresetsByTrack);
     eraseTickRangeByTrack(m_textArticulationsByTrack);
     eraseTickRangeByTrack(m_syllablesByTrack);
@@ -588,6 +589,23 @@ void PlaybackContext::handleSegmentAnnotations(const Segment* segment, const int
         }
 
         if (annotation->isStaffText()) {
+            const auto token = muse::mpe::percussionToken(toStaffText(annotation)->plainText().toStdString());
+            std::array<int, 3> flags {-1, -1, -1};
+            if (token == "center" || token == "centre" || token == "centerofhead") flags[0] = 0;
+            else if (token == "halfway" || token == "halfwaytoedge") flags[0] = 1;
+            else if (token == "edge" || token == "edgeofhead") flags[0] = 2;
+            else if (token == "snaresoff" || token == "gutsoff") flags[1] = 1;
+            else if (token == "snareson" || token == "gutson") flags[1] = 0;
+            else if (token == "solo") flags[2] = 1;
+            else if (token == "line") flags[2] = 0;
+            if (flags != std::array<int, 3>{-1, -1, -1}) {
+                const int staffTrack = int(annotation->staffIdx()) * VOICES;
+                for (int t = staffTrack; t < staffTrack + VOICES; ++t) {
+                    auto& map = m_percussionFlags[t];
+                    auto [entry, added] = map.try_emplace(segmentPositionTick, std::array<int, 3>{-1, -1, -1});
+                    for (int i = 0; i < 3; ++i) if (flags[i] != -1) entry->second[i] = flags[i];
+                }
+            }
             if (const SoundFlag* flag = toStaffText(annotation)->soundFlag()) {
                 if (soundFlagPlayable(flag)) {
                     soundFlagsByPart[annotationPart].emplace(flag->staffIdx(), flag);
@@ -604,6 +622,20 @@ void PlaybackContext::handleSegmentAnnotations(const Segment* segment, const int
             updateSoundPresetAndTextArticulationMap(part, flagsOnSegment, segmentPositionTick);
         }
     }
+}
+
+std::array<int, 3> PlaybackContext::percussionFlags(track_idx_t track, int tick) const
+{
+    std::array<int, 3> result {0, 0, 0};
+    const auto found = m_percussionFlags.find(track);
+    if (found == m_percussionFlags.end()) return result;
+    std::array<bool, 3> known {};
+    for (auto it = found->second.upper_bound(tick); it != found->second.begin();) {
+        --it;
+        for (int i = 0; i < 3; ++i) if (!known[i] && it->second[i] != -1) { result[i] = it->second[i]; known[i] = true; }
+        if (known[0] && known[1] && known[2]) break;
+    }
+    return result;
 }
 
 void PlaybackContext::handleSegmentElements(const RepeatSegment* repeat, const Segment* segment,
@@ -714,6 +746,8 @@ void PlaybackContext::handleMeasureRepeats(const std::vector<const MeasureRepeat
                              newItemsOffsetTick);
             copyItemsInRange(m_syllablesByTrack, trackRange.startTrack, trackRange.endTrack, startTick, endTick, newItemsOffsetTick);
             copyItemsInRange(m_playTechniquesByTrack, trackRange.startTrack, trackRange.endTrack, startTick, endTick,
+                             newItemsOffsetTick);
+            copyItemsInRange(m_percussionFlags, trackRange.startTrack, trackRange.endTrack, startTick, endTick,
                              newItemsOffsetTick);
 
             currMeasure = currMeasure->nextMeasure();

@@ -43,6 +43,7 @@ class RepeatSegment;
 class PlaybackContext
 {
 public:
+    std::array<int, 3> percussionFlags(track_idx_t track, int tick) const;
     explicit PlaybackContext(const Score* score);
 
     muse::mpe::dynamic_level_t appliableDynamicLevel(const track_idx_t trackIdx, const int nominalPositionTick) const;
@@ -109,6 +110,7 @@ private:
     TextArticulationsByTrack m_textArticulationsByTrack;
     SyllablesByTrack m_syllablesByTrack;
     PlayTechniquesByTrack m_playTechniquesByTrack;
+    std::map<track_idx_t, std::map<int, std::array<int, 3>>> m_percussionFlags;
 
     std::unordered_map<const ChordRest*, int> m_currentVerseNumByChordRest;
     std::map<track_idx_t, std::set<int /*tick*/> > m_multiVerseLyricsPositionMap;

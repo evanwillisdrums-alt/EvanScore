@@ -1,0 +1,272 @@
+diff --git a/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml b/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml
+index dab16732c..25e008719 100644
+--- a/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml
++++ b/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml
+@@ -71,7 +71,7 @@ Rectangle {
+ 
+     onTabBarCppChanged: { updateMouseArea() }
+     onDraggingTabsAllowedChanged: { updateMouseArea() }
+-    onCurrentIndexChanged: { updateToolBarComponent() }
++    onCurrentIndexChanged: { updateToolBarComponent(); Qt.callLater(tabs.ensureCurrentVisible) }
+ 
+     Connections {
+         target: root.tabsModel
+@@ -87,12 +87,13 @@ Rectangle {
+         anchors.left: parent.left
+ 
+         width: Math.min(contentWidth, availableWidth)
++        clip: true
+ 
+         orientation: Qt.Horizontal
+         interactive: false
+         spacing: 0
+ 
+-        readonly property real availableWidth: root.width + 1  // + 1, because we don't need to see the rightmost separator
++        readonly property real availableWidth: Math.max(0, root.width + 1 - (overflowButton.visible ? overflowButton.width : 0))
+ 
+         onAvailableWidthChanged: { layoutTabs() }
+ 
+@@ -107,28 +108,16 @@ Rectangle {
+ 
+         function doLayoutTabs() {
+             layoutTabsScheduled = false
+-
+-            let implicitWidthOfActiveTab = currentItem?.implicitWidth ?? 0
+-            let implicitWidthOfAllTabsTogether = 0
+-
+             for (let tab of contentItem.children) {
+-                implicitWidthOfAllTabsTogether += tab?.implicitWidth ?? 0
+-            }
+-
+-            const enoughSpace = implicitWidthOfAllTabsTogether <= availableWidth;
+-            for (let tab of contentItem.children) {
+-                if (tab.isCurrent || enoughSpace) {
+-                    tab.width = tab.implicitWidth
+-                    tab.isCutOff = false
+-                } else {
+-                    tab.width = (availableWidth - implicitWidthOfActiveTab)
+-                            / (implicitWidthOfAllTabsTogether - implicitWidthOfActiveTab)
+-                            * tab.implicitWidth
+-                    tab.isCutOff = true
+-                }
++                if (tab.text === undefined) continue
++                tab.width = tab.implicitWidth
++                tab.isCutOff = false
+             }
++            Qt.callLater(ensureCurrentVisible)
+         }
+ 
++        function ensureCurrentVisible() { positionViewAtIndex(currentIndex, ListView.Contain) }
++
+         delegate: DockPanelTab {
+             required property var model
+ 
+@@ -163,7 +152,7 @@ Rectangle {
+ 
+         anchors.top: parent.top
+         anchors.left: parent.left
+-        width: tabs.contentWidth
++        width: tabs.width
+         height: root.height - bottomSeparator.height
+ 
+         hoverEnabled: false
+@@ -181,6 +170,29 @@ Rectangle {
+         }
+     }
+ 
++    MenuButton {
++        id: overflowButton
++        anchors.right: parent.right
++        anchors.top: parent.top
++        anchors.bottom: bottomSeparatorContainer.top
++        width: 30
++        visible: tabs.contentWidth > root.width + 1
++        navigation.panel: root.navigationPanel
++        navigation.name: "AllDockTabs"
++        navigation.order: 1000
++        navigation.accessible.name: qsTrc("dock", "All panel tabs")
++        menuModel: {
++            const result = []
++            const count = root.tabsModel ? root.tabsModel.numTabs : 0
++            for (let i = 0; i < count; ++i) {
++                const title = root.tabsModel.data(root.tabsModel.index(i, 0), DockTabsModel.Title)
++                result.push({id: String(i), title: title, enabled: true, checkable: true, checked: root.currentIndex === i})
++            }
++            return result
++        }
++        onHandleMenuItem: function(itemId) { root.tabClicked(Number(itemId)) }
++    }
++
+     Loader {
+         id: toolbarLoader
+ 
+@@ -188,6 +200,7 @@ Rectangle {
+         anchors.left: tabs.right
+         anchors.right: parent.right
+         anchors.bottom: bottomSeparatorContainer.top
++        visible: !overflowButton.visible
+     }
+ 
+     Item {
+diff --git a/framework/mpe/events.h b/framework/mpe/events.h
+index 5ceb30e60..005d3dbc4 100644
+--- a/framework/mpe/events.h
++++ b/framework/mpe/events.h
+@@ -23,6 +23,7 @@
+ 
+ #include <variant>
+ #include <vector>
++#include "percussionsource.h"
+ 
+ #include "async/channel.h"
+ #include "realfn.h"
+@@ -72,10 +73,11 @@ struct PitchContext
+ {
+     pitch_level_t nominalPitchLevel = 0;
+     PitchCurve pitchCurve;
++    PercussionSource percussion;
+ 
+     bool operator==(const PitchContext& other) const
+     {
+-        return nominalPitchLevel == other.nominalPitchLevel
++        return percussion == other.percussion && nominalPitchLevel == other.nominalPitchLevel
+                && pitchCurve == other.pitchCurve;
+     }
+ };
+@@ -144,6 +146,8 @@ struct NoteEvent
+         return m_pitchCtx;
+     }
+ 
++    void setPercussionSource(const PercussionSource& source) { m_pitchCtx.percussion = source; }
++
+     const ExpressionContext& expressionCtx() const
+     {
+         return m_expressionCtx;
+diff --git a/framework/vst/internal/synth/vstsequencer.cpp b/framework/vst/internal/synth/vstsequencer.cpp
+index 48555b3e6..a4cc2f968 100644
+--- a/framework/vst/internal/synth/vstsequencer.cpp
++++ b/framework/vst/internal/synth/vstsequencer.cpp
+@@ -163,9 +163,19 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
+                                 SostenutoTimeAndDurations& sostenutoTimeAndDurations)
+ {
+     const mpe::ArrangementContext& arrangementCtx = noteEvent.arrangementCtx();
+-    const int32_t noteId = noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
++    int32_t noteId = noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
++    if (m_vdlSnareManual) {
++        const auto route = mpe::snareLineManualRoute(noteEvent.pitchCtx().percussion);
++        if (!route.supported()) {
++            if (m_vdlWarnings.insert(route.diagnostic).second) LOGW() << "VDL: " << route.diagnostic;
++            return;
++        }
++        noteId = route.pitch;
++        if (arrangementCtx.hasStart())
++            addParamChange(destination, arrangementCtx.actualTimestamp, MODWHEEL_IDX, route.modulation / 127.0);
++    }
+     const float velocityFraction = noteVelocityFraction(noteEvent);
+-    const float tuning = noteTuning(noteEvent, noteId);
++    const float tuning = m_vdlSnareManual ? 0.f : noteTuning(noteEvent, noteId);
+ 
+     if (arrangementCtx.hasStart()) {
+         if (m_useDynamicEvents) {
+diff --git a/framework/vst/internal/synth/vstsequencer.h b/framework/vst/internal/synth/vstsequencer.h
+index 8e979306e..40ae17d10 100644
+--- a/framework/vst/internal/synth/vstsequencer.h
++++ b/framework/vst/internal/synth/vstsequencer.h
+@@ -33,6 +33,7 @@ public:
+     void init(ParamsMapping&& mapping, bool useDynamicEvents);
+ 
+     muse::audio::gain_t currentGain() const;
++    void setVdlSnareManual(bool enabled) { m_vdlSnareManual = enabled; }
+ 
+ private:
+     void updateMainStreamEvents(const mpe::PlaybackEventsMap& events, const mpe::DynamicAutomationLayers& dynamics) override;
+@@ -62,6 +63,8 @@ private:
+     float pitchBendLevel(const mpe::pitch_level_t pitchLevel) const;
+ 
+     bool m_inited = false;
++    bool m_vdlSnareManual = false;
++    std::set<std::string> m_vdlWarnings;
+     bool m_useDynamicEvents = false;
+     ParamsMapping m_mapping;
+ };
+diff --git a/framework/vst/internal/synth/vstsynthesiser.cpp b/framework/vst/internal/synth/vstsynthesiser.cpp
+index 79bc46b51..51cb58cff 100644
+--- a/framework/vst/internal/synth/vstsynthesiser.cpp
++++ b/framework/vst/internal/synth/vstsynthesiser.cpp
+@@ -30,6 +30,7 @@ using namespace muse::audio;
+ using namespace muse::audioplugins;
+ 
+ static const std::set<Steinberg::Vst::CtrlNumber> SUPPORTED_CONTROLLERS = {
++    Steinberg::Vst::kCtrlModWheel,
+     Steinberg::Vst::kCtrlVolume,
+     Steinberg::Vst::kCtrlExpression,
+     Steinberg::Vst::kCtrlSustainOnOff,
+@@ -65,6 +66,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
+         m_pluginPtr->updatePluginConfig(m_params.configuration);
+         m_vstAudioClient->setOutputSpec(m_outputSpec);
+         m_vstAudioClient->loadSupportedParams();
++        m_sequencer.setVdlSnareManual(m_params.resourceMeta.attributeVal(u"evanVdlMap") == u"snare-manual");
+         m_sequencer.init(m_vstAudioClient->paramsMapping(SUPPORTED_CONTROLLERS), m_useDynamicEvents);
+         m_inited = true;
+     };
+diff --git a/framework/mpe/percussionsource.h b/framework/mpe/percussionsource.h
+new file mode 100644
+index 000000000..f87106f66
+--- /dev/null
++++ b/framework/mpe/percussionsource.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-3.0-only; MuseScore-Studio-CLA-applies */
++#pragma once
++#include <algorithm>
++#include <cctype>
++#include <string>
++#include <string_view>
++
++namespace muse::mpe {
++struct PercussionSource {
++    bool present = false;
++    std::string instrument;
++    std::string sound;
++    int hand = 0; // 0 unspecified, 1 right, 2 left; never infer alternation.
++    int zone = 0; // 0 center, 1 halfway, 2 edge.
++    bool snaresOff = false;
++    bool solo = false;
++    bool operator==(const PercussionSource&) const = default;
++};
++inline std::string percussionToken(std::string_view text)
++{
++    std::string result;
++    for (unsigned char c : text) {
++        if (std::isalnum(c)) result += char(std::tolower(c));
++    }
++    return result;
++}
++struct VdlRoute {
++    int pitch = -1;
++    int modulation = -1;
++    std::string diagnostic;
++    bool supported() const { return pitch >= 0 && pitch <= 127; }
++};
++inline VdlRoute snareLineManualRoute(const PercussionSource& source)
++{
++    if (!source.present || source.instrument != "marching-snare") return {-1, -1, "SnareLine Manual mapping requires a marching-snare instrument."};
++    if (source.hand < 0) return {-1, -1, "Conflicting or multi-stroke sticking needs an explicit per-attack assignment."};
++    const bool left = source.hand == 2;
++    const auto sound = percussionToken(source.sound);
++    int pitch = -1;
++    if (sound == "batterysnare" || sound == "snare" || sound == "snarehit" || sound == "snaredrum" || sound == "hit")
++        pitch = source.snaresOff ? (left ? 102 : 104) : source.solo ? (left ? 61 : 63) : (left ? 78 : 80);
++    else if (sound == "rimshot" || sound == "shot")
++        pitch = source.snaresOff ? (left ? 101 : 103) : source.solo ? (left ? 62 : 64) : (left ? 77 : 79);
++    else if (sound == "rimclick" || sound == "rim") {
++        if (source.snaresOff || source.solo) return {-1, -1, "The selected rim sound has no verified equivalent in this variant."};
++        pitch = left ? 73 : 75;
++    } else if (sound == "backstick") {
++        if (source.snaresOff || source.solo) return {-1, -1, "Backstick variant is not documented for this mode."};
++        pitch = left ? 82 : 83;
++    }
++    if (pitch < 0) return {-1, -1, "No reviewed SnareLine Manual equivalent for source sound: " + source.sound};
++    const int cc = source.zone == 2 ? 110 : source.zone == 1 ? 65 : 0;
++    return {pitch, cc, source.hand == 0 ? "No written hand: using the right-hand sample, without invented alternation." : "Explicit written hand retained."};
++}
++}

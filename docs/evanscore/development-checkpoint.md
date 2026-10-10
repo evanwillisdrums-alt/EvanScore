@@ -2,6 +2,18 @@
 
 Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Latest priority — native VDL first build (2026-10-10)
+
+The user requested an immediate first compile with VDL, with 6% usage remaining. Implemented prepared Kontakt state storage and Mixer selection, background restoration, preservation of notation/drumsets/sound flags, and the first independently guide-checked SnareLine Manual/LITE core map. Every-instrument mapping, rolls/buzzes, full conversion and real licensed playback remain outstanding; do not claim full VDL readiness. The user has neither Player nor library installed on their Windows PC. Use the existing installer helper there; Native Access sign-in and VDL activation cannot be performed from this Linux workspace.
+
+Framework changes ship as `buildscripts/patches/evanscore-vdl-framework.patch`, applied idempotently by root CMake to the pinned submodule. Do not commit an unpublished submodule pointer. Pristine-file apply and already-applied detection passed. Local `muse` remains dirty by design; regenerate the patch after any framework edit.
+
+Validation: seven native source units pass syntax compilation, including VST SDK units; the feature diagnostics source also passes. Six guide-based routing tests pass ASan/UBSan, and the previous 48 dynamics/sticking/core regressions pass. A real Qt/global-linked profile test passed binary state/index round-trip, mapping flag, mismatched plugin rejection, invalid path rejection and corrupt-file rejection without changing existing parameters. Actual licensed Kontakt audio is untested. Measure-repeat routing copy was added and source-checked after the initial seven-unit pass.
+
+Dock tabs now retain full label widths and have a native overflow picker; complete Windows UI verification is pending. The keypad API permits safe native-owned articulation/tremolo child selection for roll checks. The previous mallet edge-click failure remains unresolved; the next inspector logs selected mallet, current voices and notice to diagnose it. Do not provide an unverified download.
+
+Next: push native build, record run ID/source, then run existing full native Dynamics, mallet and keypad gates against that exact artifact. Exact Boss DB-90 regular click remains requested; no verified sample was obtained. Keep the entire existing roadmap, and preserve licensed-audio and patch-map limitations in the final response.
+
 ## Resume point — mallet remake awaiting Windows validation
 
 The latest full specification, written-sticking-preservation update and 38-page repeatable chord-sticking synthesis have been reviewed along with the supplied transcripts, grip photos and audited IMG_0523 demonstration. The remake is implemented in working source; see [mallet-visualizer.md](mallet-visualizer.md) for usage, research implications and exact limitations. New source is not yet a verified download.

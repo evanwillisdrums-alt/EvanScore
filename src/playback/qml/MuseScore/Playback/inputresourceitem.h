@@ -54,6 +54,10 @@ class InputResourceItem : public AbstractAudioResourceItem
 public:
     explicit InputResourceItem(QObject* parent = nullptr);
 
+    Q_INVOKABLE bool savePreparedVdlSound(const QString& name, bool snareManual);
+    Q_PROPERTY(QString vdlStatus READ vdlStatus NOTIFY vdlStatusChanged)
+    QString vdlStatus() const { return m_vdlStatus; }
+
     void requestAvailableResources() override;
     void handleMenuItem(const QString& menuItemId) override;
 
@@ -67,6 +71,8 @@ public:
     bool hasNativeEditorSupport() const override;
 
 signals:
+    void prepareVdlRequested();
+    void vdlStatusChanged();
     void inputParamsChanged();
     void inputParamsChangeRequested(const muse::audio::AudioResourceMeta& newMeta);
 
@@ -85,5 +91,7 @@ private:
 
     std::map<muse::audio::AudioResourceType, ResourceByVendorMap > m_availableResourceMap;
     muse::audio::AudioInputParams m_currentInputParams;
+    QString m_vdlStatus;
+    std::optional<muse::audio::AudioInputParams> m_pendingVdl;
 };
 }

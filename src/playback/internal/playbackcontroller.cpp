@@ -483,7 +483,8 @@ void PlaybackController::onAudioResourceChanged(const TrackId trackId, const Ins
         m_drumsetLoader.loadDrumset(m_notation, instrumentTrackId, newMeta);
     }
 
-    notationPlayback->removeSoundFlags({ instrumentTrackId });
+    if (oldMeta.attributeVal(u"evanVdlProfile").empty() && newMeta.attributeVal(u"evanVdlProfile").empty())
+        notationPlayback->removeSoundFlags({ instrumentTrackId });
 
     if (audio::isOnlineAudioResource(newMeta)) {
         m_onlineSoundsController->addOnlineTrack(trackId, newMeta);
@@ -498,6 +499,7 @@ void PlaybackController::onAudioResourceChanged(const TrackId trackId, const Ins
 bool PlaybackController::shouldLoadDrumset(const engraving::InstrumentTrackId& instrumentTrackId,
                                            const AudioResourceMeta& oldMeta, const AudioResourceMeta& newMeta) const
 {
+    if (!oldMeta.attributeVal(u"evanVdlProfile").empty() || !newMeta.attributeVal(u"evanVdlProfile").empty()) return false;
     if (oldMeta.type == newMeta.type && oldMeta.id == newMeta.id) {
         return false;
     }

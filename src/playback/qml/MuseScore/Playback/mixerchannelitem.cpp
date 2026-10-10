@@ -650,7 +650,7 @@ InputResourceItem* MixerChannelItem::buildInputResourceItem()
     InputResourceItem* newItem = new InputResourceItem(this);
 
     connect(newItem, &InputResourceItem::inputParamsChangeRequested, this, [this, newItem](const AudioResourceMeta& newMeta) {
-        if (askAboutChangingSound()) {
+        if (!newMeta.attributeVal(u"evanVdlProfile").empty() || !m_inputParams.resourceMeta.attributeVal(u"evanVdlProfile").empty() || askAboutChangingSound()) {
             newItem->setParamsRecourceMeta(newMeta);
         }
     });

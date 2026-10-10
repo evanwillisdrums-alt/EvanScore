@@ -27,6 +27,10 @@
 #include "../dom/chord.h"
 #include "../dom/note.h"
 #include "../dom/sig.h"
+#include "../dom/part.h"
+#include "../dom/instrument.h"
+#include "../dom/drumset.h"
+#include "stickingresolver.h"
 
 #include "utils/arrangementutils.h"
 #include "utils/pitchutils.h"
@@ -104,6 +108,7 @@ struct NominalNoteCtx {
     float userVelocityFraction = 0.f;
 
     muse::mpe::pitch_level_t pitchLevel = 0;
+    muse::mpe::PercussionSource percussion;
 
     RenderingContext chordCtx;
     muse::mpe::ArticulationMap articulations;
@@ -122,6 +127,21 @@ struct NominalNoteCtx {
         chordCtx(ctx),
         articulations(ctx.commonArticulations)
     {
+        const auto* instrument = note->part() ? note->part()->instrument(note->tick()) : nullptr;
+        if (instrument && instrument->useDrumset() && instrument->drumset()) {
+            percussion.present = true;
+            percussion.instrument = instrument->id().toStdString();
+            const int pitch = note->pitch();
+            if (pitch >= 0 && pitch < 128) percussion.sound = instrument->drumset()->name(pitch).toStdString();
+            const auto assignment = StickingResolver::resolve(note->chord());
+            if (assignment.kind == StickingKind::Hands && assignment.strokes.size() == 1)
+                percussion.hand = assignment.strokes.front().hand == StickingHand::Left ? 2 : 1;
+            else if (assignment.kind != StickingKind::Missing) percussion.hand = -1;
+            if (ctx.playbackCtx) {
+                const auto flags = ctx.playbackCtx->percussionFlags(note->track(), ctx.nominalPositionStartTick + ctx.positionTickOffset);
+                percussion.zone = flags[0]; percussion.snaresOff = flags[1]; percussion.solo = flags[2];
+            }
+        }
         if (DynamicsPlayback::enabled(note->score())) {
             const int fallback = static_cast<int>(ctx.nominalDynamicLevel * 127 / muse::mpe::MAX_DYNAMIC_LEVEL);
             int velocity = DynamicsPlayback::velocity(note, fallback);
@@ -134,7 +154,7 @@ struct NominalNoteCtx {
 
 inline muse::mpe::NoteEvent buildNoteEvent(const NominalNoteCtx& ctx, const muse::mpe::PitchCurve& pitchCurve = {})
 {
-    return muse::mpe::NoteEvent(ctx.timestamp,
+    auto event = muse::mpe::NoteEvent(ctx.timestamp,
                                 ctx.duration,
                                 static_cast<muse::mpe::voice_layer_idx_t>(ctx.voiceIdx),
                                 static_cast<muse::mpe::staff_layer_idx_t>(ctx.staffIdx),
@@ -144,5 +164,7 @@ inline muse::mpe::NoteEvent buildNoteEvent(const NominalNoteCtx& ctx, const muse
                                 ctx.tempo.val,
                                 ctx.userVelocityFraction,
                                 pitchCurve);
+    event.setPercussionSource(ctx.percussion);
+    return event;
 }
 }

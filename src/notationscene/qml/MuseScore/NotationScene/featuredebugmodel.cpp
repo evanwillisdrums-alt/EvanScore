@@ -22,6 +22,9 @@
 #include "engraving/dom/sticking.h"
 #include "engraving/dom/dynamicsplayback.h"
 #include "engraving/playback/stickingresolver.h"
+#include "engraving/dom/utils.h"
+#include "project/inotationproject.h"
+#include "project/iprojectaudiosettings.h"
 
 using namespace mu::notation;
 using namespace mu::engraving;
@@ -120,6 +123,15 @@ void FeatureDebugModel::refresh()
     for (size_t i = 0; i < chords.size() && i < limit; ++i) {
         const Chord* chord = chords[i];
         const auto assignment = StickingResolver::resolve(chord);
+        QJsonObject sound;
+        const auto project = context()->currentProject();
+        if (project && project->audioSettings()) {
+            const auto& meta = project->audioSettings()->trackInputParams(makeInstrumentTrackId(chord)).resourceMeta;
+            sound.insert("plugin", QString::fromStdString(meta.id));
+            sound.insert("preparedProfile", meta.attributeVal(u"evanVdlName").toQString());
+            sound.insert("playbackMap", meta.attributeVal(u"evanVdlMap").toQString());
+            sound.insert("audioVerification", "Routing metadata only; not a measurement of Kontakt output");
+        }
         const QStringList kinds { "missing", "hands", "mallets", "unsupported", "ambiguous" };
         QJsonArray strokes;
         for (const auto& stroke : assignment.strokes) {
@@ -159,7 +171,10 @@ void FeatureDebugModel::refresh()
             { "recognition", kinds.at(static_cast<int>(assignment.kind)) },
             { "strokes", strokes },
             { "diagnostic", QString::fromStdString(assignment.diagnostic) },
-            { "sampleApplication", "pending VDL playback integration" }
+            { "soundRouting", sound },
+            { "sampleApplication", sound.value("playbackMap").toString() == "snare-manual"
+                ? "SnareLine Manual core routing enabled; unsupported sounds are logged and skipped; licensed audio unverified"
+                : "pending VDL playback integration" }
         });
     }
     QJsonObject report {
@@ -171,7 +186,7 @@ void FeatureDebugModel::refresh()
         { "customDynamicsEnabled", score && DynamicsPlayback::enabled(score) },
         { "reportVersion", 2 },
         { "runtime", runtimeDiagnostics() },
-        { "virtualDrumline", "Setup helper available; conversion and sample application not yet implemented" },
+        { "virtualDrumline", "Prepared Kontakt patch states and SnareLine Manual/LITE core routing implemented; other patch maps and licensed playback remain unverified" },
         { "malletVisualizer", "Native optional panel; range-aware estimated geometry, sticking, alternatives and undoable commit" }
     };
     const QString next = QString::fromUtf8(QJsonDocument(report).toJson(QJsonDocument::Indented));

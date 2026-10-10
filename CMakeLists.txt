@@ -29,6 +29,7 @@ endif()
 
 set(MUSE_FRAMEWORK_PATH "${CMAKE_CURRENT_LIST_DIR}/muse" CACHE PATH "Path to muse framework")
 set(MUSE_FRAMEWORK_SRC_PATH ${MUSE_FRAMEWORK_PATH}/framework)
+include(${CMAKE_CURRENT_LIST_DIR}/buildscripts/cmake/ApplyEvanScoreFrameworkPatch.cmake)
 
 include(${MUSE_FRAMEWORK_PATH}/buildscripts/cmake/SetupMacOSDeploymentTarget.cmake)
 

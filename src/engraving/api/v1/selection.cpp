@@ -84,7 +84,11 @@ bool Selection::select(EngravingItem* elWrapper, bool add)
 
     // Check whether it's safe to select this element:
     // use types list from UndoableTransaction for now
-    if (!mu::engraving::UndoableTransaction::canRecordSelectedElement(e)) {
+    // Native engraving can select a roll or articulation. Undo's selection
+    // snapshot deliberately omits these child objects, but selecting a
+    // score-owned, non-generated child is safe and needed by notation tools.
+    if (!mu::engraving::UndoableTransaction::canRecordSelectedElement(e)
+        && !(!e->generated() && (e->isTremoloSingleChord() || e->isArticulation()))) {
         LOGW("Cannot select element of type %s", e->typeName());
         return false;
     }

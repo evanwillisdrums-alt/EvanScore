@@ -560,6 +560,7 @@ private:
         QSignalSpy edgeClick(edge,SIGNAL(clicked()));
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,edge->mapToScene({edge->width()/2,edge->height()/2}).toPoint());QTest::qWait(100);
         auto voices=state().value("pose").toMap().value("voices").toList();
+        qWarning() << "MALLET INSPECTOR edge click" << edgeClick.count() << "selected" << panel->property("selectedMallet") << "voices" << voices << "notice" << state().value("notice");
         if(edgeClick.count()!=1 || voices.empty() || voices.front().toMap().value("fraction").toDouble()<.85 || state().value("sourceKey")!=source) qFatal("Real edge click failed or changed score");
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,center->mapToScene({center->width()/2,center->height()/2}).toPoint());QTest::qWait(100);
         QMetaObject::invokeMethod(model,"resetStrikePoints");

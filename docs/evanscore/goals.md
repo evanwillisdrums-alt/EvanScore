@@ -44,3 +44,7 @@ Final Dynamics/Mixer run 38035605557 passed repeated mixed edits, real Set all t
 - Continue investigating the intermittent live-library crash using real failure evidence; keep repeated edits, process-memory measurements, native save/audio and clean closure as release gates.
 - Complete licensed VDL routing/conversion when actual player/library configuration is available; do not substitute guessed maps.
 - Continue the mixer/effects and spatial-placement roadmap alongside measured optimization and visual consistency. Each app change requires a fresh Windows build and relevant complete-app checks before its download.
+
+### Latest VDL implementation scope (2026-10-10)
+
+Prepared Kontakt state storage/background selection and notation-preserving switching are implemented, with a first reviewed SnareLine Manual/LITE core mapping and R/L/staff-text routing. Complete library mapping and actual licensed Windows playback remain outstanding. The Boss DB-90 regular click remains requested; no verified exact sound asset is available yet. Dock tabs retain their full labels and use an overflow picker instead of squeezing text.

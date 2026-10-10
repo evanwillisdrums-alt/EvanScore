@@ -31,6 +31,23 @@ import Muse.UiComponents
 Item {
     id: root
 
+    Connections {
+        target: root.resourceItemModel
+        ignoreUnknownSignals: true
+        function onPrepareVdlRequested() {
+            vdlPopupLoader.active = true
+            vdlPopupLoader.item.open()
+        }
+    }
+    Loader {
+        id: vdlPopupLoader
+        active: false
+        sourceComponent: PreparedVdlSoundPopup {
+            resourceItem: root.resourceItemModel
+            onClosed: vdlPopupLoader.active = false
+        }
+    }
+
     property AbstractAudioResourceItem resourceItemModel
 
     readonly property string title: root.resourceItemModel ? root.resourceItemModel.title : ""

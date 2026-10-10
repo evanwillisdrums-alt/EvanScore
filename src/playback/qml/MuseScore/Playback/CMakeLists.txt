@@ -30,6 +30,7 @@ qt_add_qml_module(playback_qml
         auxsenditem.h
         inputresourceitem.cpp
         inputresourceitem.h
+        vdlpreparedsounds.h
         mixerchannelitem.cpp
         mixerchannelitem.h
         mixerpanelcontextmenumodel.cpp
@@ -54,6 +55,7 @@ qt_add_qml_module(playback_qml
     QML_FILES
         internal/AudioProcessingProgressBar.qml
         internal/AudioResourceControl.qml
+        internal/PreparedVdlSoundPopup.qml
         internal/AuxSendControl.qml
         internal/KnobControl.qml
         internal/TransportNumberField.qml

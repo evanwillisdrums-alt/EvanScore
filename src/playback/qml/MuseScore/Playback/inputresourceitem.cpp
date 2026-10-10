@@ -34,6 +34,7 @@
 #include "audio/common/audioutils.h"
 
 #include "msbasicpresetscategories.h"
+#include "vdlpreparedsounds.h"
 
 using namespace mu;
 using namespace mu::playback;
@@ -110,6 +111,24 @@ void InputResourceItem::requestAvailableResources()
             result << buildSeparator();
         }
 
+        QVariantList prepared;
+        for (const auto& entry : vdl::entries()) {
+            const auto row = entry.toMap();
+            bool installed = false;
+            if (vstResourcesSearch != m_availableResourceMap.end())
+                for (const auto& vendor : vstResourcesSearch->second)
+                    for (const auto& meta : vendor.second)
+                        installed |= QString::fromStdString(meta.id) == row.value("plugin").toString();
+            if (!installed) continue;
+            const QString id = row.value("id").toString();
+            prepared << buildMenuItem("evanVdl:" + id, row.value("name").toString(),
+                m_currentInputParams.resourceMeta.attributeVal(u"evanVdlProfile").toQString() == id);
+        }
+        if (vdl::isKontakt(m_currentInputParams.resourceMeta))
+            prepared << buildMenuItem("evanVdlPrepare", muse::qtrc("playback", "Save current Kontakt patch…"), false);
+        if (!prepared.empty())
+            result << buildMenuItem("evanVdl", muse::qtrc("playback", "Virtual Drumline · prepared sounds"), false, prepared, false);
+
         auto sfResourcesSearch = m_availableResourceMap.find(AudioResourceType::FluidSoundfont);
         if (sfResourcesSearch != m_availableResourceMap.end()) {
             result << buildSoundFontsMenuItem(sfResourcesSearch->second);
@@ -131,6 +150,23 @@ void InputResourceItem::requestAvailableResources()
 
 void InputResourceItem::handleMenuItem(const QString& menuItemId)
 {
+    if (menuItemId == "evanVdlPrepare") { m_vdlStatus.clear(); emit vdlStatusChanged(); emit prepareVdlRequested(); return; }
+    if (menuItemId.startsWith("evanVdl:")) {
+        const QString id = menuItemId.mid(8);
+        QSettings prefs; prefs.beginGroup("evanscore/vdl/prepared/" + id);
+        const QString plugin = prefs.value("plugin").toString();
+        const auto available = m_availableResourceMap.find(AudioResourceType::VstPlugin);
+        if (available == m_availableResourceMap.end()) return;
+        for (const auto& vendor : available->second) for (const auto& meta : vendor.second) {
+            if (QString::fromStdString(meta.id) != plugin) continue;
+            AudioInputParams loaded;
+            if (!vdl::load(id, meta, loaded, m_vdlStatus)) { emit vdlStatusChanged(); emit prepareVdlRequested(); return; }
+            m_pendingVdl = std::move(loaded);
+            emit inputParamsChangeRequested(m_pendingVdl->resourceMeta);
+            m_pendingVdl.reset(); return;
+        }
+        return;
+    }
     if (menuItemId == GET_MORE_SOUNDS_ID) {
         const QString url = QString::fromStdString(globalConfiguration()->museHubWebUrl());
         const QString urlParams("muse-sounds?utm_source=mss-mixer&utm_medium=mh&utm_campaign=mss-mixer-ms-mainpage");
@@ -182,19 +218,27 @@ void InputResourceItem::setParamsRecourceMeta(const AudioResourceMeta& newMeta)
 {
     requestToCloseNativeEditorView();
 
-    m_currentInputParams.resourceMeta = newMeta;
-    m_currentInputParams.configuration.clear();
+    if (m_pendingVdl && m_pendingVdl->resourceMeta == newMeta) m_currentInputParams = *m_pendingVdl;
+    else { m_currentInputParams.resourceMeta = newMeta; m_currentInputParams.configuration.clear(); }
 
     emit titleChanged();
     emit isBlankChanged();
     emit isActiveChanged();
     emit inputParamsChanged();
 
-    requestToLaunchNativeEditorView();
+    if (!vdl::isPrepared(newMeta)) requestToLaunchNativeEditorView();
+}
+
+bool InputResourceItem::savePreparedVdlSound(const QString& name, bool snareManual)
+{
+    const bool saved = vdl::save(m_currentInputParams, name, snareManual, m_vdlStatus);
+    if (saved) m_vdlStatus = muse::qtrc("playback", "Saved. Choose this sound from Virtual Drumline · prepared sounds. Check playback with the loaded patch before continuing.");
+    emit vdlStatusChanged(); return saved;
 }
 
 QString InputResourceItem::title() const
 {
+    if (vdl::isPrepared(m_currentInputParams.resourceMeta)) return m_currentInputParams.resourceMeta.attributeVal(u"evanVdlName").toQString();
     return audio::audioSourceName(m_currentInputParams).toQString();
 }
 
