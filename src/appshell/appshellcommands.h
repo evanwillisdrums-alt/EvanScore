@@ -52,6 +52,7 @@ inline static const muse::rcommand::Command DOCK_TOGGLE_NAVIGATOR_COMMAND("comma
 inline static const muse::rcommand::Command DOCK_TOGGLE_BRAILLE_COMMAND("command://app/dock/toggle-braille");
 inline static const muse::rcommand::Command DOCK_TOGGLE_TIMELINE_COMMAND("command://app/dock/toggle-timeline");
 inline static const muse::rcommand::Command DOCK_TOGGLE_MIXER_COMMAND("command://app/dock/toggle-mixer");
+inline static const muse::rcommand::Command DOCK_TOGGLE_MALLET_COMMAND("command://app/dock/toggle-mallet");
 inline static const muse::rcommand::Command DOCK_TOGGLE_PIANO_KEYBOARD_COMMAND("command://app/dock/toggle-piano-keyboard");
 inline static const muse::rcommand::Command DOCK_TOGGLE_PERCUSSION_COMMAND("command://app/dock/toggle-percussion");
 inline static const muse::rcommand::Command DOCK_TOGGLE_STATUSBAR_COMMAND("command://app/dock/toggle-statusbar");

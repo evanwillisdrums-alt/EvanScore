@@ -31,6 +31,7 @@ static QJsonObject runtimeDiagnostics()
     QJsonObject result = processMemoryDiagnostics();
     result.insert("timeFormat", QSettings().value("evanscore/transport/musicalPosition", false).toBool() ? "bar.beat" : "elapsed");
     QJsonArray mixers;
+    QJsonArray mallets;
     for (QWindow* window : QGuiApplication::allWindows()) {
         const auto* quick = qobject_cast<QQuickWindow*>(window);
         if (!quick) continue;
@@ -40,8 +41,14 @@ static QJsonObject runtimeDiagnostics()
                 mixers.append(QJsonObject::fromVariantMap(data));
             }
         }
+        for (QObject* object : quick->contentItem()->findChildren<QObject*>(QStringLiteral("mallet-panel-model"))) {
+            QVariantMap data;
+            if (QMetaObject::invokeMethod(object, "diagnostics", Qt::DirectConnection, Q_RETURN_ARG(QVariantMap, data)))
+                mallets.append(QJsonObject::fromVariantMap(data));
+        }
     }
     result.insert("loadedMixers", mixers);
+    result.insert("malletPanels", mallets);
     return result;
 }
 
@@ -165,7 +172,7 @@ void FeatureDebugModel::refresh()
         { "reportVersion", 2 },
         { "runtime", runtimeDiagnostics() },
         { "virtualDrumline", "Setup helper available; conversion and sample application not yet implemented" },
-        { "malletVisualizer", "planned; will use shared sticking assignments" }
+        { "malletVisualizer", "Native optional panel; range-aware estimated geometry, sticking, alternatives and undoable commit" }
     };
     const QString next = QString::fromUtf8(QJsonDocument(report).toJson(QJsonDocument::Indented));
     if (next == m_report) return;

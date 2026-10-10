@@ -33,3 +33,11 @@ Updated 2026-10-10. Battery is the primary focus; keyboard percussion receives i
 ## Current delivery status
 
 The app already has native Dynamics, presets/defaults, percussion mode/styles, floating keypad, shared sticking diagnostics, and Mixer ownership/meter optimizations. Current source expands the reference direction to Home, compact top-bar arrangement, notation tools, shared tabs/controls/dialogs and a medium-gray theme. Source 5547b4a passed Windows compilation/fresh portable startup, but its screenshot exposed an oversized toolbar; its download is held. The current pre-attachment constraint correction and visual overhaul need a new Windows build, screenshot review and expanded interaction gates. Forty-one actual engraving/sticking checks pass after enabling smoothing in the marching profile. The mallet visualizer, VDL patch mapping/conversion, spatial panning and deeper mixer/effects overhaul remain planned; no licensed VDL playback is verified.
+
+## Current release priorities
+
+- Validate native Mallet visualizer against the video and references, including score-safe preview/Commit/Undo and compact optional bottom docking. Source implementation exists; complete Windows verification is pending.
+- Investigate the renewed bulk Tap → 49 crash without assuming a library cause. Reduce needless layout work, repeat mixed edits and check process memory/audio export.
+- Fix Return/Enter escaping note-velocity editors into score layout shortcuts, with competing-shortcut and native score checks.
+- Complete fresh/restored toolbar sizing, normal closure, rendering review and all release gates before sharing a download.
+- Continue bug fixing, optimization and visual consistency during the user's absence. Preserve the previously requested roadmap and licensed VDL verification limits.

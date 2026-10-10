@@ -289,6 +289,7 @@ MenuItem* AppMenuModel::makeViewMenu()
         makeMenuItem(DOCK_TOGGLE_BRAILLE_COMMAND),
         makeMenuItem(DOCK_TOGGLE_TIMELINE_COMMAND),
         makeMenuItem(DOCK_TOGGLE_MIXER_COMMAND),
+        makeMenuItem(DOCK_TOGGLE_MALLET_COMMAND),
         makeMenuItem(DOCK_TOGGLE_PIANO_KEYBOARD_COMMAND),
         makeMenuItem(DOCK_TOGGLE_PERCUSSION_COMMAND),
         makeMenuItem(OPEN_PLAYBACK_SETUP_COMMAND),

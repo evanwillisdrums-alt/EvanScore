@@ -74,6 +74,19 @@ Item {
         font.pixelSize: 12
         palette.text: ui.theme.fontPrimaryColor
         palette.buttonText: ui.theme.fontPrimaryColor
+        // Keep editing keys in the numeric editor. Otherwise the app's
+        // Return shortcut can insert a system break in the selected score.
+        Keys.onShortcutOverride: function(event) {
+            if (!activeFocus && !contentItem.activeFocus) return
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                || event.key === Qt.Key_Escape || event.key === Qt.Key_Backspace
+                || event.key === Qt.Key_Delete || event.key === Qt.Key_Left
+                || event.key === Qt.Key_Right || event.key === Qt.Key_Up
+                || event.key === Qt.Key_Down || event.key === Qt.Key_Home
+                || event.key === Qt.Key_End || event.text.length > 0) {
+                event.accepted = true
+            }
+        }
         background: Rectangle { radius: 7; color: ui.theme.backgroundPrimaryColor }
     }
     component Caption: Text {

@@ -16,6 +16,7 @@
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/tempotimeline.h"
 #include "engraving/dom/tremolosinglechord.h"
+#include "engraving/editing/cmd.h"
 #include "engraving/editing/transaction/undostack.h"
 #include "engraving/rw/read400/tread.h"
 #include "engraving/rw/write/twrite.h"
@@ -275,6 +276,27 @@ TEST_F(Engraving_DynamicsPlaybackTests, CurveAndNoteEditsUndoTogether) {
     undo->redo();
     EXPECT_EQ(h->dynamicsCurveShape(), 1); EXPECT_DOUBLE_EQ(h->dynamicsCurveBend(), .7);
     EXPECT_EQ(notes[0]->userVelocity(), 92);
+}
+
+TEST_F(Engraving_DynamicsPlaybackTests, PlaybackProfileEditAvoidsPrintedLayoutAndStillUndoes) {
+    score->lockUpdates(true);
+    const auto original = score->style().styleSt(Sid::evanDynamicsTap);
+    score->cmdState().reset();
+    score->startCmd(muse::TranslatableString::untranslatable("Tap profile"));
+    score->undoChangeStyleVal(Sid::evanDynamicsTap, String(u"49 49 49 49 49 49 49 49 49 49 49 49"));
+    EXPECT_FALSE(score->cmdState().layoutRange());
+    score->endCmd();
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::FF, DynamicsPlayback::Tap), 49);
+    score->undoStack()->undo(nullptr);
+    EXPECT_EQ(score->style().styleSt(Sid::evanDynamicsTap), original);
+    score->undoStack()->redo();
+    EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::FF, DynamicsPlayback::Tap), 49);
+    // Ordinary engraving settings must continue to request a layout.
+    score->cmdState().reset();
+    score->startCmd(muse::TranslatableString::untranslatable("Staff spacing"));
+    score->undoChangeStyleVal(Sid::staffDistance, score->style().styleS(Sid::staffDistance) + Spatium(1));
+    EXPECT_TRUE(score->cmdState().layoutRange());
+    score->endCmd();
 }
 
 TEST_F(Engraving_DynamicsPlaybackTests, AudioAutomationUsesTheSameExactNoteAndCurveValues) {

@@ -45,7 +45,10 @@ void DynamicsPanelModel::onNotationChanged() {
     emit stateChanged();
 }
 Score* DynamicsPanelModel::score() const { return m_notation ? m_notation->elements()->msScore() : nullptr; }
-void DynamicsPanelModel::setScoreStyle(Sid id, const PropertyValue& value) { score()->masterScore()->undoChangeStyleVal(id, value); }
+void DynamicsPanelModel::setScoreStyle(Sid id, const PropertyValue& value) {
+    auto master = score()->masterScore();
+    if (master->style().styleV(id) != value) master->undoChangeStyleVal(id, value);
+}
 Dynamic* DynamicsPanelModel::dynamic() const {
     if (!m_notation || m_forceScore) return nullptr;
     auto e = m_notation->interaction()->selection()->element();
@@ -139,7 +142,7 @@ void DynamicsPanelModel::refreshMappings() {
     emit mappingsChanged();
 }
 void DynamicsPanelModel::edit(const std::function<void()>& change, const char* label) {
-    if (!m_notation) return;
+    if (!m_notation || m_editing) return;
     m_editing = true;
     auto undo = m_notation->undoStack(); undo->prepareChanges(TranslatableString("undoableAction", label));
     change(); undo->commitChanges();
@@ -159,6 +162,8 @@ void DynamicsPanelModel::setSmoothArticulations(bool enabled) {
 }
 void DynamicsPanelModel::setMapping(int dynamic, int role, int velocity) {
     if (dynamic < 1 || dynamic >= static_cast<int>(Dynamic::definitions().size()) || role < 1 || role > DynamicsPlayback::Unstress) return;
+    velocity = std::clamp(velocity, 0, 127);
+    if (!score() || (DynamicsPlayback::enabled(score()) && DynamicsPlayback::level(score(), static_cast<DynamicType>(dynamic), role) == velocity)) return;
     edit([&]() {
         std::string values;
         for (size_t i = 0; i < Dynamic::definitions().size(); ++i) values += std::to_string(i == static_cast<size_t>(dynamic) ? std::clamp(velocity, 0, 127) : DynamicsPlayback::level(score(), static_cast<DynamicType>(i), role)) + " ";
@@ -219,8 +224,14 @@ void DynamicsPanelModel::setEndpoint(bool end, int dynamic, int role, int veloci
     }, "Change hairpin endpoint");
 }
 void DynamicsPanelModel::setNoteVelocity(int velocity) {
+    velocity = std::clamp(velocity, 0, 127);
     if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, std::clamp(velocity, 0, 127)); setScoreStyle(Sid::evanDynamicsEnabled, true); }, "Change selected dynamic level"); return; }
     auto ns = notes(); if (ns.empty()) return;
+    if (std::all_of(ns.begin(), ns.end(), [velocity](const Note* note) {
+        return note->getProperty(Pid::VELO_TYPE).value<VeloType>() == VeloType::USER_VAL
+            && note->userVelocity() == std::max(1, velocity)
+            && note->getProperty(Pid::PLAY).toBool() == (velocity > 0);
+    })) return;
     edit([&]() { for (auto n : ns) { n->undoChangeProperty(Pid::VELO_TYPE, VeloType::USER_VAL); n->undoChangeProperty(Pid::USER_VELOCITY, std::clamp(velocity, 1, 127)); n->undoChangeProperty(Pid::PLAY, velocity > 0); } }, "Change selected note dynamics");
 }
 void DynamicsPanelModel::setNotePlayback(bool play) { if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::PLAY, play); }, "Change dynamic playback"); return; } auto ns = notes(); if (ns.empty()) return; edit([&]() { for (auto n : ns) n->undoChangeProperty(Pid::PLAY, play); }, "Change selected note playback"); }

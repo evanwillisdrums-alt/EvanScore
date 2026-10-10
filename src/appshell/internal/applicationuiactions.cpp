@@ -195,6 +195,8 @@ const UiActionList ApplicationUiActions::m_actions = {
              IconCode::Code::MIXER,
              ui::Checkable::Yes
              ),
+    UiAction("toggle-mallet-panel", mu::context::UiCtxProjectOpened, mu::context::CTX_ANY,
+             TranslatableString("action", "Mallet visualizer"), TranslatableString("action", "Show/hide mallet visualizer"), ui::Checkable::Yes),
     UiAction("toggle-piano-keyboard",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_ANY,
@@ -343,6 +345,7 @@ const QMap<ActionCode, DockName>& ApplicationUiActions::toggleDockActions()
 
         { "toggle-timeline", TIMELINE_PANEL_NAME },
         { "toggle-mixer", MIXER_PANEL_NAME },
+        { "toggle-mallet-panel", MALLET_PANEL_NAME },
         { "toggle-piano-keyboard", PIANO_KEYBOARD_PANEL_NAME },
         { TOGGLE_PERCUSSION_PANEL_ACTION_CODE, PERCUSSION_PANEL_NAME },
 

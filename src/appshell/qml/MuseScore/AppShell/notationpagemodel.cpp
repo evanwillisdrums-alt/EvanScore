@@ -159,6 +159,11 @@ QString NotationPageModel::mixerPanelName() const
     return MIXER_PANEL_NAME;
 }
 
+QString NotationPageModel::malletPanelName() const
+{
+    return MALLET_PANEL_NAME;
+}
+
 QString NotationPageModel::pianoKeyboardPanelName() const
 {
     return PIANO_KEYBOARD_PANEL_NAME;

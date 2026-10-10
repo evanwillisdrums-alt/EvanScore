@@ -212,6 +212,13 @@ static const std::vector<CommandInfo> s_commandInfos = {
         Decoration(IconCode::Code::MIXER, rcommand::Checkable::Yes)
         ),
     CommandInfo(
+        DOCK_TOGGLE_MALLET_COMMAND,
+        TranslatableString("action", "Mallet visualizer"),
+        TranslatableString("action", "Show/hide mallet visualizer"),
+        InputSchema(),
+        Decoration(rcommand::Checkable::Yes)
+        ),
+    CommandInfo(
         DOCK_TOGGLE_PIANO_KEYBOARD_COMMAND,
         TranslatableString("action", "Piano &keyboard"),
         TranslatableString("action", "Show/hide piano keyboard"),

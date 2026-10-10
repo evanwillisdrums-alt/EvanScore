@@ -36,6 +36,15 @@ if(MUSE_MODULE_DOCKWINDOW AND MUSE_MODULE_DOCKWINDOW_QML AND MUSE_MODULE_DOCKWIN
         message(FATAL_ERROR "Deferred dock adapter: pre-attachment initialization changed")
     endif()
     string(REPLACE "${dock_before_attach}" "    writeProperties();\n    applySizeConstraints();\n    setUpFrameConnections();" dock_content "${dock_content}")
+    # Group::maxSizeHint does not inherit the guest's maximum outside MDI.
+    # Initial insertion can precede inited()/geometry connections, so apply
+    # the group's limits after every group attachment, not only floating ones.
+    set(dock_group_attach "            if (m_floating) {\n                applySizeConstraints();\n            }")
+    string(FIND "${dock_content}" "${dock_group_attach}" dock_group_attach_position)
+    if(dock_group_attach_position LESS 0)
+        message(FATAL_ERROR "Deferred dock adapter: group-attachment callback changed")
+    endif()
+    string(REPLACE "${dock_group_attach}" "            applySizeConstraints();" dock_content "${dock_content}")
     string(REPLACE "#include \"dockbase.h\"" "#include \"dockbase.h\"\n#include \"deferreddockupdate.h\"" dock_content "${dock_content}")
     set(dock_generated "${CMAKE_BINARY_DIR}/evanscore-dock/dockbase.cpp")
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/evanscore-dock")

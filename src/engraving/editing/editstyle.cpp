@@ -24,6 +24,7 @@
 
 #include "../dom/chordlist.h"
 #include "../dom/score.h"
+#include "../dom/dynamicsplayback.h"
 #include "editing/editpagelocks.h"
 #include "editing/editsystemlocks.h"
 #include "editing/transaction/transaction.h"
@@ -145,6 +146,8 @@ void ChangeStyleValues::flip()
     }
 
     bool styleChanged = false;
+    bool layoutChanged = false;
+    const auto playbackStyles = DynamicsPlayback::profileStyles();
     const MStyle& style = m_score->style();
 
     for (auto& pair : m_values) {
@@ -157,9 +160,12 @@ void ChangeStyleValues::flip()
         pair.second = oldValue;
 
         styleChanged = true;
+        layoutChanged |= std::find(playbackStyles.begin(), playbackStyles.end(), pair.first) == playbackStyles.end();
     }
 
-    if (styleChanged) {
+    // Playback-only profiles still appear in ScoreChanges and regenerate
+    // audio events. They do not alter any printed element or layout metric.
+    if (styleChanged && layoutChanged) {
         m_score->styleChanged();
     }
 }

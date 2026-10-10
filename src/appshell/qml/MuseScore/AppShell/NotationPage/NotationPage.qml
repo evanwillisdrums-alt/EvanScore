@@ -93,6 +93,8 @@ DockPage {
 
     readonly property int verticalPanelDefaultWidth: 280
 
+    // Open compactly, then leave deliberate manual resizing to the user.
+    readonly property int horizontalPanelDefaultHeight: Math.max(140, Math.min(220, Math.round(root.height * .25)))
     readonly property int horizontalPanelMinHeight: 100
     readonly property int horizontalPanelMaxHeight: 520
 
@@ -111,6 +113,11 @@ DockPage {
         root.panelTopDropDestination,
         root.panelBottomDropDestination
     ]
+
+    function openCompactPanel(panel) {
+        if (!panel.floating && panel.height > root.horizontalPanelDefaultHeight + 1)
+            panel.resize(panel.width, root.horizontalPanelDefaultHeight)
+    }
 
     property var notationView: null
 
@@ -433,7 +440,7 @@ DockPage {
             objectName: root.pageModel.mixerPanelName()
             title: qsTrc("appshell", "Mixer")
 
-            height: 368
+            height: root.horizontalPanelDefaultHeight
             minimumHeight: root.horizontalPanelMinHeight
             maximumHeight: root.horizontalPanelMaxHeight
 
@@ -468,25 +475,47 @@ DockPage {
                 }
 
                 onResizeRequested: function(newWidth, newHeight) {
-                    mixerPanel.resize(newWidth, newHeight)
+                    mixerPanel.resize(newWidth, Math.min(newHeight, root.horizontalPanelDefaultHeight))
                 }
 
                 Connections {
                     target: mixerPanel
                     function onPanelShown() {
-                        mixerPanelComponent.resizePanelToContentHeight()
+                        root.openCompactPanel(mixerPanel)
                     }
                 }
             }
         },
 
         DockPanel {
+            id: malletPanel
+            objectName: root.pageModel.malletPanelName()
+            title: qsTrc("appshell", "Mallets")
+            height: root.horizontalPanelDefaultHeight
+            minimumHeight: root.horizontalPanelMinHeight
+            maximumHeight: root.horizontalPanelMaxHeight
+            minimumWidth: 510
+            maximumWidth: root.panelMaxDimension
+            groupName: root.horizontalPanelsGroup
+            visible: false
+            location: Location.Bottom
+            dropDestinations: root.horizontalPanelDropDestinations
+            navigationSection: root.navigationPanelSec(malletPanel.location)
+            MalletPanel {
+                navigationSection: malletPanel.navigationSection
+                contentNavigationPanelOrderStart: malletPanel.contentNavigationPanelOrderStart
+            }
+            onPanelShown: Qt.callLater(root.openCompactPanel, malletPanel)
+        },
+
+        DockPanel {
             id: pianoKeyboardPanel
+            onPanelShown: Qt.callLater(root.openCompactPanel, pianoKeyboardPanel)
 
             objectName: root.pageModel.pianoKeyboardPanelName()
             title: qsTrc("appshell", "Piano keyboard")
 
-            height: 200
+            height: root.horizontalPanelDefaultHeight
             minimumHeight: root.horizontalPanelMinHeight
             maximumHeight: root.horizontalPanelMaxHeight
 
@@ -516,11 +545,12 @@ DockPage {
 
         DockPanel {
             id: timelinePanel
+            onPanelShown: Qt.callLater(root.openCompactPanel, timelinePanel)
 
             objectName: root.pageModel.timelinePanelName()
             title: qsTrc("appshell", "Timeline")
 
-            height: 200
+            height: root.horizontalPanelDefaultHeight
             minimumHeight: root.horizontalPanelMinHeight
             maximumHeight: root.horizontalPanelMaxHeight
 
@@ -550,7 +580,7 @@ DockPage {
             objectName: root.pageModel.percussionPanelName()
             title: qsTrc("appshell", "Percussion")
 
-            height: 200
+            height: root.horizontalPanelDefaultHeight
             minimumHeight: root.horizontalPanelMinHeight
             maximumHeight: root.horizontalPanelMaxHeight
 
@@ -583,13 +613,13 @@ DockPage {
                 }
 
                 onResizeRequested: function(newWidth, newHeight) {
-                    percussionPanel.resize(newWidth, newHeight)
+                    percussionPanel.resize(newWidth, Math.min(newHeight, root.horizontalPanelDefaultHeight))
                 }
 
                 Connections {
                     target: percussionPanel
                     function onPanelShown() {
-                        percussionComponent.resizePanelToContentHeight()
+                        root.openCompactPanel(percussionPanel)
                     }
                 }
             }

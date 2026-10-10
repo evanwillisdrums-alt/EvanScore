@@ -45,6 +45,7 @@ static const DockName NOTATION_NAVIGATOR_PANEL_NAME("notationNavigatorPanel");
 static const DockName NOTATION_BRAILLE_PANEL_NAME("notationBraillePanel");
 
 static const DockName MIXER_PANEL_NAME("mixerPanel");
+static const DockName MALLET_PANEL_NAME("malletPanel");
 static const DockName PIANO_KEYBOARD_PANEL_NAME("pianoKeyboardPanel");
 static const DockName TIMELINE_PANEL_NAME("timelinePanel");
 static const DockName PERCUSSION_PANEL_NAME("percussionPanel");

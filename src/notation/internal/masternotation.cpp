@@ -24,6 +24,7 @@
 
 #include <QFileInfo>
 #include <QFile>
+#include "io/buffer.h"
 #include <algorithm>
 #include "engraving/dom/dynamicsplayback.h"
 
@@ -342,6 +343,18 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
     }
 
     // This path runs only for newly created scores (including templates), never when opening a score.
+    const auto savedStyle = settings()->value(SAVED_DEFAULT_STYLE_PATH).toPath();
+    const auto mode = settings()->value(PERCUSSION_WORKSPACE_MODE);
+    const bool percussion = mode.isNull() || mode.toBool();
+    if (percussion && savedStyle.empty()) {
+        QFile file(":/configs/evanscore-percussion.mss");
+        if (file.open(QIODevice::ReadOnly)) {
+            auto bytes = muse::ByteArray::fromQByteArray(file.readAll());
+            muse::io::Buffer buffer(&bytes);
+            if (buffer.open(muse::io::IODevice::ReadOnly)) score->style().read(&buffer);
+        }
+    }
+    if (percussion) score->style().set(Sid::percussionAccentsAbove, true);
     const auto dynamicsDefault = settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath();
     if (dynamicsDefault.empty()) {
         const bool hasBattery = std::any_of(score->staves().begin(), score->staves().end(), [](const Staff* staff) {

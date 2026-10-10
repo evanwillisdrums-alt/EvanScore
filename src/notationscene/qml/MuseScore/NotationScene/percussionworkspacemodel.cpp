@@ -86,8 +86,8 @@ void PercussionWorkspaceModel::load(bool handleMouse)
     settings()->valueChanged(MOUSE).onReceive(this, [this](const Val&) { emit mouseBindingsChanged(); });
     if (m_handleMouse) {
         QCoreApplication::instance()->installEventFilter(this);
-        context()->currentNotationChanged().onNotify(this, [this]() { applyWorkspace(); });
-        applyWorkspace();
+        // Loading or switching an existing score must retain its saved style.
+        // New-score initialization applies the persistent workspace defaults.
     }
 }
 bool PercussionWorkspaceModel::percussionMode() const { return settings()->value(PERCUSSION_WORKSPACE_MODE).toBool(); }

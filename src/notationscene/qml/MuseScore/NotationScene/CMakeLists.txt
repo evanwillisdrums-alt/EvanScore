@@ -78,6 +78,14 @@ qt_add_qml_module(notationscene_qml
         notationswitchlistmodel.h
         dynamicspanelmodel.cpp
         dynamicspanelmodel.h
+        malletplacement.cpp
+        malletplacement.h
+        malletscoreedit.cpp
+        malletscoreedit.h
+        malletpanelmodel.cpp
+        malletpanelmodel.h
+        malletsceneview.cpp
+        malletsceneview.h
         featuredebugmodel.cpp
         featuredebugmodel.h
         processmemory.cpp
@@ -173,6 +181,7 @@ qt_add_qml_module(notationscene_qml
         timelineview.h
 
     QML_FILES
+        MalletPanel.qml
         DynamicsPanel.qml
         FeatureDebugDialog.qml
         DynamicsCurve.qml
