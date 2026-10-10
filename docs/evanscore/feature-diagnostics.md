@@ -6,7 +6,7 @@ Select notes or a sticking label to inspect its native source marking, staff/voi
 
 Explicit R/r/L/l sequences retain repeated hands; lowercase is not a dynamics instruction. Numbers 1–6 are retained without inventing a grip or numbering convention. Missing, unsupported, mixed, or duplicate markings are reported rather than treated as a known assignment. Assignments are local to a staff, voice, and onset. Grace/diddle/roll sub-stroke routing needs separate playback integration.
 
-Known velocities come from notation/custom mappings and explicit note overrides. A disabled automatic sound-engine value is reported as null, not as a measured velocity of 80. Actual sound-library gain/sample output cannot be inferred from this report. The current VDL sample application/conversion and mallet-visualizer status are explicitly pending/planned.
+Known velocities come from notation/custom mappings and explicit note overrides. A disabled automatic sound-engine value is reported as null, not as a measured velocity of 80. Actual sound-library gain/sample output cannot be inferred from this report. VDL sample application/conversion is explicitly pending. The mallet visualizer is a native optional panel with estimated static geometry, sticking, alternatives, and explicit undoable Commit. The runtime report includes state from loaded mallet panels; closed panels are unloaded.
 
 The runtime section reports EvanScore's working-set bytes (and private bytes on Windows), the saved elapsed/bar.beat transport format, and loaded Mixer channel/aux-control ownership and metering state. Refresh captures current values. Process memory includes loaded sounds; it is not total system memory or a breakdown by sample library. An unloaded Mixer is reported as an empty list.
 

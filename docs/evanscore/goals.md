@@ -32,7 +32,11 @@ Updated 2026-10-10. Battery is the primary focus; keyboard percussion receives i
 
 ## Current delivery status
 
-The app already has native Dynamics, presets/defaults, percussion mode/styles, floating keypad, shared sticking diagnostics, and Mixer ownership/meter optimizations. Current source expands the reference direction to Home, compact top-bar arrangement, notation tools, shared tabs/controls/dialogs and a medium-gray theme. Source 5547b4a passed Windows compilation/fresh portable startup, but its screenshot exposed an oversized toolbar; its download is held. The current pre-attachment constraint correction and visual overhaul need a new Windows build, screenshot review and expanded interaction gates. Forty-one actual engraving/sticking checks pass after enabling smoothing in the marching profile. The mallet visualizer, VDL patch mapping/conversion, spatial panning and deeper mixer/effects overhaul remain planned; no licensed VDL playback is verified.
+Native Dynamics, presets/defaults, percussion mode/styles, floating keypad, shared sticking diagnostics, and Mixer ownership/meter optimizations are implemented. The UI overhaul covers Home, compact toolbar/button arrangement, notation tools, shared tabs/controls/dialogs and the neutral gray theme. Actual native screenshots now show thin toolbar rows; build 38028802494 passed full compilation and fresh-machine startup/export/closure.
+
+The first native mallet panel passed preview/Commit/Undo/Redo/save/reopen checks in Windows run 38028799733. It includes the illustrated overhead player, Front view, range-aware estimated bars, sticking, diagnostics, alternatives, audition/compare and optional compact bottom docking. Full animated passage analysis and calibrated manufacturer geometry remain future work. Final-version rendering and combined release gates remain pending. No licensed VDL playback, patch mapping/conversion, spatial panning or deeper mixer/effects overhaul is verified or claimed shipped.
+
+The latest source fixes Enter escaping numeric velocity editors, avoids engraving relayout for playback-only profile changes, and keeps Mixer View commands available before audio initialization. Repeat Dynamics/Mixer/debug/save/audio checks on the final Windows app before sending its download. Source/run details are in development-checkpoint.md.
 
 ## Current release priorities
 

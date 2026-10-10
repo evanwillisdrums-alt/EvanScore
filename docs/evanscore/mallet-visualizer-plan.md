@@ -1,6 +1,6 @@
 # Mallet visualizer — reference and planning notes
 
-Status: planning only. This document records the user's requirements; it does not mean the visualizer has been implemented or included in the current Windows build.
+Status: first native implementation under final Windows validation. Open View → Mallet visualizer. Native preview/Commit/Undo/Redo/save and repeated reopening passed in run 38028799733; the final app and full-window rendering remain release gates. The requirements below include future passage animation and calibrated geometry, which are not part of the initial static analyzer.
 
 ## References and layout
 

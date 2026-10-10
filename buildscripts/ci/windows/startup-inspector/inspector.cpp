@@ -273,9 +273,13 @@ public:
                                            << state.value("noteCategory") << state.value("effectiveVelocity");
                                 verifyVelocityEnter(window, model);
                                 verifyFeatureDebug(window);
-                                dispatchMenu(window, "command://project/save");
+                                auto noteSpin = findItem(window->contentItem(), "dynamics-note-velocity");
+                                auto noteEditor = noteSpin ? qvariant_cast<QQuickItem*>(noteSpin->property("contentItem")) : nullptr;
+                                if (!noteEditor) qFatal("Note velocity editor disappeared before keyboard Save");
+                                noteEditor->forceActiveFocus();
+                                QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
                                 QTimer::singleShot(1000, window, [] {
-                                    qWarning() << "DYNAMICS INSPECTOR mapping save requested; verify the native score archive";
+                                    qWarning() << "DYNAMICS INSPECTOR mapping save requested; verify the native score archive (Ctrl+S with velocity editor focused)";
                                 });
                             });
                             return;
@@ -397,7 +401,15 @@ private:
         QMetaObject::invokeMethod(model, "selectAlternative", Q_ARG(int, octave));
         QMetaObject::invokeMethod(model, "commit"); QTest::qWait(150);
         if (state().value("sourceKey") == source) qFatal("Final mallet edit did not reach the saved score");
-        dispatchMenu(window, "command://project/save"); QTest::qWait(600);
+        panel = findItem(window->contentItem(), "MalletPanel");
+        if (!panel) qFatal("Mallet panel disappeared before keyboard Save");
+        panel->setProperty("currentTab", 2); QTest::qWait(100);
+        opening = findItem(panel, "mallet-player-opening");
+        auto playerEditor = opening ? qvariant_cast<QQuickItem*>(opening->property("contentItem")) : nullptr;
+        if (!playerEditor) qFatal("Mallet player editor disappeared before keyboard Save");
+        playerEditor->forceActiveFocus();
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier); QTest::qWait(600);
+        panel->setProperty("currentTab", 0); QTest::qWait(100);
         const auto capturePath = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
