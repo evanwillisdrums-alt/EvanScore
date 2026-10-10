@@ -463,7 +463,8 @@ Item {
                                                     || event.key === Qt.Key_Delete || event.key === Qt.Key_Left
                                                     || event.key === Qt.Key_Right || event.key === Qt.Key_Up
                                                     || event.key === Qt.Key_Down || event.key === Qt.Key_Home
-                                                    || event.key === Qt.Key_End || event.text.length > 0) {
+                                                    || event.key === Qt.Key_End || (event.text.length > 0
+                                                        && !(event.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.AltModifier)))) {
                                                     event.accepted = true;
                                                 }
                                             }
