@@ -1,6 +1,6 @@
 # Mallet visualizer — reference and planning notes
 
-Status: first native implementation under final Windows validation. Open View → Mallet visualizer. Native preview/Commit/Undo/Redo/save and repeated reopening passed in run 38028799733; the final app and full-window rendering remain release gates. The requirements below include future passage animation and calibrated geometry, which are not part of the initial static analyzer.
+Status: first native Windows version verified in build 38034638203 and mallet run 38035605321. Open View → Mallet visualizer. Preview/Commit/Undo/Redo/save, repeated reopening, visible viewport and caption sizing passed; the complete native screenshot was reviewed through run 38035777486. The requirements below include future passage animation and calibrated geometry, which are not part of the initial static analyzer.
 
 ## References and layout
 
@@ -51,4 +51,4 @@ Direct retrieval of PAS, Yamaha, PMC, and Nancy Zeltsman pages returned the envi
 
 ## Implementation checkpoint
 
-A native optional panel is now implemented in source and undergoing complete-app validation. View → Mallet visualizer opens it in the Mixer group. Static placement, range geometry, physical identities, native sticking, bar picking, strike dragging, Top/Front, diagnostics, configurable player, preview alternatives, native audition/compare and one-step Commit/Undo are included. Remaining work includes full animated passage analysis, tempo-dependent travel feasibility, calibrated model dimensions and broader technique-specific rules; estimates are labeled. Commit does not rewrite tied/grace/arpeggiated/two-chord-tremolo attacks. No VDL mapping has been added. Do not equate local renderer/component tests with a verified Windows release.
+A native optional panel is implemented and passed complete Windows validation. View → Mallet visualizer opens it in the Mixer group. Static placement, range geometry, physical identities, native sticking, bar picking, strike dragging, Top/Front, diagnostics, configurable player, preview alternatives, native audition/compare and one-step Commit/Undo are included. Remaining work includes full animated passage analysis, tempo-dependent travel feasibility, calibrated model dimensions and broader technique-specific rules; estimates are labeled. Commit does not rewrite tied/grace/arpeggiated/two-chord-tremolo attacks. No VDL mapping has been added. Do not equate local renderer/component tests with a verified Windows release.

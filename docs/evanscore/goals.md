@@ -4,7 +4,7 @@ Updated 2026-10-10. Battery is the primary focus; keyboard percussion receives i
 
 ## Current priorities
 
-1. Finish the active Windows release: reference-driven Home/toolbars/controls, native mallet panel, dynamics shortcut/performance fixes, and complete regression/rendering gates.
+1. Deliver the verified Windows mallet/dynamics release, then continue practical mallet readability, workflow and performance improvements in separately verified builds.
 2. Integrate the user's existing Kontakt-based VDL 2.5.5 library: Player setup, every instrument's documented maps, staff-text techniques, and automatic Muse Drumline conversion.
 3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.
 4. Extend the first mallet visualizer with passage analysis/calibrated geometry, then continue mixer/effects, spatial placement, and the remaining workflow/performance roadmap. Preserve current release verification requirements.
@@ -32,16 +32,15 @@ Updated 2026-10-10. Battery is the primary focus; keyboard percussion receives i
 
 ## Current delivery status
 
-Native Dynamics, presets/defaults, percussion mode/styles, floating keypad, shared sticking diagnostics, and Mixer ownership/meter optimizations are implemented. The UI overhaul covers Home, compact toolbar/button arrangement, notation tools, shared tabs/controls/dialogs and the neutral gray theme. Actual native screenshots now show thin toolbar rows; build 38028802494 passed full compilation and fresh-machine startup/export/closure.
+Native Dynamics, presets/defaults, percussion mode/styles, floating keypad, shared sticking diagnostics, and Mixer ownership/meter optimizations are implemented. The UI overhaul covers Home, compact toolbar/button arrangement, notation tools, shared tabs/controls/dialogs and the neutral gray theme. Final build 38034638203 passed complete compilation, fresh-machine startup/export/closure with both renderers.
 
-The first native mallet panel passed preview/Commit/Undo/Redo/save/reopen checks in Windows run 38028799733. It includes the illustrated overhead player, Front view, range-aware estimated bars, sticking, diagnostics, alternatives, audition/compare and optional compact bottom docking. Full animated passage analysis and calibrated manufacturer geometry remain future work. Final-version rendering and combined release gates remain pending. No licensed VDL playback, patch mapping/conversion, spatial panning or deeper mixer/effects overhaul is verified or claimed shipped.
+The first native mallet panel passed final preview/Commit/Undo/Redo/save/reopen and rendering checks in run 38035605321. It includes the illustrated overhead player, Front view, range-aware estimated bars, sticking, diagnostics, alternatives, audition/compare and optional compact bottom docking. Actual native geometry and caption checks passed; the final full-window screenshot was reviewed. Its compact full-instrument drawing could benefit from optional enlargement. Full animated passage analysis and calibrated manufacturer geometry remain future work.
 
-The latest source fixes Enter escaping numeric velocity editors, avoids engraving relayout for playback-only profile changes, and keeps Mixer View commands available before audio initialization. Repeat Dynamics/Mixer/debug/save/audio checks on the final Windows app before sending its download. Source/run details are in development-checkpoint.md.
+Final Dynamics/Mixer run 38035605557 passed repeated mixed edits, real Set all taps → 49 clicks, one-step Undo/Redo, Return/Enter protection, Ctrl+S, persistence and non-silent MS Basic exports on both fixtures. The source avoids engraving relayout for playback-only profile changes and keeps Mixer presentation commands available before audio initialization. No licensed Muse Drumline crash reproduction or VDL playback/mapping/conversion is verified; spatial panning and the deeper mixer/effects overhaul remain planned. See development-checkpoint.md for the download and evidence.
 
-## Current release priorities
+## Next delivery priorities
 
-- Validate native Mallet visualizer against the video and references, including score-safe preview/Commit/Undo and compact optional bottom docking. Source implementation exists; complete Windows verification is pending.
-- Investigate the renewed bulk Tap → 49 crash without assuming a library cause. Reduce needless layout work, repeat mixed edits and check process memory/audio export.
-- Fix Return/Enter escaping note-velocity editors into score layout shortcuts, with competing-shortcut and native score checks.
-- Complete fresh/restored toolbar sizing, normal closure, rendering review and all release gates before sharing a download.
-- Continue bug fixing, optimization and visual consistency during the user's absence. Preserve the previously requested roadmap and licensed VDL verification limits.
+- Preserve the verified package while improving optional mallet readability and practical selection/playback workflow.
+- Continue investigating the intermittent live-library crash using real failure evidence; keep repeated edits, process-memory measurements, native save/audio and clean closure as release gates.
+- Complete licensed VDL routing/conversion when actual player/library configuration is available; do not substitute guessed maps.
+- Continue the mixer/effects and spatial-placement roadmap alongside measured optimization and visual consistency. Each app change requires a fresh Windows build and relevant complete-app checks before its download.
