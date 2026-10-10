@@ -398,6 +398,9 @@ private:
         QMetaObject::invokeMethod(model, "commit"); QTest::qWait(150);
         if (state().value("sourceKey") == source) qFatal("Final mallet edit did not reach the saved score");
         dispatchMenu(window, "command://project/save"); QTest::qWait(600);
+        const auto capturePath = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
+            qFatal("Could not capture the complete native mallet window");
         qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
     }
     static void verifyTransport(QQuickWindow* window) {
