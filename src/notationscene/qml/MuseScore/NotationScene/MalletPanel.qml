@@ -34,10 +34,15 @@ Item {
     }
     component Button: FlatButton {
         height: 28
-        minWidth: 0
+        orientation: Qt.Horizontal
+        minWidth: Math.max(28, buttonMetrics.advanceWidth(text) + 2 * margins)
         margins: 6
         backgroundRadius: 6
         navigation.panel: panelNavigation
+        FontMetrics {
+            id: buttonMetrics
+            font: ui.theme.bodyFont
+        }
     }
     ColumnLayout {
         anchors.fill: parent

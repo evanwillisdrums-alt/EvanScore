@@ -496,7 +496,7 @@ DockPage {
             // controls, including when a restored layout is resized.
             minimumHeight: 220
             maximumHeight: root.horizontalPanelMaxHeight
-            minimumWidth: 510
+            minimumWidth: 680
             maximumWidth: root.panelMaxDimension
             groupName: root.horizontalPanelsGroup
             visible: false
