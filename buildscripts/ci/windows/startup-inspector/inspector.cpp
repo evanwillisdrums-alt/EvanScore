@@ -224,8 +224,27 @@ public:
                                             Q_ARG(int, (row.value(key).toInt() + 1) % 128));
                                         QTest::qWait(40);
                                     }
-                                    QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
-                                                              Q_ARG(int, 2), Q_ARG(int, cycle == 11 ? 49 : 31 + cycle));
+                                    if (cycle == 11) {
+                                        // Reproduce the user's accumulated-edit sequence
+                                        // through the real editor/button, not just the model.
+                                        reveal(velocity);
+                                        editor->forceActiveFocus();
+                                        QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
+                                        QTest::keyClick(window, Qt::Key_4); QTest::keyClick(window, Qt::Key_9);
+                                        reveal(apply);
+                                        QSignalSpy bulkClick(apply, SIGNAL(clicked()));
+                                        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                                            apply->mapToScene(QPointF(apply->width()/2, apply->height()/2)).toPoint());
+                                        QTest::qWait(40);
+                                        if (bulkClick.count() != 1) qFatal("Repeated Set all taps at 49 click was not delivered");
+                                        for (const auto& mapping : model->property("mappings").toList())
+                                            if (mapping.toMap().value("tap").toInt() != 49)
+                                                qFatal("Repeated Set all taps at 49 missed a mapping row");
+                                        qWarning() << "DYNAMICS INSPECTOR repeated edits followed by real typed-49 Set all click passed";
+                                    } else {
+                                        QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
+                                                                  Q_ARG(int, 2), Q_ARG(int, 31 + cycle));
+                                    }
                                     QTest::qWait(40);
                                     for (int undoIndex = 0; undoIndex < 3; ++undoIndex) {
                                         dispatchMenu(window, "command://notation/undo");
