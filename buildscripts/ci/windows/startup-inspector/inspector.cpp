@@ -374,6 +374,9 @@ private:
         }
         reportMemory("after mallet visibility loop");
         window->resize(1100, 760); QTest::qWait(150);
+        QMetaObject::invokeMethod(model, "selectAlternative", Q_ARG(int, octave));
+        QMetaObject::invokeMethod(model, "commit"); QTest::qWait(150);
+        if (state().value("sourceKey") == source) qFatal("Final mallet edit did not reach the saved score");
         dispatchMenu(window, "command://project/save"); QTest::qWait(600);
         qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
     }

@@ -505,6 +505,8 @@ jobs:
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
               if (-not $logs.Contains('MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed')) { throw 'Native mallet checks did not complete' }
+              python buildscripts/ci/windows/startup-inspector/verify_saved_mallets.py
+              if ($LASTEXITCODE -ne 0) { throw 'Native mallet score persistence verification failed' }
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
               $env:EVANSCORE_EXPECT_MUSICAL_TIME = '1'
