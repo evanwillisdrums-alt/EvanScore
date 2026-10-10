@@ -232,7 +232,14 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           file = Path('checks/compiler-errors.log')
+          if not file.exists():
+              build = Path('checks/Windows-build.log')
+              if build.exists():
+                  lines = build.read_text(encoding='utf-8-sig', errors='replace').splitlines()
+                  errors = [line for line in lines if re.search(r'FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK', line, re.I)]
+                  file.write_text('\n'.join(errors), encoding='utf-8')
           if file.exists():
               content = file.read_text(encoding='utf-8-sig', errors='replace')[:18000]
               for offset in range(0, len(content), 2800):

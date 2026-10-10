@@ -88,7 +88,7 @@ bool Selection::select(EngravingItem* elWrapper, bool add)
     // snapshot deliberately omits these child objects, but selecting a
     // score-owned, non-generated child is safe and needed by notation tools.
     if (!mu::engraving::UndoableTransaction::canRecordSelectedElement(e)
-        && !(!e->generated() && (e->isTremoloSingleChord() || e->isArticulation()))) {
+        && !(!e->generated() && (e->type() == mu::engraving::ElementType::TREMOLO_SINGLECHORD || e->isArticulation()))) {
         LOGW("Cannot select element of type %s", e->typeName());
         return false;
     }

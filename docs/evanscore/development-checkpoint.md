@@ -2,6 +2,12 @@
 
 Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Windows compile correction — 2026-10-10
+
+First VDL build 38074251521 failed compiling API Selection: MSVC C2039, `EngravingItem` has no `isTremoloSingleChord`. Diagnostic job-log extraction run 38075525264, check 114281578081, identifies this exact error twice (initial build and keep-going sweep). Replaced the nonexistent helper with the native `ElementType::TREMOLO_SINGLECHORD` check. Direct syntax compilation of the actual Selection API source now passes. Existing ownership, same-score and non-generated checks remain. Root native fix must rebuild; do not pass an older/cancelled build as verified.
+
+The earlier default-only build 38075411719 has the same bad API call, so a corrected push supersedes it. The diagnostic workflow also extracts early compiler errors from a downloaded Windows-build artifact, rather than only from job logs; syntax and representative early-error extraction pass. Balanced preset/default and all 48 passed core tests are retained below.
+
 ## Balanced dynamics default — 2026-10-10
 
 User supplied `EvanScore-Dynamics.evands` and authorized a middle ground as the new default. Updated `marchingSnareDefaults`: pp/p/mp/mf/f/ff/fff ordinary 48/58/69/77/88/97/113; taps pp48 and p+58; accents/marcato 58/62/69/77/88/97/113; tenuto 58/62/69/71/80/90/107. Ghost remains zero, quiet tenuto=accent, stock auxiliary lanes follow their corresponding battery role, smoothing stays on, default bend 0.125. New battery scores and Marching Snare Defaults use this; existing scores and saved personal defaults retain precedence.
