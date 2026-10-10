@@ -415,8 +415,118 @@ private:
                    << "native chords" << evaluate("JSON.stringify(selectedChords().map(function(c) { return {track:c.track, tremolo: c.tremoloSingleChord ? c.tremoloSingleChord.tremoloType : null}; }))");
         if (plugin->property("activeTremolo").toString() != "BUZZ_ROLL") qFatal("Actual buzz button did not add buzz rolls");
         qWarning() << "KEYPAD INSPECTOR buzz real click passed";
-        QMetaObject::invokeMethod(plugin, "cmd", Q_ARG(QString, QString("command://notation/undo")));
-        QTest::qWait(200);
+        const auto click = [keypad](const QString& name) {
+            auto* key = findItem(keypad->contentItem(), name);
+            if (!key || !key->isVisible() || !key->isEnabled()) qFatal("Keypad key is not clickable: %s", qPrintable(name));
+            QTest::mouseClick(keypad, Qt::LeftButton, Qt::NoModifier,
+                key->mapToScene(QPointF(key->width()/2, key->height()/2)).toPoint());
+            QTest::qWait(100);
+        };
+        const auto choose = [&evaluate, &click](const QString& id) {
+            // Exercise customization's actual catalog/tool bindings. The
+            // operation still comes from a real pointer click on the key.
+            evaluate("layoutOverrides = {notes:{r0c0:'" + id + "'}}; activePage=0");
+            QTest::qWait(80);
+            click("keypad-key-" + id);
+        };
+        const auto selectTick = [&evaluate](int tick) {
+            if (!evaluate(QString("(function(){var c=curScore.newCursor();c.rewindToTick(%1);return curScore.selection.select(c.element.type === elementTypes.CHORD ? c.element.notes[0] : c.element);})()").arg(tick)).toBool())
+                qFatal("Native keypad selection failed at tick %d", tick);
+            evaluate("syncSelection()"); QTest::qWait(50);
+        };
+        const QString snapshotCode = R"JS((function(){
+            var c=curScore.newCursor(); c.rewind(0); var rows=[];
+            for(var count=0;c.segment && count<100;++count){
+                var e=c.element;
+                if(e){
+                    var row={tick:c.fraction.ticks,type:e.type,duration:e.duration.numerator+'/'+e.duration.denominator,beam:e.beamMode,stem:e.stemDirection};
+                    if(e.type===elementTypes.CHORD){
+                        row.notes=Array.from(e.notes).map(function(n){return {pitch:n.pitch,tpc:n.tpc,head:n.headType,dots:n.dots.length,tie:!!n.tieForward,accidental:n.accidental ? n.accidental.accidentalType : null};});
+                        row.articulations=Array.from(e.articulations).map(function(a){return a.symbol;});
+                        row.grace=Array.from(e.graceNotes).map(function(g){return {type:g.noteType,duration:g.duration.numerator+'/'+g.duration.denominator};});
+                        row.tremolo=e.tremoloSingleChord ? e.tremoloSingleChord.tremoloType : null;
+                    }
+                    row.fermata=Array.from(c.segment.annotations).filter(function(a){return a.type===elementTypes.FERMATA;}).map(function(a){return a.track;});
+                    rows.push(row);
+                }
+                c.next();
+            }
+            return JSON.stringify({rows:rows,spanners:Array.from(curScore.spanners).map(function(s){return s.type;})});
+        })())JS";
+        const auto snapshot = [&evaluate, &snapshotCode] { return evaluate(snapshotCode).toString(); };
+        click("keypad-undo"); QTest::qWait(100);
+        const auto baseline = snapshot();
+        for (const auto id : {"diddle", "tremolo2", "roll", "tremolo4", "buzz"}) {
+            dispatchMenu(window, "command://notation/select-all");
+            choose(id);
+            const QString type = evaluate(QString("catalogById['%1'].tremoloName").arg(id)).toString();
+            if (!evaluate("selectedChords().length>0 && selectedChords().every(function(c){return c.tremoloSingleChord && c.tremoloSingleChord.tremoloType===tremoloTypes['"+type+"'];})").toBool())
+                qFatal("Native roll type did not apply: %s", id);
+            click("keypad-undo"); if (snapshot()!=baseline) qFatal("Roll did not undo in one step: %s", id);
+            click("keypad-redo");
+            choose(id);
+            if (!evaluate("selectedChords().every(function(c){return !c.tremoloSingleChord;})").toBool()) qFatal("Matching roll did not toggle off: %s", id);
+            click("keypad-undo"); click("keypad-undo");
+            if(snapshot()!=baseline) qFatal("Roll toggle cycle changed other notation: %s",id);
+            qWarning() << "KEYPAD INSPECTOR actual add, undo, redo, toggle" << id << "passed";
+        }
+        dispatchMenu(window, "command://notation/select-all"); choose("buzz");
+        if (!evaluate("curScore.selection.select(selectedChords()[0].tremoloSingleChord)").toBool()) qFatal("Native roll selection failed");
+        evaluate("syncSelection()");
+        if(evaluate("selectedChords().length").toInt()!=1) qFatal("Selecting a roll loses its owning chord in the keypad");
+        choose("roll");
+        if(!evaluate("selectedChords()[0].tremoloSingleChord.tremoloType===tremoloTypes.R32").toBool()) qFatal("Selected buzz could not change to three-slash roll");
+        click("keypad-undo"); click("keypad-undo");
+        if(snapshot()!=baseline) qFatal("Selected roll edit did not undo cleanly");
+        qWarning() << "KEYPAD INSPECTOR selected roll resolves owning chord passed";
+        for(const auto id : {"whole","half","quarter","eighth","sixteenth","thirtysecond","sixtyfourth","breve","dot","dot2","dot3","rest",
+                             "natural","sharp","flat","flat2","sharp2","flip","pitchup","pitchdown","octaveup","octavedown",
+                             "accent","tenuto","marcato","staccato","staccatissimo","accenttenuto","accentstaccato","softaccent","stress","unstress",
+                             "flam","appoggiatura","grace4","grace16","grace32","grace8after","grace16after","grace32after","openheads","delete",
+                             "beamstart","beamjoin","beamnone","beambreak8","beambreak16"}) {
+            const bool beam=QByteArray(id).startsWith("beam");
+            selectTick(beam ? 2160 : QByteArray(id)=="half" ? 960 : 0);
+            choose(id);
+            if(snapshot()==baseline) qFatal("Actual keypad button had no score effect: %s",id);
+            click("keypad-undo");
+            if(snapshot()!=baseline) qFatal("Actual keypad button did not undo once: %s",id);
+            qWarning() << "KEYPAD INSPECTOR actual notation and one-step undo" << id << "passed";
+        }
+        selectTick(2160); choose("beamnone"); choose("beamauto");
+        if(evaluate("selectedChords()[0].beamMode").toInt()!=0) qFatal("Automatic beaming did not restore Auto");
+        click("keypad-undo"); click("keypad-undo");
+        selectTick(2160); choose("fermata");
+        if(!evaluate("selectedChords()[0].parent.annotations.length>0 && Array.from(selectedChords()[0].parent.annotations).some(function(a){return a.type===elementTypes.FERMATA;})").toBool())
+            qFatal("Fermata landed on the wrong segment");
+        click("keypad-undo"); if(snapshot()!=baseline) qFatal("Fermata did not undo cleanly");
+        selectTick(0); choose("tie");
+        if(!evaluate("selectedNotes()[0].tieForward !== null").toBool()) qFatal("Tie button did not create a tie");
+        click("keypad-undo"); if(snapshot()!=baseline) qFatal("Tie did not undo cleanly");
+        selectTick(0); choose("slur");
+        if(evaluate("curScore.spanners.length").toInt()!=1) qFatal("Slur button did not create a spanner");
+        // Cancel slur editing before invoking native Undo.
+        choose("escape"); click("keypad-undo"); if(snapshot()!=baseline) qFatal("Slur did not undo cleanly");
+        qWarning() << "KEYPAD INSPECTOR beam Auto, correct-segment fermata, tie and slur passed";
+        evaluate("layoutOverrides={}; activePage=0"); QTest::qWait(100);
+        for(int tab=0;tab<5;++tab) {
+            click(QString("keypad-tab-%1").arg(tab));
+            keypad->resize(208, keypad->minimumHeight()); QTest::qWait(100);
+            if(keypad->width()!=208 || !plugin->property("compact").toBool()) qFatal("Keypad refused compact resizing");
+            auto* grid=findItem(keypad->contentItem(),"keypad-grid");
+            for(auto* button:grid->childItems()) {
+                if(!button->objectName().startsWith("keypad-key-") || !button->isVisible()) continue;
+                if(button->width()<35 || button->height()<24 || button->y()<0 || button->x()<0
+                    || button->x()+button->width()>grid->width()+.5 || button->y()+button->height()>grid->height()+.5)
+                    qFatal("Compact keypad hides a button: %s",qPrintable(button->objectName()));
+            }
+        }
+        click("keypad-tab-0"); keypad->resize(208,keypad->minimumHeight()); QTest::qWait(100);
+        const auto capturePath=qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        if(!capturePath.isEmpty() && !keypad->grabWindow().save(capturePath)) qFatal("Keypad capture failed");
+        dispatchMenu(window,"command://notation/select-all"); choose("buzz");
+        selectTick(2160); choose("fermata");
+        dispatchMenu(window,"command://project/save"); QTest::qWait(500);
+        qWarning() << "KEYPAD INSPECTOR all notation buttons, undo and compact tabs passed";
         keypad->close();
         delete engine;
     }
@@ -437,6 +547,22 @@ private:
         auto panel = findItem(window->contentItem(), "MalletPanel");
         if (!panel || panel->height() > 221 || panel->height() < 100) qFatal("Mallet panel did not open compactly");
         const auto source = original.value("sourceKey");
+        bool reassigned=false;
+        for(auto value:model->property("alternatives").toList()) {
+            const auto row=value.toMap();
+            if(!row.value("keepsSticking").toBool()) reassigned=true;
+            if(reassigned && row.value("keepsSticking").toBool()) qFatal("Written-link alternatives came after reassignment");
+            if(row.value("pros").toStringList().empty() || row.value("cons").toStringList().empty()) qFatal("Alternative lacks concrete pros/cons");
+        }
+        auto edge=findItem(panel,"mallet-strike-edge");
+        auto center=findItem(panel,"mallet-strike-center");
+        if(!edge || !center || !edge->isVisible()) qFatal("Manual strike controls unavailable");
+        QSignalSpy edgeClick(edge,SIGNAL(clicked()));
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,edge->mapToScene({edge->width()/2,edge->height()/2}).toPoint());QTest::qWait(100);
+        auto voices=state().value("pose").toMap().value("voices").toList();
+        if(edgeClick.count()!=1 || voices.empty() || voices.front().toMap().value("fraction").toDouble()<.85 || state().value("sourceKey")!=source) qFatal("Real edge click failed or changed score");
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,center->mapToScene({center->width()/2,center->height()/2}).toPoint());QTest::qWait(100);
+        QMetaObject::invokeMethod(model,"resetStrikePoints");
         panel->setProperty("currentTab", 2); QTest::qWait(100);
         auto opening = findItem(panel, "mallet-player-opening");
         if (!opening) qFatal("Mallet player opening editor is unavailable");
@@ -454,10 +580,12 @@ private:
         }
         panel->setProperty("currentTab", 0); QTest::qWait(100);
         const auto appearance = original.value("skin");
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"keepBass"),Q_ARG(QVariant,QVariant(false)));
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"keepMelody"),Q_ARG(QVariant,QVariant(false)));
         int octave = -1;
         for (auto value : model->property("alternatives").toList()) {
             const auto row = value.toMap();
-            if (row.value("valid").toBool() && row.value("description").toString().contains("Octave")) { octave = row.value("index").toInt(); break; }
+            if (row.value("valid").toBool() && row.value("pitches").toString() != original.value("pose").toMap().value("pitchText").toString()) { octave = row.value("index").toInt(); break; }
         }
         if (octave < 0) qFatal("No valid octave alternative was generated");
         QMetaObject::invokeMethod(model, "selectAlternative", Q_ARG(int, octave));
@@ -476,11 +604,19 @@ private:
         for (int pitch : {60, 64, 67, 71}) QMetaObject::invokeMethod(model, "togglePitch", Q_ARG(int, pitch));
         if (state().value("pose").toMap().value("pitches").toList().size() != 4 || state().value("canCommit").toBool())
             qFatal("Manual bar picking failed or was allowed to commit to the score");
-        QMetaObject::invokeMethod(model, "setOption", Q_ARG(QString, "sideView"), Q_ARG(QVariant, QVariant(true)));
-        QTest::qWait(100);
-        QMetaObject::invokeMethod(model, "setOption", Q_ARG(QString, "sideView"), Q_ARG(QVariant, QVariant(false)));
+        const auto picked=state().value("pose").toMap();
+        const auto ids=picked.value("mallets").toList();
+        if(ids.size()!=4 || ids != QVariantList{1,2,3,4}) qFatal("Ordinary C chord did not retain sensible physical head order");
+        QMetaObject::invokeMethod(model,"setStrikePoint",Q_ARG(int,1),Q_ARG(double,.86));
+        if(state().value("pose").toMap().value("pitches")!=picked.value("pitches") || state().value("pose").toMap().value("mallets")!=picked.value("mallets")) qFatal("Manual strike point changed pitches or identity");
+        QMetaObject::invokeMethod(model,"resetStrikePoints");
+        auto focusView=findItem(panel,"mallet-instrument-view");
+        if(!focusView || !focusView->property("focusPlacement").toBool()) qFatal("Mallet detail focus is unavailable");
+        focusView->setProperty("focusPlacement",false);QTest::qWait(100);focusView->setProperty("focusPlacement",true);
         QMetaObject::invokeMethod(model, "setPickMode", Q_ARG(bool, false));
         if (state().value("skin") != appearance || state().value("sourceKey") != source) qFatal("Appearance or score changed during preview");
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"keepBass"),Q_ARG(QVariant,QVariant(false)));
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"keepMelody"),Q_ARG(QVariant,QVariant(false)));
         reportMemory("before mallet visibility loop");
         for (int cycle = 0; cycle < 20; ++cycle) {
             dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(40);
@@ -525,7 +661,7 @@ private:
         }
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
-        qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
+        qWarning() << "MALLET INSPECTOR range, written links, preview, commit, undo, redo, pick, edge, focus and 20 reopen checks passed";
     }
     static void verifyTransport(QQuickWindow* window) {
         for (const auto name : {"mainToolBar", "playbackToolBar", "undoRedoToolBar"}) {

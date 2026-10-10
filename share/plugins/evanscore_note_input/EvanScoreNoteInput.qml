@@ -12,7 +12,7 @@ MuseScore {
     id: root
     title: "EvanScore Note Input"
     description: "A customizable translucent keypad using native notation symbols."
-    version: "1.4"
+    version: "1.5"
     categoryCode: "composing-arranging-tools"
     thumbnailName: ""
     pluginType: ""
@@ -41,6 +41,8 @@ MuseScore {
     property bool customizeMode: false
     property bool preferencesLoaded: false
     property bool changingPage: false
+    readonly property bool compact: noteWindow.width < 270 || noteWindow.height < 214 + currentPage.rows * 36 + currentPage.groups.length * 18
+    readonly property int groupHeight: compact ? 4 : 18
     property var layoutOverrides: ({})
     property string editingSlot: ""
     readonly property color accentColor: typeof ui !== "undefined" ? ui.theme.accentColor : "#008edb"
@@ -192,7 +194,11 @@ MuseScore {
     function toggleTremolo(name) {
         const chords = selectedChords();
         const type = tremoloTypes[name];
-        if (!chords.length || type === undefined || elementTypes.TREMOLO_SINGLECHORD === undefined) return false;
+        if (!chords.length) return false;
+        if (type === undefined || elementTypes.TREMOLO_SINGLECHORD === undefined) {
+            showNotice("This app version does not expose the roll API. Update EvanScore.");
+            return true;
+        }
         if (chords.some(function(chord) { return chord.tremoloTwoChord; })) {
             showNotice("Remove the two-note tremolo before adding a single-note roll.");
             return true;
@@ -205,12 +211,18 @@ MuseScore {
                 else if (chord.tremoloSingleChord) chord.tremoloSingleChord.tremoloType = type;
                 else {
                     const tremolo = newElement(elementTypes.TREMOLO_SINGLECHORD);
+                    if (!tremolo) throw new Error("Unable to create a native roll.");
                     tremolo.track = chord.track;
                     tremolo.tremoloType = type;
                     chord.add(tremolo);
                 }
             }
-        } finally { curScore.endCmd(); }
+        } catch (error) {
+            curScore.endCmd(true);
+            showNotice("Roll could not be applied: " + error.message);
+            return true;
+        }
+        curScore.endCmd();
         Qt.callLater(syncSelection);
         return true;
     }
@@ -232,8 +244,26 @@ MuseScore {
                     chord.add(articulation);
                 }
             }
-        } finally { curScore.endCmd(); }
+        } catch (error) {
+            curScore.endCmd(true);
+            hostServices.upgradeNotice(qsTr("Native articulation edit failed; no changes applied."));
+            return false;
+        }
+        curScore.endCmd();
         return true;
+    }
+    function selectedTarget(item) {
+        // A selected stem, accidental, articulation or roll still belongs to
+        // a note/chord. Stop at structural items rather than editing a staff.
+        for (let depth = 0; item && depth < 4; ++depth) {
+            if (item.type === root.elementTypes.NOTE || item.type === root.elementTypes.CHORD
+                || item.type === root.elementTypes.REST)
+                return item;
+            if (item.type === root.elementTypes.SEGMENT || item.type === root.elementTypes.MEASURE)
+                break;
+            item = item.parent;
+        }
+        return null;
     }
     function selectedNotes() {
         let notes = [];
@@ -248,10 +278,12 @@ MuseScore {
             }
         }
         for (let item of curScore.selection.elements) {
-            if (item.type === root.elementTypes.NOTE)
-                append(item);
-            else if (item.type === root.elementTypes.CHORD)
-                for (let note of item.notes)
+            const target = selectedTarget(item);
+            if (!target) continue;
+            if (target.type === root.elementTypes.NOTE)
+                append(target);
+            else if (target.type === root.elementTypes.CHORD)
+                for (let note of target.notes)
                     append(note);
         }
         return notes;
@@ -267,9 +299,12 @@ MuseScore {
         try {
             for (let note of notes)
                 note.headType = type;
-        } finally {
-            curScore.endCmd();
+        } catch (error) {
+            curScore.endCmd(true);
+            hostServices.upgradeNotice(qsTr("Notehead edit failed; no changes applied."));
+            return false;
         }
+        curScore.endCmd();
         openNoteheads = !allOpen;
         return true;
     }
@@ -311,11 +346,15 @@ MuseScore {
         let targets = [];
         let seen = {};
         for (let item of items) {
-            let cr = item.type === root.elementTypes.NOTE ? item.parent : item;
+            let target = selectedTarget(item);
+            let cr = target && target.type === root.elementTypes.NOTE ? target.parent : target;
             if (!cr || (cr.type !== root.elementTypes.CHORD && cr.type !== root.elementTypes.REST))
                 continue;
             let segment = cr.parent;
-            let key = segment.tick + ":" + cr.track;
+            if (!segment || segment.type !== root.elementTypes.SEGMENT || !segment.fraction)
+                continue;
+            const tick = segment.fraction.ticks;
+            let key = tick + ":" + cr.track;
             if (seen[key])
                 continue;
             seen[key] = true;
@@ -323,7 +362,7 @@ MuseScore {
             for (let annotation of segment.annotations)
                 if (annotation.type === root.elementTypes.FERMATA && annotation.track === cr.track)
                     existing.push(annotation);
-            targets.push({ tick: segment.tick, track: cr.track, existing: existing });
+            targets.push({ tick: tick, track: cr.track, existing: existing });
         }
         if (!targets.length)
             return false;
@@ -342,12 +381,16 @@ MuseScore {
                 cursor.track = target.track;
                 cursor.rewindToTick(target.tick);
                 let fermata = newElement(root.elementTypes.FERMATA);
+                if (!fermata) throw new Error("Unable to create a native fermata.");
                 fermata.symbol = root.symbolTypes.fermataAbove;
                 cursor.add(fermata);
             }
-        } finally {
-            curScore.endCmd();
+        } catch (error) {
+            curScore.endCmd(true);
+            hostServices.upgradeNotice(qsTr("Fermata edit failed; no changes applied."));
+            return false;
         }
+        curScore.endCmd();
         return true;
     }
     function activate(spec) {
@@ -373,8 +416,8 @@ MuseScore {
         objectName: "evanscore-keypad"
         width: 320
         height: root.defaultHeight(root.currentPage)
-        minimumWidth: 300
-        minimumHeight: 214 + root.currentPage.rows * 36 + root.currentPage.groups.length * 18 + (root.customizeMode ? 28 : 0)
+        minimumWidth: 208
+        minimumHeight: 164 + root.currentPage.rows * 30 + root.currentPage.groups.length * 4 + (root.customizeMode ? 28 : 0)
         maximumWidth: 900
         maximumHeight: 1200
         color: "transparent"
@@ -396,34 +439,34 @@ MuseScore {
         }
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 10
-            spacing: 7
+            anchors.margins: root.compact ? 7 : 10
+            spacing: root.compact ? 4 : 7
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 30; Layout.maximumHeight: 30
+                Layout.preferredHeight: root.compact ? 26 : 30; Layout.maximumHeight: Layout.preferredHeight
                 MouseArea {
                     anchors.fill: parent
                     onPressed: noteWindow.startSystemMove()
                     onDoubleClicked: root.resetSize()
                 }
                 KeyButton {
-                    width: 30; height: 28
+                    width: root.compact ? 26 : 30; height: root.compact ? 24 : 28
                     spec: ({label: "Customize this keypad", icon: IconCode.CONFIGURE})
                     checked: root.customizeMode
                     onClicked: { root.customizeMode = !root.customizeMode; picker.close(); }
                     objectName: "keypad-customize"
                 }
-                Text { anchors.centerIn: parent; text: "Keypad"; color: "#f2f3f5"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Text { anchors.centerIn: parent; text: "Keypad"; color: "#f2f3f5"; font.pixelSize: root.compact ? 12 : 14; font.weight: Font.DemiBold }
                 Row {
                     anchors.right: parent.right
                     spacing: 3
                     KeyButton {
-                        width: 28; height: 28
+                        width: root.compact ? 24 : 28; height: root.compact ? 24 : 28
                         spec: ({label: "Minimize", icon: IconCode.APP_MINIMIZE})
                         onClicked: noteWindow.showMinimized()
                     }
                     KeyButton {
-                        width: 28; height: 28
+                        width: root.compact ? 24 : 28; height: root.compact ? 24 : 28
                         spec: ({label: "Close keypad", icon: IconCode.CLOSE_X_ROUNDED})
                         onClicked: noteWindow.close()
                     }
@@ -431,7 +474,7 @@ MuseScore {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 38; Layout.maximumHeight: 38
+                Layout.preferredHeight: root.compact ? 30 : 38; Layout.maximumHeight: Layout.preferredHeight
                 spacing: 6
                 Repeater {
                     model: ["openheads", "delete", "undo", "redo"]
@@ -448,7 +491,7 @@ MuseScore {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 32; Layout.maximumHeight: 32
+                Layout.preferredHeight: root.compact ? 26 : 32; Layout.maximumHeight: Layout.preferredHeight
                 spacing: 3
                 Repeater {
                     model: root.pages
@@ -486,13 +529,14 @@ MuseScore {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 readonly property real columnWidth: (width - 18) / 4
-                readonly property real rowHeight: (height - root.currentPage.groups.length * 18) / root.currentPage.rows
-                function groupOffset(row) { return root.currentPage.groups.filter(function(g) { return g.row <= row; }).length * 18; }
+                readonly property real rowHeight: (height - root.currentPage.groups.length * root.groupHeight) / root.currentPage.rows
+                function groupOffset(row) { return root.currentPage.groups.filter(function(g) { return g.row <= row; }).length * root.groupHeight; }
                 Repeater {
                     model: root.currentPage.groups
                     Text {
                         required property var modelData
-                        x: 2; y: modelData.row * keysGrid.rowHeight + keysGrid.groupOffset(modelData.row) - 18
+                        x: 2; y: modelData.row * keysGrid.rowHeight + keysGrid.groupOffset(modelData.row) - root.groupHeight
+                        visible: !root.compact
                         text: modelData.label
                         color: "#bfc7d1"
                         font.pixelSize: 10
@@ -518,7 +562,7 @@ MuseScore {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 32; Layout.maximumHeight: 32
+                Layout.preferredHeight: root.compact ? 26 : 32; Layout.maximumHeight: Layout.preferredHeight
                 spacing: 5
                 Repeater {
                     model: ["1", "2", "3", "4", "All"]
@@ -689,7 +733,7 @@ MuseScore {
                 visible: !key.spec.glyphs
                 text: key.spec.text || String.fromCharCode(key.spec.icon || IconCode.NONE)
                 font.family: key.spec.text ? "Arial" : iconFont.name
-                font.pixelSize: key.spec.text ? 18 : (key.spec.iconSize || Math.min(key.height - 12, key.width - 14, 38 * Math.min(2, noteWindow.width / 320))) * (key.spec.grace ? 0.78 : 1)
+                font.pixelSize: key.spec.text ? (root.compact ? 14 : 18) : (key.spec.iconSize || Math.min(key.height - (root.compact ? 6 : 12), key.width - (root.compact ? 8 : 14), 38 * Math.min(2, noteWindow.width / 320))) * (key.spec.grace ? 0.78 : 1)
                 font.weight: key.spec.text ? Font.DemiBold : Font.Normal
                 color: "#f8faff"
                 renderType: Text.NativeRendering
@@ -699,7 +743,7 @@ MuseScore {
                 anchors.fill: parent
                 visible: !!key.spec.glyphs
                 readonly property var bounds: key.spec.bounds || [0,0,1,1]
-                readonly property real scale: Math.min(0.045 * Math.min(2, noteWindow.width / 320), Math.max(0,height - 14) / (bounds[3]-bounds[1]), Math.max(0,width-14) / (bounds[2]-bounds[0]))
+                readonly property real scale: Math.min(0.045 * Math.min(2, noteWindow.width / 320), Math.max(0,height - (root.compact ? 6 : 14)) / (bounds[3]-bounds[1]), Math.max(0,width - (root.compact ? 8 : 14)) / (bounds[2]-bounds[0]))
                 Repeater {
                     model: key.spec.glyphs || []
                     Text {

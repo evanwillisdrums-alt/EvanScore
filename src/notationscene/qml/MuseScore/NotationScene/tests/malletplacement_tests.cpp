@@ -76,8 +76,8 @@ TEST(MalletPlacement, AlternativesPreserveAllVoicesAndChangeOnlyOctaves) {
     }
 }
 TEST(MalletPlacement, MovingStrikePointChangesPoseWithoutChangingPitchesOrIdentity) {
-    Player player; const auto k = keyboard(36,96); const std::vector<int> pitches {60,61};
-    const auto before = solve(k, pitches, player, {1,2}).front(); player.strikeFractions[1] = .88;
+    Player player; player.optimizeStrikes=false; const auto k = keyboard(36,96); const std::vector<int> pitches {60,61};
+    const auto before = solve(k, pitches, player, {1,2}).front(); player.strikeFractions[1] = .88; player.manualStrikes[1]=true; player.optimizeStrikes=true;
     const auto after = solve(k, pitches, player, {1,2}).front();
     EXPECT_EQ(before.pitches, after.pitches); EXPECT_EQ(before.mallets, after.mallets);
     EXPECT_GT(after.targets[1].y, before.targets[1].y);
@@ -91,4 +91,79 @@ TEST(MalletPlacement, RepeatedAnalysisHasBoundedCandidatesAndDeterministicResult
         EXPECT_LE(poses.size(), 24); EXPECT_EQ(poses.front().mallets, expected);
         EXPECT_LE(alternatives(k, {60,64,67,71}, player).size(), 8);
     }
+}
+
+TEST(MalletPlacement, OrdinaryChordKeepsPhysicalOrderAndCentralStrikes) {
+    const auto pose=solve(keyboard(36,96),{60,64,67,72},Player{}).front();
+    EXPECT_EQ(pose.mallets,(std::vector<int>{1,2,3,4}));
+    EXPECT_TRUE(pose.valid);EXPECT_FALSE(pose.uncertain);
+    for(double fraction:pose.fractions) EXPECT_DOUBLE_EQ(fraction,.5);
+}
+TEST(MalletPlacement, RowSeparationIsUsefulButNotAnOctaveRule) {
+    const auto k=keyboard(36,96);Player p;
+    EXPECT_EQ(solve(k,{60,66,67,70},p).front().mallets,(std::vector<int>{1,3,2,4}));
+    EXPECT_NE(solve(k,{48,54,60,66},p).front().mallets,(std::vector<int>{1,3,2,4}));
+}
+TEST(MalletPlacement, WrittenRevoicingComesBeforeReassignmentAndRetainsVoiceIdentity) {
+    const std::vector<int> pitches{48,60,64,67},ids{1,2,3,4};
+    const auto results=alternatives(keyboard(36,96),pitches,Player{},nullptr,ids);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results.front().mallets,ids);EXPECT_NE(results.front().pitches,pitches);
+    // Voice 3 moved below voice 2, retaining mallet 3. Sorting the pitches
+    // independently would silently assign these two musical voices wrongly.
+    EXPECT_LT(results.front().pitches[2],results.front().pitches[1]);
+    EXPECT_EQ(results.front().pitches.front(),pitches.front());
+    EXPECT_EQ(results.front().pitches.back(),pitches.back());
+    bool reassigned=false;
+    for(const auto& result:results) {
+        if(result.mallets!=ids) reassigned=true;
+        if(reassigned) EXPECT_NE(result.mallets,ids);
+        for(size_t i=0;i<pitches.size();++i) EXPECT_EQ(result.pitches[i]%12,pitches[i]%12);
+    }
+}
+TEST(MalletPlacement, PartialWrittenLinksAndProtectedVoicesSurviveSearch) {
+    SearchOptions options;const std::vector<int> pitches{48,60,64,67};
+    const auto results=alternatives(keyboard(36,96),pitches,Player{},nullptr,{1,0,3,4},options);
+    ASSERT_FALSE(results.empty());EXPECT_EQ(results.front().mallets[0],1);EXPECT_EQ(results.front().mallets[2],3);EXPECT_EQ(results.front().mallets[3],4);
+    for(const auto& pose:results) {EXPECT_EQ(*std::min_element(pose.pitches.begin(),pose.pitches.end()),48);EXPECT_EQ(*std::max_element(pose.pitches.begin(),pose.pitches.end()),67);}
+    options.allowOctaves=false;
+    for(const auto& pose:alternatives(keyboard(36,96),pitches,Player{},nullptr,{},options)) EXPECT_EQ(pose.pitches,pitches);
+}
+TEST(MalletPlacement, EndAccessIsSelectiveAndManualPointsAreNeverOverridden) {
+    const auto k=keyboard(36,96);Player p;
+    const auto comfortable=solve(k,{66,70},p,{3,4}).front();
+    EXPECT_DOUBLE_EQ(comfortable.fractions[0],.5);EXPECT_DOUBLE_EQ(comfortable.fractions[1],.5);
+    p.strikeFractions[1]=.86;p.manualStrikes[1]=true;
+    const auto manual=solve(k,{60,66},p,{1,2}).front();
+    EXPECT_DOUBLE_EQ(manual.fractions[1],.86);
+    EXPECT_TRUE(std::any_of(manual.issues.begin(),manual.issues.end(),[](const Issue& i){return i.key=="edge";}));
+    p.optimizeStrikes=false;p.manualStrikes={};p.strikeFractions={.5,.5,.5,.5};
+    const auto centered=solve(k,{60,66},p,{1,2}).front();p.optimizeStrikes=true;
+    const auto suggested=solve(k,{60,66},p,{1,2}).front();
+    EXPECT_LT(suggested.cost,centered.cost);EXPECT_GT(suggested.fractions[1],.85);
+}
+TEST(MalletPlacement, UnsupportedHeadOrderIsUnknownAndBodyFollowsTaperedRegister) {
+    const auto k=keyboard(36,96);Player p;
+    const auto reversed=solve(k,{60,64,67,72},p,{1,2,4,3}).front();
+    EXPECT_FALSE(reversed.valid);EXPECT_TRUE(reversed.uncertain);
+    const auto low=solve(k,{36,43},p).front(),high=solve(k,{84,91},p).front();
+    EXPECT_GT(low.body.y,high.body.y);EXPECT_GT(high.body.x,low.body.x);
+    EXPECT_NE(high.anchors[0].x,high.anchors[1].x);
+}
+TEST(MalletPlacement, ContextReportsPreparationAgainstEditableTravelSetting) {
+    const auto k=keyboard(36,96);Player p;p.travelSpeed=100;
+    const auto before=solve(k,{36,43},p,{1,4}).front();
+    const auto quick=solve(k,{84,91},p,{1,4},&before,.02).front();
+    const auto relaxed=solve(k,{84,91},p,{1,4},&before,5).front();
+    EXPECT_GT(quick.preparation,.02);EXPECT_GT(quick.cost,relaxed.cost);
+    EXPECT_TRUE(std::any_of(quick.issues.begin(),quick.issues.end(),[](const Issue&i){return i.key=="transition-Previous";}));
+}
+
+TEST(MalletPlacement, WrittenParserKeepsUnknownSlotsAndDeclaresAmbiguity) {
+    const auto partial=parseWrittenSticking("1 ? 3 4",4);
+    EXPECT_FALSE(partial.unknown);EXPECT_EQ(partial.required,(std::vector<int>{1,0,3,4}));
+    EXPECT_EQ(parseWrittenSticking("4 _ 2 1",4,true).required,partial.required);
+    EXPECT_EQ(parseWrittenSticking("L ? R R",4).required,(std::vector<int>{-1,0,-2,-2}));
+    for(const std::string text:{"1 2 3","1 2 5 6","1 L 3 R","1234x"}) EXPECT_TRUE(parseWrittenSticking(text,4).unknown);
+    EXPECT_EQ(parseWrittenSticking("",4).required,(std::vector<int>{0,0,0,0}));
 }

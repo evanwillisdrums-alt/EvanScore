@@ -13,7 +13,7 @@
 using namespace mu::engraving;
 namespace mu::notation::mallet {
 bool canApply(const std::vector<Note*>& notes, const Pose& candidate) {
-    if (!candidate.valid || notes.empty() || notes.size() > 4 || notes.size() != candidate.pitches.size() || notes.size() != candidate.mallets.size()) return false;
+    if (!candidate.valid || candidate.uncertain || notes.empty() || notes.size() > 4 || notes.size() != candidate.pitches.size() || notes.size() != candidate.mallets.size()) return false;
     std::set<int> ids;
     std::set<const Note*> unique;
     for (size_t i = 0; i < notes.size(); ++i) {
@@ -30,7 +30,7 @@ bool canApply(const std::vector<Note*>& notes, const Pose& candidate) {
     }
     return true;
 }
-bool apply(const std::vector<Note*>& notes, const Pose& candidate) {
+bool apply(const std::vector<Note*>& notes, const Pose& candidate, bool reverseNumbering) {
     if (!canApply(notes, candidate)) return false;
     std::set<Chord*> chords;
     for (size_t i = 0; i < notes.size(); ++i) {
@@ -46,7 +46,8 @@ bool apply(const std::vector<Note*>& notes, const Pose& candidate) {
             const auto found = std::find(notes.begin(), notes.end(), note);
             if (found == notes.end()) continue;
             if (!text.empty()) text += ' ';
-            text += std::to_string(candidate.mallets[std::distance(notes.begin(), found)]);
+            const int id=candidate.mallets[std::distance(notes.begin(), found)];
+            text += std::to_string(reverseNumbering ? 5-id : id);
         }
         std::vector<EngravingItem*> old;
         for (auto* item : chord->segment()->annotations()) if (item->isSticking() && item->track() == chord->track()) old.push_back(item);

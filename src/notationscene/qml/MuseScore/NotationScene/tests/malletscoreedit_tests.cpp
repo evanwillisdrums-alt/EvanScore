@@ -94,3 +94,26 @@ TEST_F(MalletScoreEdit, TiedAttackAndPartialChordCannotBeCommitted) {
     auto* extra = Factory::createNote(notes[0]->chord()); extra->setTrack(0); extra->setPitch(84); notes[0]->chord()->add(extra);
     EXPECT_FALSE(placement::canApply(notes, candidate()));
 }
+
+TEST_F(MalletScoreEdit, ReverseConventionAndUnknownPreviewStaySafe) {
+    auto pose=candidate();pose.uncertain=true;
+    EXPECT_FALSE(placement::apply(notes,pose,true));EXPECT_EQ(notes[0]->pitch(),60);
+    pose.uncertain=false;
+    score->lockUpdates(true);score->startCmd(muse::TranslatableString::untranslatable("Mallet reverse convention"));
+    ASSERT_TRUE(placement::apply(notes,pose,true));score->endCmd();
+    for(size_t i=0;i<notes.size();++i) EXPECT_EQ(StickingResolver::resolve(notes[i]->chord()).strokes.front().mallet,i+1);
+    score->undoStack()->undo(nullptr);EXPECT_EQ(notes[0]->pitch(),60);
+    for(auto* note:notes) EXPECT_EQ(StickingResolver::resolve(note->chord()).rawText,"R");
+}
+
+TEST_F(MalletScoreEdit, RevoicingPastAnotherToneKeepsOriginalNoteToMalletLinks) {
+    auto* chord=notes[0]->chord();auto* added=Factory::createNote(chord);added->setTrack(chord->track());added->setPitch(64);added->setTpcFromPitch();chord->add(added);
+    std::vector<Note*> voices{notes[0],added};
+    placement::Pose pose;pose.pitches={72,64};pose.mallets={1,2};
+    score->lockUpdates(true);score->startCmd(muse::TranslatableString::untranslatable("Revoice musical voices"));
+    ASSERT_TRUE(placement::apply(voices,pose));score->endCmd();
+    EXPECT_EQ(notes[0]->pitch(),72);EXPECT_EQ(added->pitch(),64);
+    EXPECT_EQ(StickingResolver::resolve(chord).rawText,"2 1");
+    score->undoStack()->undo(nullptr);EXPECT_EQ(notes[0]->pitch(),60);EXPECT_EQ(added->pitch(),64);
+    EXPECT_EQ(StickingResolver::resolve(chord).rawText,"R");
+}

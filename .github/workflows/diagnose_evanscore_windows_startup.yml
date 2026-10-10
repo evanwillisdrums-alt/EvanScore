@@ -31,6 +31,11 @@ on:
           - score
           - home
         default: score
+      keypad_source:
+        description: Keypad files to exercise (diagnostic only)
+        type: choice
+        options: [bundled, checkout]
+        default: bundled
       mode:
         description: Inspect launch logs or run desktop checks
         type: choice
@@ -428,6 +433,14 @@ jobs:
           path: downloaded-app
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Install current keypad for isolated plugin checks
+        if: inputs.mode == 'keypad' && inputs.keypad_source == 'checkout'
+        shell: pwsh
+        run: |
+          $targets = @(Get-ChildItem downloaded-app -Filter 'EvanScoreNoteInput.qml' -Recurse)
+          if ($targets.Count -ne 1) { throw 'Expected one bundled keypad' }
+          Copy-Item share/plugins/evanscore_note_input/* $targets[0].DirectoryName -Force -Recurse
+          Write-Host 'Testing current keypad files on the specified native app; no native binary replaced.'
       - name: Get matching symbols for repeated-score crash tracing
         if: inputs.mode == 'dynamics'
         uses: actions/download-artifact@v5
@@ -499,17 +512,17 @@ jobs:
           }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
-            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets' -or $env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 20 } else { 0 }
+            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets' -or $env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 60 } else { 0 }
             $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
-            $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 'buildscripts/ci/windows/fixtures/ff-snare.mscx' } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
+            $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 'buildscripts/ci/windows/fixtures/keypad-notes.mscx' } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath $fixture -MinimumOpenSeconds $interactionTime
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-              if (-not $logs.Contains('KEYPAD INSPECTOR buzz real click passed')) { throw 'Actual keypad checks did not complete' }
+              if (-not $logs.Contains('KEYPAD INSPECTOR all notation buttons, undo and compact tabs passed')) { throw 'Actual keypad checks did not complete' }
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-              if (-not $logs.Contains('MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed')) { throw 'Native mallet checks did not complete' }
+              if (-not $logs.Contains('MALLET INSPECTOR range, written links, preview, commit, undo, redo, pick, edge, focus and 20 reopen checks passed')) { throw 'Native mallet checks did not complete' }
               python buildscripts/ci/windows/startup-inspector/verify_saved_mallets.py
               if ($LASTEXITCODE -ne 0) { throw 'Native mallet score persistence verification failed' }
             }
@@ -574,7 +587,7 @@ jobs:
           Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
             if ($_.Name -like 'MuseScore*.log') {
-              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|ERROR|ASSERT' }) -join "`n"
+              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|ERROR|ASSERT' }) -join "`n"
             }
             if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {

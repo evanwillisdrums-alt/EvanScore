@@ -17,6 +17,8 @@ Item {
     readonly property var panelState: model.state
     property int currentTab: 0
     property int lastAlternative: 0
+    property int selectedMallet: 1
+    property bool showOtherOptions: false
     MalletPanelModel {
         id: malletModel
         active: root.visible
@@ -71,6 +73,7 @@ Item {
             }
             Button {
                 text: qsTrc("notation", "Clear")
+                visible: root.panelState.pickMode
                 enabled: root.panelState.pickMode
                 transparent: true
                 navigation.order: 3
@@ -80,14 +83,14 @@ Item {
                 Layout.fillWidth: true
             }
             Button {
-                text: "A"
+                text: qsTrc("notation", "Original")
                 toolTipTitle: qsTrc("notation", "Original placement")
                 accentButton: root.panelState.selectedAlternative < 0
                 navigation.order: 4
                 onClicked: root.model.showOriginal()
             }
             Button {
-                text: "B"
+                text: qsTrc("notation", "Preview")
                 toolTipTitle: qsTrc("notation", "Preview alternative")
                 enabled: root.model.alternatives.length > 0
                 accentButton: root.panelState.selectedAlternative >= 0
@@ -97,7 +100,7 @@ Item {
             Button {
                 objectName: "mallet-audition"
                 icon: IconCode.PLAY
-                toolTipTitle: qsTrc("notation", "Audition preview")
+                toolTipTitle: qsTrc("notation", "Audition this chord")
                 enabled: root.panelState.canAudition
                 transparent: true
                 navigation.order: 6
@@ -145,18 +148,19 @@ Item {
                             wrapMode: Text.NoWrap
                         }
                         Button {
-                            text: qsTrc("notation", "Top")
+                            text: qsTrc("notation", "Focus")
+                            toolTipDescription: qsTrc("notation", "Enlarge the active register and player. The overview shows the full instrument.")
                             transparent: !accentButton
-                            accentButton: !root.panelState.sideView
+                            accentButton: scene.focusPlacement
                             navigation.order: 9
-                            onClicked: root.model.setOption("sideView", false)
+                            onClicked: { scene.focusPlacement = true; scene.zoom = 1; }
                         }
                         Button {
-                            text: qsTrc("notation", "Front")
+                            text: qsTrc("notation", "Full")
                             transparent: !accentButton
-                            accentButton: root.panelState.sideView
+                            accentButton: !scene.focusPlacement
                             navigation.order: 10
-                            onClicked: root.model.setOption("sideView", true)
+                            onClicked: { scene.focusPlacement = false; scene.zoom = 1; }
                         }
                         Button {
                             text: "−"
@@ -188,10 +192,11 @@ Item {
                         scene: root.panelState
                         backgroundColor: ui.theme.textFieldColor
                         Accessible.name: qsTrc("notation", "Mallet instrument and overhead player")
-                        Accessible.description: qsTrc("notation", "Arrow keys explore bars; Space selects a bar in Pick on bars mode. Scroll to zoom.")
+                        Accessible.description: qsTrc("notation", "Click an occupied bar to select its mallet, then drag along the bar or use the strike-point controls. Arrow keys explore bars; Space selects in Pick on bars mode. Scroll to zoom.")
                         onPitchClicked: function (pitch) {
                             root.model.togglePitch(pitch);
                         }
+                        onMalletSelected: function(mallet) { root.selectedMallet = mallet; }
                         onStrikePointDragged: function (mallet, fraction) {
                             root.model.setStrikePoint(mallet, fraction);
                         }
@@ -199,22 +204,40 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label {
-                            text: scene.hoveredPitch >= 0 ? qsTrc("notation", "MIDI pitch") + " " + scene.hoveredPitch : root.panelState.pose?.pitchText || qsTrc("notation", "Click a chord in the score")
+                            text: {const voices=root.panelState.pose?.voices || [];const v=voices.find(v => v.mallet === root.selectedMallet); return v ? v.name + " · " + qsTrc("notation", "mallet") + " " + (root.panelState.reverseNumbering ? 5-v.mallet : v.mallet) : root.panelState.pose?.pitchText || qsTrc("notation", "Click a chord");}
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                             wrapMode: Text.NoWrap
                             opacity: .8
                         }
-                        Label {
-                            text: qsTrc("notation", "1–2 left · 3–4 right")
-                            opacity: .8
+                        Button {
+                            objectName: "mallet-strike-center"
+                            text: qsTrc("notation", "Center")
+                            enabled: (root.panelState.pose?.mallets || []).indexOf(root.selectedMallet) >= 0
+                            transparent: true
+                            toolTipDescription: qsTrc("notation", "Move the selected mallet to the center of its bar.")
+                            onClicked: root.model.setStrikePoint(root.selectedMallet, .5)
+                        }
+                        Button {
+                            objectName: "mallet-strike-edge"
+                            text: qsTrc("notation", "Near edge")
+                            enabled: (root.panelState.pose?.mallets || []).indexOf(root.selectedMallet) >= 0
+                            transparent: true
+                            toolTipDescription: qsTrc("notation", "Use the end nearest the player. Access may improve, with a tone tradeoff; not a routine chord default.")
+                            onClicked: root.model.setStrikePoint(root.selectedMallet, .98)
+                        }
+                        Button {
+                            icon: IconCode.UNDO
+                            toolTipTitle: qsTrc("notation", "Reset strike points")
+                            transparent: true
+                            onClicked: root.model.resetStrikePoints()
                         }
                     }
                 }
             }
             Item {
-                Controls.SplitView.preferredWidth: 330
-                Controls.SplitView.minimumWidth: 250
+                Controls.SplitView.preferredWidth: 365
+                Controls.SplitView.minimumWidth: 312
                 Controls.SplitView.maximumWidth: 580
                 ColumnLayout {
                     anchors.fill: parent
@@ -252,7 +275,7 @@ Item {
                                 Layout.fillWidth: true
                                 text: root.panelState.status || ""
                                 font: ui.theme.bodyBoldFont
-                                color: root.panelState.pose?.severity === 2 ? "#ffb0ad" : root.panelState.pose?.severity === 1 ? "#f3d290" : ui.theme.fontPrimaryColor
+                                color: root.panelState.pose?.uncertain ? "#afb6be" : root.panelState.pose?.severity === 2 ? "#ffb0ad" : root.panelState.pose?.severity === 1 ? "#f3d290" : ui.theme.fontPrimaryColor
                             }
                             Label {
                                 visible: !!root.panelState.notice
@@ -269,27 +292,42 @@ Item {
                                     text: root.panelState.sticking ? qsTrc("notation", "Written sticking: ") + root.panelState.sticking : qsTrc("notation", "No written sticking • suggested assignment")
                                     opacity: .8
                                 }
+                                Label {
+                                    Layout.fillWidth: true
+                                    visible: root.panelState.recommendKeep === true
+                                    text: qsTrc("notation", "Keep the original. No modeled comfort conflict; alternatives are optional.")
+                                    color: "#a5d6b8"
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    visible: root.panelState.selectedAlternative >= 0
+                                    text: qsTrc("notation", "Original: %1 · Preview: %2").arg(root.panelState.originalPose?.status || "").arg(root.panelState.pose?.status || "")
+                                }
                                 Repeater {
-                                    model: 4
+                                    model: root.panelState.pose?.voices || []
                                     RowLayout {
-                                        required property int index
+                                        required property var modelData
                                         Layout.fillWidth: true
                                         Rectangle {
-                                            implicitWidth: 8
-                                            implicitHeight: 8
-                                            radius: 4
-                                            color: ["#5da9f4", "#72d0cf", "#f3c560", "#ed8a9e"][parent.index]
+                                            implicitWidth: 8; implicitHeight: 8; radius: 4
+                                            color: ["#5da9f4", "#72d0cf", "#f3c560", "#ed8a9e"][parent.modelData.mallet - 1]
                                         }
                                         Label {
                                             Layout.fillWidth: true
-                                            text: {
-                                                const ids = root.panelState.pose?.mallets || [];
-                                                const n = ids.indexOf(parent.index + 1);
-                                                const pitches = root.panelState.pose?.pitches || [];
-                                                return (parent.index + 1) + (parent.index < 2 ? "  L  ·  " : "  R  ·  ") + (n >= 0 ? "MIDI " + pitches[n] : qsTrc("notation", "resting"));
-                                            }
+                                            text: (root.panelState.reverseNumbering ? 5-parent.modelData.mallet : parent.modelData.mallet) + (parent.modelData.mallet < 3 ? " · L · " : " · R · ") + parent.modelData.name + " · " + parent.modelData.zone
+                                        }
+                                        Button {
+                                            text: qsTrc("notation", "Select")
+                                            transparent: true
+                                            accentButton: root.selectedMallet === parent.modelData.mallet
+                                            onClicked: root.selectedMallet = parent.modelData.mallet
                                         }
                                     }
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTrc("notation", "Strike zones: green center · orange end access · dashed estimated nodes")
+                                    opacity: .75
                                 }
                                 Label {
                                     Layout.fillWidth: true
@@ -300,14 +338,28 @@ Item {
                                     text: qsTrc("notation", "Hand rotation: L %1° · R %2°").arg(Number(root.panelState.pose?.leftRotation || 0).toFixed(0)).arg(Number(root.panelState.pose?.rightRotation || 0).toFixed(0))
                                     opacity: .8
                                 }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTrc("notation", "Arm reach L %1 · R %2 cm\nHand clearance %3 · Shaft clearance %4 cm\nOuter 1–4 spread %5 cm").arg(Number(root.panelState.pose?.leftReach || 0).toFixed(1)).arg(Number(root.panelState.pose?.rightReach || 0).toFixed(1)).arg(Number(root.panelState.pose?.handClearance || 0).toFixed(1)).arg(Number(root.panelState.pose?.shaftClearance ?? -1) < 0 ? "—" : Number(root.panelState.pose.shaftClearance).toFixed(1)).arg(Number(root.panelState.pose?.outerSpread || 0).toFixed(1))
+                                    opacity: .8
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    visible: !!root.panelState.previousPitches || !!root.panelState.nextPitches
+                                    text: qsTrc("notation", "Before: %1 · After: %2\nTravel %3 cm · estimated preparation %4 ms").arg(root.panelState.previousPitches || "—").arg(root.panelState.nextPitches || "—").arg(Number(root.panelState.pose?.movement || 0).toFixed(1)).arg(Math.round(Number(root.panelState.pose?.preparation || 0) * 1000))
+                                    opacity: .8
+                                }
                                 Repeater {
-                                    model: root.panelState.pose?.issues || []
-                                    Label {
-                                        required property var modelData
-                                        Layout.fillWidth: true
-                                        text: (modelData.severity > 0 ? "• " : "✓ ") + modelData.message
-                                        color: modelData.severity === 2 ? "#ffb0ad" : modelData.severity === 1 ? "#f3d290" : ui.theme.fontPrimaryColor
-                                    }
+                                    model: root.panelState.contextNotes || []
+                                    Label {required property string modelData;Layout.fillWidth:true;text:modelData;opacity:.7}
+                                }
+                                Repeater {
+                                    model: root.panelState.pose?.pros || []
+                                    Label {required property string modelData; Layout.fillWidth: true; text: "+ " + modelData; color: "#a5d6b8"}
+                                }
+                                Repeater {
+                                    model: root.panelState.pose?.cons || []
+                                    Label {required property string modelData; Layout.fillWidth: true; text: "• " + modelData; color: root.panelState.pose?.uncertain ? "#afb6be" : root.panelState.pose?.severity === 2 ? "#ffb0ad" : root.panelState.pose?.severity === 1 ? "#f3d290" : ui.theme.fontPrimaryColor}
                                 }
                                 Label {
                                     visible: (root.panelState.heldPitches || []).length > 0
@@ -322,11 +374,16 @@ Item {
                                 spacing: 7
                                 Label {
                                     Layout.fillWidth: true
-                                    text: qsTrc("notation", "Preview changes only this view. Commit writes pitches and sticking; Undo restores both.")
+                                    text: (root.panelState.searchOrder || "") + "\n" + qsTrc("notation", "Preview is separate from the score. Commit writes pitches and sticking in one Undo step. Strike positions are a preview, not printed notation.")
                                     opacity: .8
                                 }
+                                Button {
+                                    visible: root.panelState.recommendKeep === true
+                                    text: root.showOtherOptions ? qsTrc("notation", "Hide optional alternatives") : qsTrc("notation", "Explore optional alternatives")
+                                    onClicked: root.showOtherOptions = !root.showOtherOptions
+                                }
                                 Repeater {
-                                    model: root.model.alternatives
+                                    model: root.panelState.recommendKeep && !root.showOtherOptions ? [] : root.model.alternatives
                                     Rectangle {
                                         required property var modelData
                                         Layout.fillWidth: true
@@ -344,6 +401,7 @@ Item {
                                             Button {
                                                 Layout.fillWidth: true
                                                 text: modelData.pitches
+                                                toolTipDescription: modelData.description
                                                 accentButton: modelData.selected
                                                 transparent: !accentButton
                                                 onClicked: {
@@ -355,6 +413,23 @@ Item {
                                                 Layout.fillWidth: true
                                                 text: modelData.description
                                                 opacity: .8
+                                            }
+                                            Label {
+                                                Layout.fillWidth: true
+                                                text: modelData.status + " · " + (modelData.mallets || []).map(m => root.panelState.reverseNumbering ? 5-m : m).join(" ")
+                                                color: modelData.severity ? "#f3d290" : "#a5d6b8"
+                                            }
+                                            Repeater {
+                                                model: modelData.changes || []
+                                                Label { required property string modelData; Layout.fillWidth: true; text: modelData; opacity: .85 }
+                                            }
+                                            Repeater {
+                                                model: modelData.pros || []
+                                                Label { required property string modelData; Layout.fillWidth: true; text: "+ " + modelData; color: "#a5d6b8" }
+                                            }
+                                            Repeater {
+                                                model: modelData.cons || []
+                                                Label { required property string modelData; Layout.fillWidth: true; text: "• " + modelData; opacity: .8 }
                                             }
                                             Label {
                                                 Layout.fillWidth: true
@@ -370,6 +445,7 @@ Item {
                                 Layout.fillWidth: true
                                 spacing: 8
                                 UiComponents.CheckBox {
+                                    Layout.fillWidth: true
                                     text: qsTrc("notation", "Respect written sticking")
                                     checked: root.panelState.respectSticking === true
                                     onClicked: root.model.setOption("respectSticking", !checked)
@@ -378,8 +454,26 @@ Item {
                                 }
                                 Label {
                                     Layout.fillWidth: true
-                                    text: qsTrc("notation", "Numbering stays physical: 1 outer left, 2 inner left, 3 inner right, 4 outer right. Written numbers follow ascending pitches within each chord.")
+                                    text: qsTrc("notation", "Physical positions: outer/inner left, inner/outer right. Written numbers are read from low to high within each chord, then follow their original voices through revoicing. ? denotes an unknown slot.")
                                     opacity: .8
+                                }
+                                Repeater {
+                                    model: [
+                                        {key:"reverseNumbering", text:qsTrc("notation", "Reverse numbered convention (4–3 | 2–1)")},
+                                        {key:"optimizeStrikes", text:qsTrc("notation", "Suggest edge access when substantially helpful")},
+                                        {key:"allowOctaves", text:qsTrc("notation", "Allow octave revoicing alternatives")},
+                                        {key:"keepBass", text:qsTrc("notation", "Protect the original bass pitch")},
+                                        {key:"keepMelody", text:qsTrc("notation", "Protect the original top melody pitch")},
+                                        {key:"allowInversion", text:qsTrc("notation", "Allow a different bass pitch class")}
+                                    ]
+                                    UiComponents.CheckBox {
+                                        required property var modelData
+                                        Layout.fillWidth: true
+                                        text: modelData.text
+                                        checked: root.panelState[modelData.key] === true
+                                        onClicked: root.model.setOption(modelData.key, !checked)
+                                        navigation.panel: panelNavigation
+                                    }
                                 }
                                 StyledDropdown {
                                     Layout.fillWidth: true
@@ -391,9 +485,10 @@ Item {
                                         {
                                             text: qsTrc("notation", "Two mallets"),
                                             value: 2
-                                        }
+                                        },
+                                        {text:qsTrc("notation", "Three mallets (two left, one right)"),value:3}
                                     ]
-                                    currentIndex: root.panelState.malletCount === 2 ? 1 : 0
+                                    currentIndex: root.panelState.malletCount === 2 ? 1 : root.panelState.malletCount === 3 ? 2 : 0
                                     onActivated: function (index, value) {
                                         root.model.setOption("malletCount", value);
                                     }
@@ -444,7 +539,11 @@ Item {
                                             title: qsTrc("notation", "Mallet head diameter (cm)"),
                                             min: 1,
                                             max: 8
-                                        }
+                                        },
+                                        {key:"rotation", title:qsTrc("notation", "Comfortable pair tilt (degrees)"), min:5, max:90},
+                                        {key:"bodyDistance", title:qsTrc("notation", "Body distance from bar front (cm)"), min:15, max:60},
+                                        {key:"handWidth", title:qsTrc("notation", "Hand width (cm)"), min:4, max:15},
+                                        {key:"travelSpeed", title:qsTrc("notation", "Estimated travel speed (cm/s)"), min:30, max:600}
                                     ]
                                     RowLayout {
                                         required property var modelData
@@ -483,7 +582,7 @@ Item {
                                     }
                                 }
                                 Label {
-                                    text: qsTrc("notation", "Body position • move left / right")
+                                    text: qsTrc("notation", "Body position • offset from automatic follow")
                                     Layout.fillWidth: true
                                 }
                                 Controls.Slider {

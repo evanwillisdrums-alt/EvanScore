@@ -2,6 +2,7 @@
 #pragma once
 #include <QObject>
 #include <QVariantMap>
+#include <QStringList>
 #include <QTimer>
 #include <qqmlintegration.h>
 #include "modularity/ioc.h"
@@ -34,6 +35,7 @@ public:
     Q_INVOKABLE void showOriginal();
     Q_INVOKABLE void setOption(const QString& key, const QVariant& value);
     Q_INVOKABLE void setStrikePoint(int mallet, double fraction);
+    Q_INVOKABLE void resetStrikePoints();
     Q_INVOKABLE void audition();
     Q_INVOKABLE void compare();
     Q_INVOKABLE void commit();
@@ -52,7 +54,11 @@ private:
     mallet::Player m_player;
     mallet::Keyboard m_keyboard;
     mallet::Pose m_original;
-    mallet::Pose m_previous;
+    mallet::Pose m_previous, m_next;
+    mallet::SearchOptions m_search;
+    double m_previousSeconds = 0, m_nextSeconds = 0;
+    qint64 m_analysisMs = 0;
+    bool m_ambiguous = false;
     std::vector<mallet::Pose> m_candidates;
     std::vector<int> m_pitches, m_required, m_held;
     INotationPtr m_notation;
@@ -60,6 +66,7 @@ private:
     QTimer m_refreshTimer, m_compareTimer;
     QVariantMap m_state;
     QVariantList m_alternativeRows;
+    QStringList m_contextNotes;
     QString m_sourceKey, m_notice, m_sticking, m_instrument = "Marimba";
     QString m_skin = "#d99d78", m_hair = "#382b27";
     bool m_active = false, m_pick = false, m_supported = false, m_editing = false, m_metal = false, m_side = false;

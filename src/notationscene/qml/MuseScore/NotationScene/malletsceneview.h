@@ -12,6 +12,7 @@ class MalletSceneView : public QQuickPaintedItem {
     Q_PROPERTY(QVariantMap scene READ scene WRITE setScene NOTIFY sceneChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY sceneChanged)
     Q_PROPERTY(int hoveredPitch READ hoveredPitch NOTIFY hoveredPitchChanged)
+    Q_PROPERTY(bool focusPlacement READ focusPlacement WRITE setFocusPlacement NOTIFY zoomChanged)
     Q_PROPERTY(double zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
 public:
     explicit MalletSceneView(QQuickItem* parent = nullptr);
@@ -20,6 +21,8 @@ public:
     QColor backgroundColor() const { return m_background; }
     void setBackgroundColor(const QColor& value) { m_background = value; update(); emit sceneChanged(); }
     int hoveredPitch() const { return m_hoveredPitch; }
+    bool focusPlacement() const {return m_focusPlacement;}
+    void setFocusPlacement(bool value) {if(m_focusPlacement==value)return;m_focusPlacement=value;update();emit zoomChanged();}
     double zoom() const { return m_zoom; }
     void setZoom(double value);
     void paint(QPainter* painter) override;
@@ -28,6 +31,7 @@ signals:
     void hoveredPitchChanged();
     void zoomChanged();
     void pitchClicked(int pitch);
+    void malletSelected(int mallet);
     void strikePointDragged(int mallet, double fraction);
 protected:
     bool event(QEvent*) override;
@@ -50,5 +54,6 @@ private:
     int m_draggedPitch = -1;
     QPointF m_hoverPosition { -1, -1 };
     bool m_keyboardHover = false;
+    bool m_focusPlacement = true;
 };
 }

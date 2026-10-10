@@ -52,3 +52,7 @@ Direct retrieval of PAS, Yamaha, PMC, and Nancy Zeltsman pages returned the envi
 ## Implementation checkpoint
 
 A native optional panel is implemented and passed complete Windows validation. View → Mallet visualizer opens it in the Mixer group. Static placement, range geometry, physical identities, native sticking, bar picking, strike dragging, Top/Front, diagnostics, configurable player, preview alternatives, native audition/compare and one-step Commit/Undo are included. Remaining work includes full animated passage analysis, tempo-dependent travel feasibility, calibrated model dimensions and broader technique-specific rules; estimates are labeled. Commit does not rewrite tied/grace/arpeggiated/two-chord-tremolo attacks. No VDL mapping has been added. Do not equate local renderer/component tests with a verified Windows release.
+
+## Remake from the latest specifications
+
+The 38-page repeatable sticking/voicing synthesis, complete app specification and subsequent preservation update supersede the old uniform same-notes-first priority when sticking is written. The current source implements written-link-first revoicing, stable source-note identity, explicit partial syntax/convention, selective edge access, richer diagnostic/alternative comparisons and compact overhead Focus. See [usage and limits](mallet-visualizer.md). The preceding shipped-version description is historical; the remake has no verified download until new Windows gates pass. Full passage animation, physical calibration and advanced technique inference remain open.
