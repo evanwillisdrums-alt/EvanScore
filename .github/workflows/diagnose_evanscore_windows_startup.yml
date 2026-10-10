@@ -569,7 +569,7 @@ jobs:
           Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
             if ($_.Name -like 'MuseScore*.log') {
-              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|ERROR|ASSERT' }) -join "`n"
+              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|ERROR|ASSERT' }) -join "`n"
             }
             if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {

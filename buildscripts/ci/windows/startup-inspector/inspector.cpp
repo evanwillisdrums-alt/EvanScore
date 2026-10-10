@@ -467,6 +467,11 @@ private:
             return result;
         };
         const auto initial = diagnostics();
+        auto dispatchMixer = [menu](const char* command) {
+            if (!QMetaObject::invokeMethod(menu, "handleMenuItem", Qt::DirectConnection,
+                                          Q_ARG(QString, QString::fromUtf8(command))))
+                qFatal("Could not dispatch the native Mixer menu item: %s", command);
+        };
         reportMemory("before mixer toggles");
         qint64 slowest = 0;
         for (int cycle = 0; cycle < 10; ++cycle) {
@@ -476,7 +481,7 @@ private:
                 const bool before = menu->property(property.toUtf8()).toBool();
                 for (int toggle = 0; toggle < 2; ++toggle) {
                     QElapsedTimer elapsed; elapsed.start();
-                    dispatchMenu(window, command.constData());
+                    dispatchMixer(command.constData());
                     const bool expected = toggle == 0 ? !before : before;
                     if (!QTest::qWaitFor([&] { return menu->property(property.toUtf8()).toBool() == expected; }, 1500))
                         qFatal("Mixer section visibility did not update");
@@ -487,8 +492,8 @@ private:
                 }
             }
             for (const auto command : {"command://playback/toggle-aux-send?auxsend-index=0", "command://playback/toggle-aux-channel?auxchannel-index=0"}) {
-                dispatchMenu(window, command); QTest::qWait(20);
-                dispatchMenu(window, command); QTest::qWait(20);
+                dispatchMixer(command); QTest::qWait(20);
+                dispatchMixer(command); QTest::qWait(20);
             }
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
             const auto now = diagnostics();
