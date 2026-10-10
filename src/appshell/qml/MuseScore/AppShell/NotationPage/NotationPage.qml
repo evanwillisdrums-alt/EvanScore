@@ -492,7 +492,9 @@ DockPage {
             objectName: root.pageModel.malletPanelName()
             title: qsTrc("appshell", "Mallets")
             height: root.horizontalPanelDefaultHeight
-            minimumHeight: root.horizontalPanelMinHeight
+            // Keep the illustrated instrument/player visible beneath its
+            // controls, including when a restored layout is resized.
+            minimumHeight: 220
             maximumHeight: root.horizontalPanelMaxHeight
             minimumWidth: 510
             maximumWidth: root.panelMaxDimension

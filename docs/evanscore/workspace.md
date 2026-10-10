@@ -18,7 +18,7 @@ The native Dynamics model caches the mapping table and only notifies it when sco
 
 Playback-only dynamic profile edits preserve native change notifications, audio rebuilding, save and Undo without rescanning/re-laying out printed notation. Duplicate edits are skipped. Numeric fields protect Return/Enter from score shortcuts while leaving Ctrl+S available.
 
-Bottom panels open at 25% of available height, bounded to 140–220px, with manual resizing available afterward. View → Mallet visualizer opens the optional native illustrated instrument/player panel; closing unloads its model and stops timers/subscriptions. It supports score selection, bar picking, Top/Front, estimated diagnostics, alternative sticking/one-note octave previews, audition/compare, and explicit undoable Commit. Passage animation and calibrated physical limits remain future work.
+Bottom panels open at 25% of available height, bounded to 140–220px, with manual resizing available afterward. The mallet dock has a 220px minimum to keep its illustrated instrument/player visible. View → Mallet visualizer opens the optional native illustrated instrument/player panel; closing unloads its model and stops timers/subscriptions. It supports score selection, bar picking, Top/Front, estimated diagnostics, alternative sticking/one-note octave previews, audition/compare, and explicit undoable Commit. Passage animation and calibrated physical limits remain future work.
 
 ## Validation
 

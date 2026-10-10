@@ -179,6 +179,7 @@ Item {
                         objectName: "mallet-instrument-view"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        Layout.minimumHeight: 80
                         scene: root.panelState
                         backgroundColor: ui.theme.textFieldColor
                         Accessible.name: qsTrc("notation", "Mallet instrument and overhead player")
@@ -488,7 +489,7 @@ Item {
                                     onMoved: root.model.setOption("bodyOffset", value)
                                 }
                                 Label {
-                                    text: qsTrc("notation", "Player options save automatically. Appearance changes only when this panel opens.")
+                                    text: qsTrc("notation", "Grip and comfort limits save automatically. Appearance changes only when this panel opens.")
                                     Layout.fillWidth: true
                                     opacity: .8
                                 }
