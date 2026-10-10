@@ -1,6 +1,6 @@
 # Dynamics sidebar
 
-Open **View > Dynamics**. The panel starts with **Full score** settings. Choose **Use custom playback dynamics** to use the profile; closing the panel leaves playback settings active. Turning the checkbox off restores the original playback system without deleting the profile.
+Open **View > Dynamics**. The panel starts with **Full score** settings. New scores enable **Use custom playback dynamics** by default; closing the panel leaves playback settings active. Turning the checkbox off restores the original playback system without deleting the profile.
 
 Each dynamic marking keeps **Tap, Tenuto, Accent, and Marcato** visible. **More articulations** expands **Ghost, Normal, Soft accent, Stress, and Unstress** in that card. Collapsing preserves every value. Values range from **0 to 127**; zero is silent. Search by marking to find ppp, mp, ff, sfz, fp, or another supported dynamic. Battery taps default to piano levels, while explicitly quiet markings use their own level.
 
@@ -30,7 +30,7 @@ In Full score → Dynamic mappings, choose an articulation (Tap, Accent, Tenuto,
 
 ## Smooth through articulations
 
-Enable **Smooth through articulations** for one curve between the chosen hairpin endpoints, even as printed notes change from accents to tenutos to taps. If there is no ending dynamic mark and the final stroke category differs, its mapping provides the destination without the usual automatic ±16 adjustment. Explicit hairpin velocity changes remain honored. It is off initially. Full score sets the preference; a selected hairpin can override it, and **Use score defaults** restores inheritance. Explicit note overrides remain in effect. A ghost mapped to zero remains silent. Presets include the preference; older presets retain the original independent articulation lanes.
+Enable **Smooth through articulations** for one curve between the chosen hairpin endpoints, even as printed notes change from accents to tenutos to taps. If there is no ending dynamic mark and the final stroke category differs, its mapping provides the destination without the usual automatic ±16 adjustment. Explicit hairpin velocity changes remain honored. It is on for new scores and Marching Snare Defaults. Opening existing scores preserves their settings. Full score sets the preference; a selected hairpin can override it, and **Use score defaults** restores inheritance. Explicit note overrides remain in effect. A ghost mapped to zero remains silent. Presets include the preference; older presets retain the original independent articulation lanes.
 
 Legacy imported marking velocities, such as p=64, no longer supersede a custom battery Tap mapping. Explicit note edits and the panel's precise marking override still take priority. Hairpins can still vary the actual note velocity while the Tap mapping is constant.
 

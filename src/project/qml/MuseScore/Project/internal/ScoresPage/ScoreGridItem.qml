@@ -108,7 +108,7 @@ FocusScope {
     Column {
         anchors.fill: parent
 
-        spacing: 16
+        spacing: 10
 
         Item {
             height: 224
@@ -121,7 +121,7 @@ FocusScope {
                 opacity: 0.9
 
                 property int borderWidth: 0
-                readonly property int radius: 3
+                readonly property int radius: 8
 
                 Loader {
                     id: loader
@@ -203,7 +203,7 @@ FocusScope {
                     anchors.fill: thumbnail
                     z: -1
 
-                    glowRadius: 20
+                    glowRadius: 8
                     color: "#08000000"
                     cornerRadius: thumbnail.radius + glowRadius
                 }

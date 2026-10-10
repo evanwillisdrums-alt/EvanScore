@@ -77,7 +77,7 @@ void PercussionWorkspaceModel::load(bool handleMouse)
     if (m_loaded) return;
     m_loaded = true;
     m_handleMouse = handleMouse;
-    settings()->setDefaultValue(PERCUSSION_WORKSPACE_MODE, Val(false));
+    settings()->setDefaultValue(PERCUSSION_WORKSPACE_MODE, Val(true));
     settings()->setDefaultValue(MOUSE, Val("{}"));
     settings()->valueChanged(PERCUSSION_WORKSPACE_MODE).onReceive(this, [this](const Val&) {
         emit percussionModeChanged();

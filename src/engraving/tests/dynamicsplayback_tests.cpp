@@ -498,7 +498,7 @@ TEST_F(Engraving_DynamicsPlaybackTests, MarchingStartingProfileFollowsStrokeRole
     score->setStyle(DynamicsPlayback::marchingSnareDefaults(score->style()));
     EXPECT_EQ(score->style().styleSt(Sid::musicalSymbolFont), String(u"Bravura"));
     EXPECT_TRUE(DynamicsPlayback::enabled(score.get()));
-    EXPECT_FALSE(score->style().styleB(Sid::evanDynamicsSmoothArticulations));
+    EXPECT_TRUE(score->style().styleB(Sid::evanDynamicsSmoothArticulations));
     const std::array<std::pair<DynamicType, int>, 7> levels {{
         {DynamicType::PP, 45}, {DynamicType::P, 60}, {DynamicType::MP, 72},
         {DynamicType::MF, 84}, {DynamicType::F, 100}, {DynamicType::FF, 114}, {DynamicType::FFF, 126}

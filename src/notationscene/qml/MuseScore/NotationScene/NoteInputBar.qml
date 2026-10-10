@@ -39,7 +39,7 @@ Item {
     property int maximumHeight: 0
 
     width: gridView.isHorizontal ? childrenRect.width : 76
-    height: !gridView.isHorizontal ? childrenRect.height : 40
+    height: !gridView.isHorizontal ? childrenRect.height : 34
 
     property NavigationPanel navigationPanel: NavigationPanel {
         name: "NoteInputBar"
@@ -88,10 +88,10 @@ Item {
 
         sectionRole: "section"
 
-        rowSpacing: 4
-        columnSpacing: 4
+        rowSpacing: 2
+        columnSpacing: 2
 
-        cellWidth: 32
+        cellWidth: 28
         cellHeight: cellWidth
 
         sectionWidth: isHorizontal ? 1 : width

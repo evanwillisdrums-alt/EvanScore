@@ -348,7 +348,7 @@ MStyle DynamicsPlayback::marchingSnareDefaults(const MStyle& base)
     result.set(Sid::evanDynamicsBattery, true);
     result.set(Sid::evanDynamicsCurveShape, 0);
     result.set(Sid::evanDynamicsCurveBend, 0.0);
-    result.set(Sid::evanDynamicsSmoothArticulations, false);
+    result.set(Sid::evanDynamicsSmoothArticulations, true);
     return result;
 }
 

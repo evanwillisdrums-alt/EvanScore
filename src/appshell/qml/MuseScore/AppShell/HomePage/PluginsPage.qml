@@ -35,7 +35,7 @@ FocusScope {
     QtObject {
         id: prv
 
-        readonly property int sideMargin: 46
+        readonly property int sideMargin: 28
     }
 
     NavigationSection {

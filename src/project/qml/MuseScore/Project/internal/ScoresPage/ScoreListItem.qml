@@ -48,7 +48,7 @@ ListItemBlank {
 
     readonly property bool isProcessing: root.score.processingStatus !== undefined
 
-    implicitHeight: 64
+    implicitHeight: 52
 
     navigation.accessible.name: {
         const name = root.score.name ?? ""
@@ -92,7 +92,7 @@ ListItemBlank {
         spacing: root.columnSpacing
 
         RowLayout {
-            spacing: 24
+            spacing: 16
 
             Loader {
                 id: thumbnailLoader
@@ -104,7 +104,7 @@ ListItemBlank {
 
                 layer.enabled: ui.isEffectsAllowed
                 layer.effect: RoundedCornersEffect {
-                    radius: 2
+                    radius: 5
                 }
             }
 
@@ -192,7 +192,7 @@ ListItemBlank {
                 RowLayout {
                     visible: root.score.isCloud
 
-                    spacing: 24
+                    spacing: 16
 
                     CloudScoreStatusWatcher {
                         id: cloudScoreStatusWatcher

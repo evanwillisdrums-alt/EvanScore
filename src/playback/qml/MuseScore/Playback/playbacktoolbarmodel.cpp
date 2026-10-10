@@ -62,10 +62,12 @@ static const ToolConfig& defaultPlaybackToolConfig()
     if (!config.isValid()) {
         config.items = {
             { REWIND_COMMAND, true },
+            { STOP_COMMAND, true },
             { "play-toggle", true }, // virtual code
             { LOOP_TOGGLE_COMMAND, true },
             { LOOP_IN_COMMAND, true },
             { LOOP_OUT_COMMAND, true },
+            { COUNTIN_TOGGLE_COMMAND, true },
             { METRONOME_TOGGLE_COMMAND, true },
         };
     }

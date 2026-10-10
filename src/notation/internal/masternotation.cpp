@@ -351,6 +351,10 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
         if (hasBattery) {
             const MStyle candidate = DynamicsPlayback::marchingSnareDefaults(score->style());
             for (Sid sid : DynamicsPlayback::profileStyles()) score->style().set(sid, candidate.value(sid));
+        } else {
+            score->style().set(Sid::evanDynamicsEnabled, true);
+            score->style().set(Sid::evanDynamicsBattery, false);
+            score->style().set(Sid::evanDynamicsSmoothArticulations, true);
         }
     }
     if (!dynamicsDefault.empty()) {

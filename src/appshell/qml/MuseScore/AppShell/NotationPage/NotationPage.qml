@@ -91,7 +91,7 @@ DockPage {
         Qt.callLater(pageModel.init)
     }
 
-    readonly property int verticalPanelDefaultWidth: 300
+    readonly property int verticalPanelDefaultWidth: 280
 
     readonly property int horizontalPanelMinHeight: 100
     readonly property int horizontalPanelMaxHeight: 520
@@ -118,7 +118,7 @@ DockPage {
         DockToolBar {
             id: notationToolBar
 
-            thickness: 48
+            thickness: 36
             objectName: "notationToolBar"
             title: qsTrc("appshell", "Notation toolbar")
 
@@ -130,8 +130,8 @@ DockPage {
             // Let this toolbar absorb the row's spare width. Fixed center
             // padding otherwise repeatedly changes dock minimums during polish.
             alignment: DockToolBarAlignment.Left
-            contentTopPadding: 8
-            contentBottomPadding: 8
+            contentTopPadding: 4
+            contentBottomPadding: 4
 
             compactPriorityOrder: 1
 
@@ -148,16 +148,16 @@ DockPage {
         DockToolBar {
             id: playbackToolBar
 
-            thickness: 48
+            thickness: 36
             objectName: root.pageModel.playbackToolBarName()
             title: qsTrc("appshell", "Playback controls")
 
             separatorsVisible: false
-            alignment: DockToolBarAlignment.Right
+            alignment: DockToolBarAlignment.Left
             resizable: !floating
 
-            contentBottomPadding: floating ? 8 : 3
-            contentTopPadding: floating ? 8 : 3
+            contentBottomPadding: floating ? 4 : 1
+            contentTopPadding: floating ? 4 : 1
 
             dropDestinations: [
                 { "dock": notationToolBar, "dropLocation": Location.Right }
@@ -176,16 +176,16 @@ DockPage {
         DockToolBar {
             id: extDockToolBar
 
-            thickness: 48
+            thickness: 36
             objectName: root.pageModel.extensionsToolBarName()
             title: qsTrc("appshell", "Extensions toolbar")
 
             separatorsVisible: false
             orientation: Qt.Horizontal
-            alignment: DockToolBarAlignment.Right
+            alignment: DockToolBarAlignment.Left
 
-            contentBottomPadding: 8
-            contentTopPadding: 8
+            contentBottomPadding: 4
+            contentTopPadding: 4
 
             //! NOTE: Opened by page model when there are extensions with toolbar actions
             visible: false
@@ -208,18 +208,18 @@ DockPage {
         DockToolBar {
             id: undoRedoToolBar
 
-            thickness: 48
+            thickness: 36
             objectName: root.pageModel.undoRedoToolBarName()
             title: qsTrc("appshell", "Undo/redo")
 
             floatable: false
             closable: false
-            resizable: false
+            resizable: true
             separatorsVisible: false
 
-            alignment: DockToolBarAlignment.Right
-            contentTopPadding: 8
-            contentBottomPadding: 8
+            alignment: DockToolBarAlignment.Left
+            contentTopPadding: 4
+            contentBottomPadding: 4
 
             navigationSection: root.topToolbarKeyNavSec
 
@@ -244,7 +244,7 @@ DockPage {
                 root.toolBarRightDropDestination
             ]
 
-            thickness: orientation === Qt.Horizontal ? 40 : 76
+            thickness: orientation === Qt.Horizontal ? 34 : 76
             resizable: !floating
 
             navigationSection: root.noteInputKeyNavSec

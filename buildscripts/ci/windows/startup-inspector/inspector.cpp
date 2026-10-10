@@ -296,6 +296,11 @@ public:
 private:
     bool done = false;
     static void verifyTransport(QQuickWindow* window) {
+        for (const auto name : {"mainToolBar", "playbackToolBar", "undoRedoToolBar"}) {
+            auto dock = findItem(window->contentItem(), name);
+            if (!dock || qAbs(dock->height() - 36.0) > 0.5)
+                qFatal("Transport dock row height regression: %s", name);
+        }
         auto button = findItem(window->contentItem(), "transport-time-format");
         auto value = findItem(window->contentItem(), "transport-time-value");
         QObject* model = nullptr;

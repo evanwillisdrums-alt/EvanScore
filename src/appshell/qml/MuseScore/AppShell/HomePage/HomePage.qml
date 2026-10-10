@@ -79,7 +79,7 @@ DockPage {
 
             objectName: "homeMenu"
 
-            readonly property int maxFixedWidth: 260
+            readonly property int maxFixedWidth: 204
             readonly property int minFixedWidth: 76
             readonly property bool iconsOnly: root.window
                                                 ? root.window.width < (root.window.minimumWidth + maxFixedWidth - minFixedWidth)

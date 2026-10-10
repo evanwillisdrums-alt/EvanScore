@@ -193,8 +193,8 @@ Item {
                     bottomMargin: bottomGradient.height
 
                     readonly property real itemInset: 12
-                    readonly property real rowHeight: 64
-                    readonly property real columnSpacing: 44
+                    readonly property real rowHeight: 52
+                    readonly property real columnSpacing: 24
 
                     ScrollBar.vertical: StyledScrollBar {
                         parent: root

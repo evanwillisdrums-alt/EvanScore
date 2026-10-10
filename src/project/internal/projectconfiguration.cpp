@@ -96,7 +96,7 @@ void ProjectConfiguration::init()
 
     settings()->setDefaultValue(HOME_SCORES_PAGE_TAB_INDEX, Val(0));
 
-    settings()->setDefaultValue(HOME_SCORES_PAGE_VIEW_TYPE, Val(HomeScoresPageViewType::Grid));
+    settings()->setDefaultValue(HOME_SCORES_PAGE_VIEW_TYPE, Val(HomeScoresPageViewType::List));
 
     settings()->setDefaultValue(SHOULD_ASK_SAVE_LOCATION_TYPE, Val(true));
     settings()->setDefaultValue(LAST_USED_SAVE_LOCATION_TYPE, Val(SaveLocationType::Undefined));

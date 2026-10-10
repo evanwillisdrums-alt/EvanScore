@@ -53,7 +53,7 @@ void NotationToolBarModel::load()
             continue;
         }
 
-        item->setShowTitle(!isCompactMode());
+        item->setShowTitle(false);
         item->setIsTitleBold(true);
 
         items << item;

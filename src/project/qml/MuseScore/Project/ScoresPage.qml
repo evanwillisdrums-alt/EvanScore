@@ -34,15 +34,19 @@ FocusScope {
     QtObject {
         id: prv
 
-        readonly property int sideMargin: 46
+        readonly property int sideMargin: 28
     }
 
     onSubSectionChanged: applySubSection()
 
     function applySubSection() {
         switch (root.subSection) {
-        case "newAndRecent": scoresPageModel.tabIndex = 0; break
-        case "myOnlineScores": scoresPageModel.tabIndex = 1; break
+        case "newAndRecent":
+            scoresPageModel.tabIndex = 0;
+            break;
+        case "myOnlineScores":
+            scoresPageModel.tabIndex = 1;
+            break;
         }
     }
 
@@ -53,7 +57,7 @@ FocusScope {
         order: 3
         onActiveChanged: {
             if (navSec.active) {
-                root.forceActiveFocus()
+                root.forceActiveFocus();
             }
         }
     }
@@ -62,14 +66,14 @@ FocusScope {
         id: scoresPageModel
 
         onTabIndexChanged: {
-            tabBar.currentIndex = scoresPageModel.tabIndex
+            tabBar.currentIndex = scoresPageModel.tabIndex;
         }
     }
 
     Component.onCompleted: {
-        applySubSection()
-        tabBar.currentIndex = scoresPageModel.tabIndex
-        tabBar.completed = true
+        applySubSection();
+        tabBar.currentIndex = scoresPageModel.tabIndex;
+        tabBar.completed = true;
     }
 
     Rectangle {
@@ -84,13 +88,13 @@ FocusScope {
         id: topLayout
 
         anchors.top: parent.top
-        anchors.topMargin: prv.sideMargin
+        anchors.topMargin: 24
         anchors.left: parent.left
         anchors.leftMargin: prv.sideMargin
         anchors.right: parent.right
         anchors.rightMargin: prv.sideMargin
 
-        spacing: 12
+        spacing: 8
 
         NavigationPanel {
             id: navSearchPanel
@@ -106,19 +110,49 @@ FocusScope {
             Layout.fillWidth: true
 
             text: qsTrc("project", "Scores")
-            font: ui.theme.titleBoldFont
+            font: ui.theme.headerBoldFont
             horizontalAlignment: Text.AlignLeft
         }
 
         SearchField {
             id: searchField
 
-            Layout.preferredWidth: 220
+            Layout.preferredWidth: 180
 
             navigation.name: "Scores Search"
             navigation.panel: navSearchPanel
             navigation.order: 1
             accessible.name: qsTrc("project", "Search recent scores")
+        }
+        FlatButton {
+            navigation.name: "NewScore"
+            navigation.panel: navSearchPanel
+            navigation.order: 2
+
+            text: qsTrc("project", "New score")
+            icon: IconCode.NEW_FILE
+            orientation: Qt.Horizontal
+            minWidth: 100
+            accentButton: true
+
+            onClicked: {
+                scoresPageModel.createNewScore();
+            }
+        }
+
+        FlatButton {
+            navigation.name: "Open other Score"
+            navigation.panel: navSearchPanel
+            navigation.order: 3
+
+            text: qsTrc("project", "Open…")
+            icon: IconCode.OPEN_FILE
+            orientation: Qt.Horizontal
+            minWidth: 100
+
+            onClicked: {
+                scoresPageModel.openOther();
+            }
         }
     }
 
@@ -126,13 +160,13 @@ FocusScope {
         id: controlsRow
 
         anchors.top: topLayout.bottom
-        anchors.topMargin: prv.sideMargin
+        anchors.topMargin: 24
         anchors.left: parent.left
         anchors.leftMargin: prv.sideMargin
         anchors.right: parent.right
         anchors.rightMargin: prv.sideMargin
 
-        spacing: 12
+        spacing: 8
 
         StyledTabBar {
             id: tabBar
@@ -143,7 +177,7 @@ FocusScope {
 
             onCurrentIndexChanged: {
                 if (completed) {
-                    scoresPageModel.tabIndex = currentIndex
+                    scoresPageModel.tabIndex = currentIndex;
                 }
             }
 
@@ -156,9 +190,9 @@ FocusScope {
                 accessible.name: qsTrc("project", "Scores tab bar")
                 enabled: tabBar.enabled && tabBar.visible
 
-                onNavigationEvent: function(event) {
+                onNavigationEvent: function (event) {
                     if (event.type === NavigationEvent.AboutActive) {
-                        event.setData("controlName", tabBar.currentItem.navigation.name)
+                        event.setData("controlName", tabBar.currentItem.navigation.name);
                     }
                 }
             }
@@ -211,8 +245,16 @@ FocusScope {
             implicitHeight: ui.theme.defaultButtonSize
 
             model: [
-                { "icon": IconCode.GRID, "title": qsTrc("project", "Grid view"), "value": ScoresPageModel.Grid },
-                { "icon": IconCode.LIST, "title": qsTrc("project", "List view"), "value": ScoresPageModel.List }
+                {
+                    "icon": IconCode.GRID,
+                    "title": qsTrc("project", "Grid view"),
+                    "value": ScoresPageModel.Grid
+                },
+                {
+                    "icon": IconCode.LIST,
+                    "title": qsTrc("project", "List view"),
+                    "value": ScoresPageModel.List
+                }
             ]
 
             delegate: FlatRadioButton {
@@ -231,7 +273,7 @@ FocusScope {
                 navigation.accessible.name: modelData.title
 
                 onToggled: {
-                    scoresPageModel.viewType = modelData.value
+                    scoresPageModel.viewType = modelData.value;
                 }
             }
         }
@@ -248,10 +290,10 @@ FocusScope {
 
         sourceComponent: {
             if (!tabBar.completed || tabBar.currentIndex < 0) {
-                return null
+                return null;
             }
 
-            return [newAndRecentComp, onlineScoresComp][tabBar.currentIndex]
+            return [newAndRecentComp, onlineScoresComp][tabBar.currentIndex];
         }
     }
 
@@ -271,19 +313,19 @@ FocusScope {
             navigationOrder: 4
 
             onCreateNewScoreRequested: {
-                scoresPageModel.createNewScore()
+                scoresPageModel.createNewScore();
             }
 
-            onOpenScoreRequested: function(scorePath, displayName) {
-                Qt.callLater(scoresPageModel.openScore, scorePath, displayName)
+            onOpenScoreRequested: function (scorePath, displayName) {
+                Qt.callLater(scoresPageModel.openScore, scorePath, displayName);
             }
 
-            onRevealInFileBrowserRequested: function(scorePath) {
-                Qt.callLater(scoresPageModel.revealInFileBrowser, scorePath)
+            onRevealInFileBrowserRequested: function (scorePath) {
+                Qt.callLater(scoresPageModel.revealInFileBrowser, scorePath);
             }
 
-            onViewOnlineRequested: function(scoreId) {
-                Qt.callLater(scoresPageModel.viewOnline, scoreId)
+            onViewOnlineRequested: function (scoreId) {
+                Qt.callLater(scoresPageModel.viewOnline, scoreId);
             }
         }
     }
@@ -305,26 +347,26 @@ FocusScope {
             navigationOrder: 4
 
             onCreateNewScoreRequested: {
-                scoresPageModel.createNewScore()
+                scoresPageModel.createNewScore();
             }
 
-            onOpenScoreRequested: function(scorePath, displayName) {
-                Qt.callLater(scoresPageModel.openScore, scorePath, displayName)
+            onOpenScoreRequested: function (scorePath, displayName) {
+                Qt.callLater(scoresPageModel.openScore, scorePath, displayName);
             }
 
-            onRevealInFileBrowserRequested: function(scorePath) {
-                Qt.callLater(scoresPageModel.revealInFileBrowser, scorePath)
+            onRevealInFileBrowserRequested: function (scorePath) {
+                Qt.callLater(scoresPageModel.revealInFileBrowser, scorePath);
             }
 
-            onViewOnlineRequested: function(scoreId) {
-                Qt.callLater(scoresPageModel.viewOnline, scoreId)
+            onViewOnlineRequested: function (scoreId) {
+                Qt.callLater(scoresPageModel.viewOnline, scoreId);
             }
 
             Connections {
                 target: refreshButton
 
                 function onClicked() {
-                    cloudScoresView.refresh()
+                    cloudScoresView.refresh();
                 }
             }
         }
@@ -335,10 +377,14 @@ FocusScope {
 
         anchors.bottom: parent.bottom
 
-        height: 100
+        height: 56
         width: parent.width
 
-        color: ui.theme.backgroundSecondaryColor
+        color: ui.theme.backgroundPrimaryColor
+        SeparatorLine {
+            anchors.top: parent.top
+            width: parent.width
+        }
 
         NavigationPanel {
             id: navBottomPanel
@@ -360,33 +406,23 @@ FocusScope {
             navigation.panel: navBottomPanel
             navigation.column: 1
 
-            minWidth: 216
-            text: qsTrc("project", "Score manager (online)")
+            minWidth: 0
+            transparent: true
+            icon: IconCode.CLOUD_FILE
+            text: qsTrc("project", "Online scores")
+            orientation: Qt.Horizontal
 
             onClicked: {
-                scoresPageModel.openScoreManager()
+                scoresPageModel.openScoreManager();
             }
         }
 
         Row {
-            anchors.right : parent.right
+            anchors.right: parent.right
             anchors.rightMargin: prv.sideMargin
             anchors.verticalCenter: parent.verticalCenter
 
-            spacing: 12
-
-            FlatButton {
-                navigation.name: "NewScore"
-                navigation.panel: navBottomPanel
-                navigation.column: 2
-
-                text: qsTrc("project", "New")
-                accentButton: true
-
-                onClicked: {
-                    scoresPageModel.createNewScore()
-                }
-            }
+            spacing: 8
 
             FlatButton {
                 navigation.name: "ConvertFileToScore"
@@ -394,21 +430,10 @@ FocusScope {
                 navigation.column: 3
 
                 text: qsTrc("project", "Convert…")
+                transparent: true
 
                 onClicked: {
-                    scoresPageModel.convertFileToScore()
-                }
-            }
-
-            FlatButton {
-                navigation.name: "Open other Score"
-                navigation.panel: navBottomPanel
-                navigation.column: 4
-
-                text: qsTrc("project", "Open other…")
-
-                onClicked: {
-                    scoresPageModel.openOther()
+                    scoresPageModel.convertFileToScore();
                 }
             }
         }

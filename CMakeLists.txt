@@ -239,8 +239,10 @@ if (MUSE_ENABLE_UNIT_TESTS)
 endif()
 
 add_subdirectory(share)
+include(buildscripts/cmake/PrepareWorkspaceControls.cmake)
 add_subdirectory(${MUSE_FRAMEWORK_SRC_PATH})
 include(buildscripts/cmake/PrepareDeferredDockUpdate.cmake)
+include(buildscripts/cmake/PrepareWorkspaceWidgetStyle.cmake)
 add_subdirectory(src)
 
 # App QML modules contain Qt Quick UI, including AOT-generated C++ that uses

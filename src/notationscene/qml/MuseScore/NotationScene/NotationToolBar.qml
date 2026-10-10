@@ -31,21 +31,21 @@ Row {
     id: root
     property alias isCompactMode: toolBarModel.isCompactMode
     property alias navigationPanel: toolBar.navigationPanel
-    spacing: 4
+    spacing: 2
     PercussionWorkspaceModel {
         id: workspace
         Component.onCompleted: load(true)
     }
     FlatButton {
-        width: 30
-        height: 30
+        width: 28
+        height: 28
         icon: IconCode.PERCUSSION
         transparent: !workspace.percussionMode
         accentButton: workspace.percussionMode
         toolTipTitle: qsTrc("notation", "Percussion mode")
         toolTipDescription: workspace.percussionMode ? qsTrc("notation", "On — click to use regular mode") : qsTrc("notation", "Off — click to enable percussion mode")
         accessible.name: toolTipTitle + ": " + (workspace.percussionMode ? qsTrc("global", "On") : qsTrc("global", "Off"))
-        backgroundRadius: 8
+        backgroundRadius: 5
         navigation.panel: toolBar.navigationPanel
         navigation.order: 0
         onClicked: workspace.percussionMode = !workspace.percussionMode
@@ -72,7 +72,9 @@ Row {
             id: roundedActionComponent
 
             StyledToolBarItem {
-                backgroundRadius: 8
+                width: 28
+                height: 28
+                backgroundRadius: 5
             }
         }
     }

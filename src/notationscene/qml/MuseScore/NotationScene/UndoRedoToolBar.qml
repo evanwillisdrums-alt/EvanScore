@@ -32,8 +32,8 @@ StyledToolBarView {
     navigationPanel.accessible.name: qsTrc("notation", "Undo redo toolbar")
 
     spacing: 0
-    leftPadding: 6
-    rightPadding: 6
+    leftPadding: 2
+    rightPadding: 2
 
     model: UndoRedoToolbarModel { }
 
@@ -49,9 +49,9 @@ StyledToolBarView {
         id: controlComp
 
         StyledToolBarItem {
-            width: 30
+            width: 28
             height: width
-            backgroundRadius: 8
+            backgroundRadius: 5
 
             navigation.panel: root.navigationPanel
             navigation.order: itemIndex

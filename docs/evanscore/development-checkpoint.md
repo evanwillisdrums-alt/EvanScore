@@ -1,6 +1,14 @@
 # Development checkpoint
 
-Updated 2026-10-09 UTC. Branch: `codex/rounded-ui-windows-preview`.
+Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
+
+## Current UI overhaul and held native release
+
+The user now requests the entire UI follow IMG_0529 in actual control placement and proportions, including the landing page. The “90% / 10%” wording is a reference direction with creative liberties, not a literal quota. The source has compact icon navigation/file/tool clusters, transport directly beside them, a 34px dark readout with captions below values, native options/Undo afterward, 36px loaded top docks and a 34px notation row. Home uses a compact project browser with New/Open beside search and an optional list/grid view. Shared controls, dock tabs, dialogs and preferences use generated app-owned framework adaptations with native resource aliases, preserving the framework pin. The medium-gray theme migration runs once, preserving high contrast and later preferences. Score fonts are unchanged.
+
+User requested added settings default on: new scores enable custom dynamics and smoothing; the marching profile enables smoothing; fresh percussion mode default is on. Saved profiles/mode and existing scores retain explicit choices. Actual engraving/sticking checks: 41 pass. Changed app/shared QML parses, transport pointer-toggle and value alignment check uses host substitutes; full Windows verification remains required. Local shared-control AOT generation passes, but the full framework C++ target cannot build on retained Qt 6.8 because pinned filtering code needs newer APIs; Windows uses pinned Qt 6.11.2. Generated QML type names must omit the .qml extension even though resource aliases keep it.
+
+Source 5547b4a3a61ee7a145677894101270564c6612fc, native run 38006867016, passed full compilation/deployment and fresh portable startup/export. Its actual screenshot, inspection 38007728996, exposed a 242px first toolbar row despite max-height48: deferred constraints arrived after guest insertion. Do not send that download. The current adapter applies constraints synchronously only before a dock attaches to a group, including immediately after writeProperties in componentComplete; attached updates and minimum synchronization remain queued/coalesced to prevent nested KDB signal emission. Generated native dock source syntax passes. New real Windows row-height assertions must measure36px actual geometry, followed by existing two-score Dynamics/Mixer/debug/save/export/persistence gates and screenshot review.
 
 ## Windows diagnostics compilation correction
 

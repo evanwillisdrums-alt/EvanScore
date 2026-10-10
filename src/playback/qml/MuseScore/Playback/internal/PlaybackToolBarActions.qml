@@ -36,46 +36,57 @@ Item {
     property PlaybackToolBarModel playbackModel: null
 
     property NavigationPanel navPanel: null
-    readonly property int navigationOrderEnd: tempoLoader.navigationOrderEnd
-    readonly property color displayColor: (ui.theme.borderWidth > 1) ? ui.theme.backgroundPrimaryColor : "#202b3b"
+    readonly property int navigationOrderEnd: buttonsListView.count + 10
+    readonly property color displayColor: (ui.theme.borderWidth > 1) ? ui.theme.backgroundPrimaryColor : "#28303c"
     readonly property color displayTextColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#edf2f8"
-    readonly property color captionColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#a9b7c8"
-    readonly property real valueTop: 13
-    readonly property real valueHeight: 26
+    readonly property color captionColor: (ui.theme.borderWidth > 1) ? ui.theme.fontPrimaryColor : "#b8c3d1"
+    readonly property real valueTop: 1
+    readonly property real valueHeight: 22
 
     property bool floating: false
 
-    width: lcd.x + lcd.width + 4
-    height: 42
-
-    Rectangle {
-        anchors.fill: parent
-        radius: 10
-        color: ui.theme.backgroundSecondaryColor
-        opacity: 0.55
-    }
+    width: buttonsListView.contentWidth + 8
+    height: 34
 
     Rectangle {
         id: lcd
         objectName: "playback-control-display"
-        x: buttonsListView.x + buttonsListView.width + 8
-        y: 1
-        width: 400
-        height: 40
-        radius: 7
+        // Native transport actions precede the LCD; options follow it.
+        x: 126
+        y: 0
+        width: 380
+        height: 34
+        radius: 5
         color: root.displayColor
         border.width: 1
-        border.color: (ui.theme.borderWidth > 1) ? ui.theme.strokeColor : "#39475a"
+        border.color: (ui.theme.borderWidth > 1) ? ui.theme.strokeColor : "#4d5664"
 
         Row {
-            x: 8; y: 3
+            x: 6
+            y: 23
             spacing: 0
             Repeater {
                 model: [
-                    { label: root.playbackModel.musicalTime ? qsTrc("playback", "POSITION") : qsTrc("playback", "TIME"), size: 110 },
-                    { label: qsTrc("playback", "BAR · BEAT"), size: 78 },
-                    { label: qsTrc("playback", "TEMPO"), size: 86 },
-                    { label: qsTrc("playback", "METER · KEY"), size: 110 }
+                    {
+                        label: root.playbackModel.musicalTime ? qsTrc("playback", "POSITION") : qsTrc("playback", "TIME"),
+                        size: 104
+                    },
+                    {
+                        label: qsTrc("playback", "BAR · BEAT"),
+                        size: 72
+                    },
+                    {
+                        label: qsTrc("playback", "TEMPO"),
+                        size: 70
+                    },
+                    {
+                        label: qsTrc("playback", "METER"),
+                        size: 42
+                    },
+                    {
+                        label: qsTrc("playback", "KEY"),
+                        size: 80
+                    }
                 ]
                 Text {
                     required property var modelData
@@ -83,34 +94,52 @@ Item {
                     text: modelData.label
                     color: root.captionColor
                     font.family: ui.theme.bodyFont.family
-                    font.pixelSize: 10
+                    font.pixelSize: 9
                     horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
         Repeater {
-            model: [118, 196, 282]
+            model: [110, 182, 252, 294]
             Rectangle {
                 required property int modelData
-                x: modelData; y: 6; width: 1; height: 28
+                x: modelData
+                y: 5
+                width: 1
+                height: 24
                 color: root.captionColor
                 opacity: 0.18
             }
         }
         Text {
             objectName: "transport-meter-key"
-            x: 286; y: root.valueTop
-            width: 106
+            x: 296
+            y: root.valueTop
+            width: 78
             height: root.valueHeight
-            text: root.playbackModel.scoreInfo.timeSignature + "  " + root.playbackModel.scoreInfo.key
+            text: root.playbackModel.scoreInfo.key
             elide: Text.ElideRight
             color: root.displayTextColor
             font: timeField.font
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
+        Text {
+            objectName: "transport-meter"
+            x: 254
+            y: root.valueTop
+            width: 38
+            height: root.valueHeight
+            text: root.playbackModel.scoreInfo.timeSignature
+            color: root.displayTextColor
+            font: timeField.font
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
         MouseArea {
-            x: 284; width: 112; height: parent.height
+            x: 294
+            width: 86
+            height: parent.height
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
             onEntered: ui.tooltip.show(lcd, root.playbackModel.scoreInfo.keyDescription)
@@ -130,7 +159,7 @@ Item {
         height: contentHeight
 
         contentHeight: root.height
-        spacing: 4
+        spacing: 2
 
         model: root.playbackModel
 
@@ -139,47 +168,52 @@ Item {
 
         readonly property int navigationOrderEnd: count
 
-        delegate: FlatButton {
-            id: btn
-
+        delegate: Item {
+            id: actionSlot
             required property MenuItem item
             required property int index
+            width: 28 + (index === 3 ? lcd.width + 8 : 0)
+            height: root.height
+            FlatButton {
+                id: btn
+                readonly property MenuItem item: actionSlot.item
+                readonly property int index: actionSlot.index
+                anchors.verticalCenter: parent.verticalCenter
+                width: 28
+                height: width
+                backgroundRadius: 5
 
-            width: 30
-            height: width
-            backgroundRadius: 8
+                icon: Boolean(item) ? item.icon : IconCode.NONE
 
-            icon: Boolean(item) ? item.icon : IconCode.NONE
+                toolTipTitle: Boolean(item) ? item.title : ""
+                toolTipDescription: Boolean(item) ? item.description : ""
+                toolTipShortcut: Boolean(item) ? item.shortcuts : ""
 
-            toolTipTitle: Boolean(item) ? item.title : ""
-            toolTipDescription: Boolean(item) ? item.description : ""
-            toolTipShortcut: Boolean(item) ? item.shortcuts : ""
+                iconFont: ui.theme.toolbarIconsFont
 
-            iconFont: ui.theme.toolbarIconsFont
+                accentButton: (Boolean(item) && item.checked) || menuLoader.isMenuOpened
+                transparent: !accentButton
 
-            accentButton: (Boolean(item) && item.checked) || menuLoader.isMenuOpened
-            transparent: !accentButton
+                navigation.panel: root.navPanel
+                navigation.name: toolTipTitle
+                navigation.order: index < 4 ? index : index + 10
+                accessible.name: (item.checkable ? (item.checked ? item.title + "  " + qsTrc("global", "On") : item.title + "  " + qsTrc("global", "Off")) : item.title)
 
-            navigation.panel: root.navPanel
-            navigation.name: toolTipTitle
-            navigation.order: index
-            accessible.name: (item.checkable ? (item.checked ? item.title + "  " + qsTrc("global", "On") :
-                                                               item.title + "  " + qsTrc("global", "Off")) : item.title)
+                onClicked: {
+                    if (menuLoader.isMenuOpened || item.subitems.length) {
+                        menuLoader.toggleOpened(item.subitems);
+                        return;
+                    }
 
-            onClicked: {
-                if (menuLoader.isMenuOpened || item.subitems.length) {
-                    menuLoader.toggleOpened(item.subitems)
-                    return
+                    Qt.callLater(root.playbackModel.handleMenuItem, item.id);
                 }
 
-                Qt.callLater(root.playbackModel.handleMenuItem, item.id)
-            }
+                StyledMenuLoader {
+                    id: menuLoader
 
-            StyledMenuLoader {
-                id: menuLoader
-
-                onHandleMenuItem: function(itemId) {
-                    root.playbackModel.handleMenuItem(itemId)
+                    onHandleMenuItem: function (itemId) {
+                        root.playbackModel.handleMenuItem(itemId);
+                    }
                 }
             }
         }
@@ -189,18 +223,21 @@ Item {
         id: timeField
         objectName: "transport-time-format"
 
-        x: lcd.x + 8 + (110 - width) / 2
+        x: lcd.x + 8
         y: root.valueTop
-        width: 108
+        width: 100
         height: root.valueHeight
         margins: 0
         minWidth: 0
         transparent: true
         backgroundRadius: 5
-        property font font: Qt.font({family: "Consolas", pixelSize: 15})
+        property font font: Qt.font({
+            family: "Consolas",
+            pixelSize: 15
+        })
         readonly property int navigationOrderEnd: navigation.order
         navigation.panel: root.navPanel
-        navigation.order: buttonsListView.navigationOrderEnd + 1
+        navigation.order: 4
         accessible.name: root.playbackModel.musicalTime ? qsTrc("playback", "Musical position") : qsTrc("playback", "Elapsed time")
         toolTipTitle: qsTrc("playback", "Switch time format")
         toolTipDescription: qsTrc("playback", "Click to switch between elapsed time and bar.beat. A third field shows thousandths of a beat; 1.2.500 is halfway through beat 2. Use Bar · Beat to move playback.")
@@ -224,7 +261,7 @@ Item {
         objectName: "transport-bar-beat"
         enabled: root.playbackModel.isPlayAllowed
 
-        x: lcd.x + 118 + (78 - width) / 2
+        x: lcd.x + 112 + (68 - width) / 2
         y: root.valueTop
         height: root.valueHeight
         foregroundColor: root.displayTextColor
@@ -239,12 +276,12 @@ Item {
         navigationPanel: root.navPanel
         navigationOrderStart: timeField.navigationOrderEnd + 1
 
-        onMeasureNumberEdited: function(newValue) {
-            root.playbackModel.measureNumber = newValue
+        onMeasureNumberEdited: function (newValue) {
+            root.playbackModel.measureNumber = newValue;
         }
 
-        onBeatNumberEdited: function(newValue) {
-            root.playbackModel.beatNumber = newValue
+        onBeatNumberEdited: function (newValue) {
+            root.playbackModel.beatNumber = newValue;
         }
     }
 
@@ -253,7 +290,7 @@ Item {
         objectName: "transport-tempo"
         enabled: root.playbackModel.isPlayAllowed
 
-        x: lcd.x + 198
+        x: lcd.x + 184
         y: root.valueTop
         height: root.valueHeight
 
@@ -261,7 +298,7 @@ Item {
 
         // Fixed width prevents items from jumping around; but we
         // scale it according to the font size to prevent clipping
-        readonly property real tempoViewWidth: 82
+        readonly property real tempoViewWidth: 66
 
         sourceComponent: root.floating ? tempoViewComponent : tempoButtonComponent
 
@@ -293,7 +330,7 @@ Item {
             PopupButton {
                 id: playbackSpeedButton
 
-                backgroundRadius: 8
+                backgroundRadius: 5
 
                 implicitWidth: tempoLoader.tempoViewWidth
                 implicitHeight: root.valueHeight
@@ -306,15 +343,14 @@ Item {
                 navigation.panel: root.navPanel
                 navigation.order: measureAndBeatFields.navigationOrderEnd + 1
 
-                contentItem: TempoView {
-                    anchors.centerIn: parent
-
-                    noteSymbol: root.playbackModel.tempo.noteSymbol
-                    tempoValue: root.playbackModel.tempo.value
-
-                    noteSymbolFont.pixelSize: ui.theme.iconsFont.pixelSize
-                    tempoValueFont: timeField.font
-                    foregroundColor: root.displayTextColor
+                contentItem: Text {
+                    width: tempoLoader.tempoViewWidth
+                    height: root.valueHeight
+                    text: String(root.playbackModel.tempo.value)
+                    font: timeField.font
+                    color: root.displayTextColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                 }
 
                 property PlaybackToolBarModel playbackModel: root.playbackModel
@@ -325,5 +361,4 @@ Item {
             }
         }
     }
-
 }
