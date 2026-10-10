@@ -4,6 +4,8 @@ Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
 ## Windows compile correction — 2026-10-10
 
+Corrected native source `56ed79eeb7b6f273d8e4832dbeed24b90c0034b0`; Windows build [38075605727](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/38075605727) includes balanced dynamics and VDL changes. `/tmp/evanscore-corrected-vdl-build-watch.py` monitors this exact artifact and dispatches full native feature checks only after a passing build. Read its matching JSON/log for actual results.
+
 First VDL build 38074251521 failed compiling API Selection: MSVC C2039, `EngravingItem` has no `isTremoloSingleChord`. Diagnostic job-log extraction run 38075525264, check 114281578081, identifies this exact error twice (initial build and keep-going sweep). Replaced the nonexistent helper with the native `ElementType::TREMOLO_SINGLECHORD` check. Direct syntax compilation of the actual Selection API source now passes. Existing ownership, same-score and non-generated checks remain. Root native fix must rebuild; do not pass an older/cancelled build as verified.
 
 The earlier default-only build 38075411719 has the same bad API call, so a corrected push supersedes it. The diagnostic workflow also extracts early compiler errors from a downloaded Windows-build artifact, rather than only from job logs; syntax and representative early-error extraction pass. Balanced preset/default and all 48 passed core tests are retained below.
