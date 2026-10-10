@@ -28,7 +28,7 @@
 using namespace mu::notation;
 using namespace mu::engraving;
 using namespace mu::notation::mallet;
-static QVariantMap point(mallet::Point p) { return {{"x", p.x}, {"y", p.y}}; }
+static QVariantMap point(mallet::Point p) { return {{"x", p.x}, {"y", p.y}, {"z",p.z}}; }
 static QVariantList integers(const std::vector<int>& values) { QVariantList out; for (int v : values) out << v; return out; }
 static QString pitchesText(const std::vector<int>& pitches) { QStringList out; for (int p : pitches) out << QString::fromStdString(pitchName(p)); return out.join("  "); }
 static QString statusText(const Pose& pose) {
@@ -38,7 +38,7 @@ static QVariantMap poseData(const Pose& pose) {
     QVariantList heads, wrists, shoulders, anchors, issues, voices;
     QStringList pros,cons;
     for (int m = 0; m < 4; ++m) {
-        heads << QVariantMap {{"id", m + 1}, {"active", pose.active[m]}, {"x", pose.targets[m].x}, {"y", pose.targets[m].y}};
+        heads << QVariantMap {{"id", m + 1}, {"active", pose.active[m]}, {"x", pose.targets[m].x}, {"y", pose.targets[m].y}, {"z",pose.targets[m].z}};
         anchors << point(pose.anchors[m]);
     }
     for (int h = 0; h < 2; ++h) { wrists << point(pose.wrists[h]); shoulders << point(pose.shoulders[h]); }
@@ -85,6 +85,7 @@ MalletPanelModel::MalletPanelModel(QObject* parent) : QObject(parent), Contextab
     m_player.shaft = std::clamp(prefs.value("evanscore/mallet/shaft", 40).toDouble(), 20.0, 60.0);
     m_player.head = std::clamp(prefs.value("evanscore/mallet/head", 3).toDouble(), 1.0, 8.0);
     m_player.respectSticking = prefs.value("evanscore/mallet/respectSticking", true).toBool();
+    m_player.accidentalHeight=std::clamp(prefs.value("evanscore/mallet/accidentalHeight",4).toDouble(),0.0,15.0);
     m_player.rotation=std::clamp(prefs.value("evanscore/mallet/rotation",40).toDouble(),5.0,90.0);
     m_player.bodyDistance=std::clamp(prefs.value("evanscore/mallet/bodyDistance",28).toDouble(),15.0,60.0);
     m_player.handWidth=std::clamp(prefs.value("evanscore/mallet/handWidth",7).toDouble(),4.0,15.0);
@@ -245,7 +246,7 @@ void MalletPanelModel::publish() {
     const auto& pose = m_selected >= 0 && m_selected < int(m_candidates.size()) ? m_candidates[m_selected] : m_original;
     QVariantList bars;
     for (const auto& bar : m_keyboard.bars) bars << QVariantMap {{"pitch", bar.pitch}, {"label", QString::fromStdString(pitchName(bar.pitch))},
-        {"accidental", bar.accidental}, {"x", bar.x}, {"y", bar.y}, {"width", bar.width}, {"length", bar.length}};
+        {"accidental", bar.accidental}, {"x", bar.x}, {"y", bar.y}, {"width", bar.width}, {"length", bar.length}, {"height",bar.accidental?m_player.accidentalHeight:0}};
     const bool editable = m_active && m_supported && !m_pick && mallet::canApply(sourceNotes(), pose);
     m_alternativeRows.clear();
     for (size_t i = 0; i < m_candidates.size(); ++i) {
@@ -266,8 +267,8 @@ void MalletPanelModel::publish() {
         if(candidate.severity==0) pros << tr("Within the configured comfort settings.");
         for(size_t v=0;v<candidate.pitches.size();++v) {
             const int from=m_pitches[v],to=candidate.pitches[v];
-            if(from!=to) changes << tr("Voice %1: %2 → %3 (mallet %4)").arg(v+1).arg(QString::fromStdString(pitchName(from)),QString::fromStdString(pitchName(to))).arg(candidate.mallets[v]);
-            if(v<m_original.mallets.size() && candidate.mallets[v]!=m_original.mallets[v]) changes << tr("Voice %1: mallet %2 → %3").arg(v+1).arg(m_original.mallets[v]).arg(candidate.mallets[v]);
+            if(from!=to) changes << tr("Voice %1: %2 → %3 (mallet %4)").arg(v+1).arg(QString::fromStdString(pitchName(from)),QString::fromStdString(pitchName(to))).arg(m_player.reverseNumbering?5-candidate.mallets[v]:candidate.mallets[v]);
+            if(v<m_original.mallets.size() && candidate.mallets[v]!=m_original.mallets[v]) changes << tr("Voice %1: mallet %2 → %3").arg(v+1).arg(m_player.reverseNumbering?5-m_original.mallets[v]:m_original.mallets[v]).arg(m_player.reverseNumbering?5-candidate.mallets[v]:candidate.mallets[v]);
             if(std::abs(candidate.fractions[v]-m_original.fractions[v])>.1) changes << tr("%1: strike %2% → %3% along the bar").arg(QString::fromStdString(pitchName(to))).arg(m_original.fractions[v]*100,0,'f',0).arg(candidate.fractions[v]*100,0,'f',0);
         }
         if(!same) {
@@ -291,10 +292,10 @@ void MalletPanelModel::publish() {
         {"previousPitches", pitchesText(m_previous.pitches)}, {"nextPitches",pitchesText(m_next.pitches)}, {"contextNotes",m_contextNotes}, {"timingSource",tr("Native tempo timeline, without repeat expansion")}, {"previousSeconds",m_previousSeconds}, {"nextSeconds",m_nextSeconds}, {"analysisMs",m_analysisMs}, {"searchOrder",!m_player.respectSticking || m_sticking.isEmpty()?tr("Exact notes and sticking first; revoicing if needed"):tr("Written links first; revoicing before reassignment")},
         {"skin", m_skin}, {"hair", m_hair}, {"malletCount", m_player.malletCount}, {"grip", m_player.grip},
         {"opening", m_player.opening}, {"reach", m_player.reach}, {"shaft", m_player.shaft}, {"head", m_player.head},
-        {"rotation",m_player.rotation},{"bodyDistance",m_player.bodyDistance},{"handWidth",m_player.handWidth},{"travelSpeed",m_player.travelSpeed},
+        {"accidentalHeight",m_player.accidentalHeight},{"rotation",m_player.rotation},{"bodyDistance",m_player.bodyDistance},{"handWidth",m_player.handWidth},{"travelSpeed",m_player.travelSpeed},
         {"reverseNumbering",m_player.reverseNumbering},{"optimizeStrikes",m_player.optimizeStrikes},{"allowOctaves",m_search.allowOctaves},{"keepBass",m_search.keepBass},{"keepMelody",m_search.keepMelody},{"allowInversion",m_search.allowInversion},
         {"bodyOffset", m_player.bodyOffset}, {"respectSticking", m_player.respectSticking}, {"selectedAlternative", m_selected},
-        {"canCommit", editable && m_selected >= 0 && pose.valid && !pose.uncertain && pose.pitches.size() == sourceNotes().size()},
+        {"canCommit", editable && m_selected >= 0 && pose.valid && !pose.uncertain && pose.pitches.size() == sourceNotes().size() && mallet::changesScore(sourceNotes(),pose,m_player.reverseNumbering)},
         {"canAudition", m_supported && !m_pitches.empty()}, {"sourceKey", m_sourceKey},
         {"geometryNote", tr("Estimated dimensions; no universal playability score. Timing follows the native tempo timeline; rolls and full passage motion are not simulated.")}};
     emit stateChanged();
@@ -328,6 +329,7 @@ void MalletPanelModel::setOption(const QString& key, const QVariant& value) {
         else if (key == "reach") { m_player.reach = std::clamp(number, 30.0, 100.0); saved = m_player.reach; }
         else if (key == "shaft") { m_player.shaft = std::clamp(number, 20.0, 60.0); saved = m_player.shaft; }
         else if (key == "head") { m_player.head = std::clamp(number, 1.0, 8.0); saved = m_player.head; }
+        else if (key == "accidentalHeight") {m_player.accidentalHeight=std::clamp(number,0.0,15.0);saved=m_player.accidentalHeight;}
         else if (key == "rotation") {m_player.rotation=std::clamp(number,5.0,90.0);saved=m_player.rotation;}
         else if (key == "bodyDistance") {m_player.bodyDistance=std::clamp(number,15.0,60.0);saved=m_player.bodyDistance;}
         else if (key == "handWidth") {m_player.handWidth=std::clamp(number,4.0,15.0);saved=m_player.handWidth;}

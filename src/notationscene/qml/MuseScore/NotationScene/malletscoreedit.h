@@ -5,6 +5,7 @@
 namespace mu::engraving { class Note; }
 namespace mu::notation::mallet {
 bool canApply(const std::vector<engraving::Note*>& notes, const Pose& candidate);
+bool changesScore(const std::vector<engraving::Note*>& notes, const Pose& candidate, bool reverseNumbering = false);
 // Caller owns the native undo transaction. Validate everything before mutation.
 bool apply(const std::vector<engraving::Note*>& notes, const Pose& candidate, bool reverseNumbering = false);
 }

@@ -12,7 +12,7 @@
 
 namespace mu::notation::mallet {
 static bool sharp(int pitch) { const int pc = pitch % 12; return pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10; }
-static double distance(Point a, Point b) { return std::hypot(a.x - b.x, a.y - b.y); }
+static double distance(Point a, Point b) { return std::hypot(std::hypot(a.x-b.x,a.y-b.y),a.z-b.z); }
 const Bar* Keyboard::bar(int pitch) const {
     for (const auto& b : bars) if (b.pitch == pitch) return &b;
     return nullptr;
@@ -127,7 +127,7 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
         if (!bar) { issue(pose,"range",pitchName(pitches[i])+" is outside this instrument's range.",2); continue; }
         const double margin=std::clamp((player.head*.5+.3)/bar->length,.02,.25);
         pose.fractions[i]=std::clamp(fractions[i],margin,1-margin);
-        Point target=bar->strike(); target.y=bar->y+bar->length*pose.fractions[i];
+        Point target=bar->strike(); target.z=bar->accidental?player.accidentalHeight:0; target.y=bar->y+bar->length*pose.fractions[i];
         pose.targets[ids[i]-1]=target; pose.active[ids[i]-1]=true; centers.push_back(target.x);
         const double f=pose.fractions[i];
         if (std::abs(f-.224)<.055 || std::abs(f-.776)<.055) {
@@ -159,7 +159,7 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
         if (pose.active[b]) targets.push_back(pose.targets[b]);
         Point midpoint{pose.body.x+(hand ? 21 : -21),keyboard.front+8};
         if (!targets.empty()) {
-            midpoint={};for (const auto& t:targets) {midpoint.x+=t.x/targets.size();midpoint.y+=t.y/targets.size();}
+            midpoint={};for (const auto& t:targets) {midpoint.x+=t.x/targets.size();midpoint.y+=t.y/targets.size();midpoint.z+=t.z/targets.size();}
         }
         if (targets.size()==2) {
             const double dx=pose.targets[b].x-pose.targets[a].x,dy=pose.targets[b].y-pose.targets[a].y;
@@ -172,16 +172,17 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
             }
         }
         const double half=pose.openings[hand]/2;
-        pose.wrists[hand]={midpoint.x,midpoint.y+std::sqrt(std::max(25.0,player.shaft*player.shaft-half*half)),8};
+        pose.wrists[hand]={midpoint.x,midpoint.y+std::sqrt(std::max(25.0,player.shaft*player.shaft-half*half)),midpoint.z+8};
         pose.shoulders[hand]={pose.body.x+(hand ? 21 : -21),pose.body.y,12};
+        if(targets.empty()) pose.wrists[hand]={pose.shoulders[hand].x,pose.body.y-12,8};
         pose.reaches[hand]=distance(pose.shoulders[hand],pose.wrists[hand]);
         // Separate inner thumb/index and outer ring/little holding positions.
         // Cross grips have an intentional local shaft crossing; do not classify
         // that normal hold as a collision. Fingers share these same anchors.
         const double angle=pose.rotations[hand]*3.141592653589793/180;
         const double anchorSign=player.grip==0 ? 1 : -1;
-        pose.anchors[a]={pose.wrists[hand].x-anchorSign*2*std::cos(angle),pose.wrists[hand].y-2*std::sin(angle)+(hand? -1:1),8};
-        pose.anchors[b]={pose.wrists[hand].x+anchorSign*2*std::cos(angle),pose.wrists[hand].y+2*std::sin(angle)+(hand? 1:-1),8};
+        pose.anchors[a]={pose.wrists[hand].x-anchorSign*2*std::cos(angle),pose.wrists[hand].y-2*std::sin(angle)+(hand? -1:1),pose.wrists[hand].z};
+        pose.anchors[b]={pose.wrists[hand].x+anchorSign*2*std::cos(angle),pose.wrists[hand].y+2*std::sin(angle)+(hand? 1:-1),pose.wrists[hand].z};
         pose.cost+=pose.openings[hand]*.15+std::abs(pose.rotations[hand])*.65+pose.reaches[hand]*.05;
         if (half >= player.shaft) issue(pose,"shaft",name+" hand's "+number(pose.openings[hand])+" cm span exceeds the configured shaft geometry.",2);
         if (pose.openings[hand]>player.opening) {

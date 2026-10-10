@@ -61,11 +61,13 @@ protected:
 };
 
 TEST_F(MalletScoreEdit, PreviewDoesNotEditAndCommitPreservesVoicesRhythmAndPlayback) {
+    const auto originalMarkings=segment->annotations();
     const auto pose = candidate(); ASSERT_TRUE(placement::canApply(notes, pose));
     for (size_t i = 0; i < notes.size(); ++i) EXPECT_EQ(notes[i]->pitch(), 60 + i * 3);
     score->lockUpdates(true); score->startCmd(muse::TranslatableString::untranslatable("Mallet placement"));
     ASSERT_TRUE(placement::apply(notes, pose)); score->endCmd();
     EXPECT_EQ(notes[0]->pitch(), 72); checkPreserved();
+    EXPECT_EQ(segment->annotations(),originalMarkings);
     for (size_t i = 0; i < notes.size(); ++i) {
         const auto value = StickingResolver::resolve(notes[i]->chord());
         ASSERT_EQ(value.kind, StickingKind::Mallets); ASSERT_EQ(value.strokes.size(), 1);
@@ -116,4 +118,14 @@ TEST_F(MalletScoreEdit, RevoicingPastAnotherToneKeepsOriginalNoteToMalletLinks) 
     EXPECT_EQ(StickingResolver::resolve(chord).rawText,"2 1");
     score->undoStack()->undo(nullptr);EXPECT_EQ(notes[0]->pitch(),60);EXPECT_EQ(added->pitch(),64);
     EXPECT_EQ(StickingResolver::resolve(chord).rawText,"R");
+}
+
+TEST_F(MalletScoreEdit, AlreadyWrittenPlacementDoesNotOfferAnEmptyScoreCommit) {
+    auto pose=candidate();
+    for(size_t i=0;i<notes.size();++i) pose.pitches[i]=notes[i]->ppitch();
+    EXPECT_TRUE(placement::changesScore(notes,pose));
+    score->lockUpdates(true);score->startCmd(muse::TranslatableString::untranslatable("Write sticking"));
+    ASSERT_TRUE(placement::apply(notes,pose));score->endCmd();
+    EXPECT_FALSE(placement::changesScore(notes,pose));
+    EXPECT_TRUE(placement::changesScore(notes,pose,true));
 }

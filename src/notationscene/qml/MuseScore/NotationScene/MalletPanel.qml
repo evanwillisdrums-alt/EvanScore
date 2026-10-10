@@ -542,6 +542,7 @@ Item {
                                         },
                                         {key:"rotation", title:qsTrc("notation", "Comfortable pair tilt (degrees)"), min:5, max:90},
                                         {key:"bodyDistance", title:qsTrc("notation", "Body distance from bar front (cm)"), min:15, max:60},
+                                        {key:"accidentalHeight", title:qsTrc("notation", "Accidental elevation above naturals (cm)"), min:0, max:15},
                                         {key:"handWidth", title:qsTrc("notation", "Hand width (cm)"), min:4, max:15},
                                         {key:"travelSpeed", title:qsTrc("notation", "Estimated travel speed (cm/s)"), min:30, max:600}
                                     ]

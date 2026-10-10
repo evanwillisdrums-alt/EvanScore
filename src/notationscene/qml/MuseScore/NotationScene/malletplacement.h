@@ -24,6 +24,7 @@ struct Player {
     int grip = 0; // Stevens, Burton, traditional cross grip.
     double opening = 24, reach = 65, shaft = 40, head = 3;
     double rotation = 40, handWidth = 7, bodyDistance = 28;
+    double accidentalHeight = 4; // Estimated cm above naturals; performer/instrument editable.
     double bodyOffset = 0, travelSpeed = 200; // cm/s: editable heuristic, not a human limit.
     bool respectSticking = true, optimizeStrikes = true, calibrated = false;
     bool reverseNumbering = false;

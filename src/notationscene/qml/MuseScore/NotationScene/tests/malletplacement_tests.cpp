@@ -167,3 +167,14 @@ TEST(MalletPlacement, WrittenParserKeepsUnknownSlotsAndDeclaresAmbiguity) {
     for(const std::string text:{"1 2 3","1 2 5 6","1 L 3 R","1234x"}) EXPECT_TRUE(parseWrittenSticking(text,4).unknown);
     EXPECT_EQ(parseWrittenSticking("",4).required,(std::vector<int>{0,0,0,0}));
 }
+
+TEST(MalletPlacement, RaisedAccidentalsDoNotBecomeFalseHeadCollisionsInPlanView) {
+    const auto k=keyboard(36,96);Player p;p.optimizeStrikes=false;p.manualStrikes={true,true,true,true};
+    p.strikeFractions={.02,.98,.5,.5};p.accidentalHeight=0;
+    const auto flat=solve(k,{84,85},p,{1,4}).front();
+    ASSERT_TRUE(std::any_of(flat.issues.begin(),flat.issues.end(),[](const Issue&i){return i.key=="heads";}));
+    p.accidentalHeight=4;const auto raised=solve(k,{84,85},p,{1,4}).front();
+    EXPECT_FALSE(std::any_of(raised.issues.begin(),raised.issues.end(),[](const Issue&i){return i.key=="heads";}));
+    EXPECT_EQ(raised.mallets,flat.mallets);EXPECT_EQ(raised.pitches,flat.pitches);
+    EXPECT_DOUBLE_EQ(raised.targets[3].z,4);EXPECT_DOUBLE_EQ(raised.targets[0].z,0);
+}
