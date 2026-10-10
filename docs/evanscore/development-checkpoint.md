@@ -2,6 +2,18 @@
 
 Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Resume point — reference audit and keypad changes in progress
+
+The latest user asks for a functional/informational review of the marimba reference, and is preparing additional research. Reviewed the full saved 55.7-second IMG_0523.mov frame sequence and native-resolution diagnostic/alternative close-ups plus IMG_0529/0530/0531. See [mallet-reference-audit.md](mallet-reference-audit.md) for evidence, precise gaps, acceptance cases and current use. This session has no callable Drive connector; newly added Drive content has not been retrieved. Latest requirements: Stevens grip/fingers/distinct shaft holding positions; remove Front for now; useful compact rendering; closer body; investigate blue arm mark; no compressed/overlapping buttons; physically meaningful sticking and specific reasons for alternatives. These native mallet changes are **not implemented yet**. Preserve all earlier authorization and priorities, including bug fixing/optimization and keypad work.
+
+Remote main was merged by another actor into this branch as `21163989e25ff397d68a2ff1fe97747454282a5a`; preserve it. The local native keypad probe commit was rebased, now `9c45e26737a`. Full merged-source Windows build `38036161285` passed compilation/startup/portable verification; new native interaction checks are still needed after its engraving changes. Verified released binary remains the separately identified source/run below.
+
+Uncommitted keypad 1.5 work: 208px minimum width and compact tab-dependent heights; ownership-aware selection for notes/chords/rests selected through articulation/tremolo children; fermata segment tick corrected to `segment.fraction.ticks`; tremolo error rollback/guards. Existing native baseline keypad run `38036510827` passed an actual buzz click/Undo. Local compact QML host-substitute checks passed all five pages/customization/minimum geometry; they are not complete-app validation.
+
+Uncommitted native test/workflow changes extend the Inspector with real-button notation actions, Undo/Redo, selected tremolo ownership, correct-location fermata, compact tab geometry and a new pitched `keypad-notes.mscx` fixture. They build locally, but expanded Windows checks have not run. The diagnostic workflow adds `keypad_source=checkout` to copy only current plugin files into an identified native base package for testing. Before running: strengthen its required completion marker (currently the old buzz-only marker), budget enough open time for expanded coverage, verify native saved notation, and complete voice/window/note-input control coverage. Fermata/symbol exception transactions also need review. Do not claim every button fixed from the preliminary buzz pass. Push/packaging/native QA and the next verified download remain outstanding.
+
+Local work directories: `/tmp/keypad-ui-check` (substitute-host layout tests), `/tmp/evanscore-inspector-build` (compiled Inspector), `/tmp/mallet-reference-review` (full video sequence and exact 14/17/24-second captures), `/workspace/evanscore-validation/20261010/native-mallet-release.jpg` (last reviewed released native screenshot). Continue from working changes; do not reset or overwrite them.
+
 ## Verified Windows release — 2026-10-10
 
 App source `eb62434b68a4a97c21778a7a0fb7e3f9959312de`, full Windows build [38034638203](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/38034638203), passed complete compilation/deployment, score/PDF export, Home and score startup with default/software rendering, sustained response beyond the splash and normal closure. A fresh Windows runner without the Qt SDK verified the extracted package.

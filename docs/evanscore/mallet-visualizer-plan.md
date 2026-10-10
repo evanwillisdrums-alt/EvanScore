@@ -1,6 +1,6 @@
 # Mallet visualizer — reference and planning notes
 
-Status: first native Windows version verified in build 38034638203 and mallet run 38035605321. Open View → Mallet visualizer. Preview/Commit/Undo/Redo/save, repeated reopening, visible viewport and caption sizing passed; the complete native screenshot was reviewed through run 38035777486. The requirements below include future passage animation and calibrated geometry, which are not part of the initial static analyzer.
+Status: first native Windows version verified in build 38034638203 and mallet run 38035605321. Open View → Mallet visualizer. Preview/Commit/Undo/Redo/save, repeated reopening, visible viewport and caption sizing passed; the complete native screenshot was reviewed through run 38035777486. The requirements below include future passage animation and calibrated geometry, which are not part of the initial static analyzer. The latest detailed comparison is [mallet-reference-audit.md](mallet-reference-audit.md); it records information and interactions missing from the first version.
 
 ## References and layout
 
@@ -12,7 +12,7 @@ Native integration is the current recommendation. The checked-out legacy extensi
 
 ## Player and instrument appearance
 
-The latest supplied illustration establishes the rendering direction: a clean illustrated overhead player with soft shading, body, shoulders, arms, hands, hair, and four mallets. The body and arms are mandatory and must show reach and crossovers. Also retain the previously requested front/side view of the instrument and player. The user clarified that only the overhead view needs mallet visualization and placement support; the front/side view does not need mallets. Keep instrument range and player appearance consistent between views.
+The latest supplied illustration establishes the rendering direction: a clean illustrated overhead player with soft shading, body, shoulders, arms, hands, hair, and four mallets. The body and arms are mandatory and must show reach and crossovers. The user now requests removing Front from the visible mallet panel for the time being, superseding the earlier request for a front/side view. Overhead remains mandatory. The latest grip clarification is Stevens; model and draw fingers with separate inner/outer shaft holding positions.
 
 Randomize natural skin tone and hair color each time the panel opens, then keep the appearance stable during that session. This is cosmetic and must not alter reach calculations, player dimensions, note assignments, or saved score content. Keep diagnostic and mallet highlights readable against every player appearance; the avatar must not cover controls, note labels, or strike-point feedback.
 
