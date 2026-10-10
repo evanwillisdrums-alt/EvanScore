@@ -430,6 +430,14 @@ private:
         QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier); QTest::qWait(600);
         panel->setProperty("currentTab", 0); QTest::qWait(100);
         const auto capturePath = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        auto instrumentView = findItem(panel, "mallet-instrument-view");
+        if (!instrumentView) qFatal("Mallet instrument view disappeared");
+        qWarning() << "MALLET INSPECTOR native instrument geometry" << instrumentView->size()
+                   << "panel" << panel->size()
+                   << "paint bars" << instrumentView->property("scene").toMap().value("bars").toList().size();
+        if (instrumentView->width() < 200 || instrumentView->height() < 60
+            || instrumentView->property("scene").toMap().value("bars").toList().size() != 61)
+            qFatal("Native mallet geometry hides the instrument/player or loses render inputs");
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
         qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
