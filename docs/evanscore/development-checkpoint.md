@@ -4,6 +4,8 @@ Updated 2026-10-10 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
 ## Latest priority — native VDL first build (2026-10-10)
 
+Pushed native source `2f14a185b3df0ef3af4756497044443c31ac0706`. Windows build [38074251521](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/38074251521) is running. The updated `/tmp/evanscore-final-build-watch.py` waits for this exact build/source, then dispatches Dynamics/mallet/keypad checks; inspect `/tmp/evanscore-final-build-watch.json` and its log for actual completion. No validated download yet.
+
 The user requested an immediate first compile with VDL, with 6% usage remaining. Implemented prepared Kontakt state storage and Mixer selection, background restoration, preservation of notation/drumsets/sound flags, and the first independently guide-checked SnareLine Manual/LITE core map. Every-instrument mapping, rolls/buzzes, full conversion and real licensed playback remain outstanding; do not claim full VDL readiness. The user has neither Player nor library installed on their Windows PC. Use the existing installer helper there; Native Access sign-in and VDL activation cannot be performed from this Linux workspace.
 
 Framework changes ship as `buildscripts/patches/evanscore-vdl-framework.patch`, applied idempotently by root CMake to the pinned submodule. Do not commit an unpublished submodule pointer. Pristine-file apply and already-applied detection passed. Local `muse` remains dirty by design; regenerate the patch after any framework edit.
