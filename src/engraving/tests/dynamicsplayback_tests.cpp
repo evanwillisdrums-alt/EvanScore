@@ -24,6 +24,7 @@
 #include "engraving/rw/xmlwriter.h"
 #include "engraving/playback/playbackcontext.h"
 #include "io/buffer.h"
+#include "async/asyncable.h"
 #include "serialization/json.h"
 
 using namespace mu::engraving;
@@ -280,16 +281,24 @@ TEST_F(Engraving_DynamicsPlaybackTests, CurveAndNoteEditsUndoTogether) {
 
 TEST_F(Engraving_DynamicsPlaybackTests, PlaybackProfileEditAvoidsPrintedLayoutAndStillUndoes) {
     score->lockUpdates(true);
+    muse::async::Asyncable receiver;
+    int playbackNotifications = 0;
+    score->changesChannel().onReceive(&receiver, [&](const ScoreChanges& changes) {
+        if (changes.changedStyleIdSet.count(Sid::evanDynamicsTap)) ++playbackNotifications;
+    });
     const auto original = score->style().styleSt(Sid::evanDynamicsTap);
     score->cmdState().reset();
     score->startCmd(muse::TranslatableString::untranslatable("Tap profile"));
     score->undoChangeStyleVal(Sid::evanDynamicsTap, String(u"49 49 49 49 49 49 49 49 49 49 49 49"));
     EXPECT_FALSE(score->cmdState().layoutRange());
     score->endCmd();
+    EXPECT_EQ(playbackNotifications, 1);
     EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::FF, DynamicsPlayback::Tap), 49);
-    score->undoStack()->undo(nullptr);
+    score->undoRedo(true, nullptr);
+    EXPECT_EQ(playbackNotifications, 2);
     EXPECT_EQ(score->style().styleSt(Sid::evanDynamicsTap), original);
-    score->undoStack()->redo();
+    score->undoRedo(false, nullptr);
+    EXPECT_EQ(playbackNotifications, 3);
     EXPECT_EQ(DynamicsPlayback::level(score.get(), DynamicType::FF, DynamicsPlayback::Tap), 49);
     // Ordinary engraving settings must continue to request a layout.
     score->cmdState().reset();
