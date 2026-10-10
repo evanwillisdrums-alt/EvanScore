@@ -282,15 +282,30 @@ public:
                                 verifyColumn();
                                 qWarning() << "DYNAMICS INSPECTOR general panel and resize checks passed";
                                 verifyMixer(window);
+                                // The preceding View checks activate other sidebar tabs.
+                                // Reopen Dynamics and reacquire any recreated content
+                                // before sending real keyboard events to its editor.
+                                if (dockOpen(window, "dynamicsPanel")) {
+                                    dispatchMenu(window, "command://app/dock/toggle-dynamics");
+                                    QTest::qWait(100);
+                                }
+                                dispatchMenu(window, "command://app/dock/toggle-dynamics");
+                                QTest::qWait(250);
+                                QObject* selectedModel = nullptr;
+                                for (auto* object : objects(window))
+                                    if (QByteArray(object->metaObject()->className()).contains("DynamicsPanelModel")) {
+                                        selectedModel = object; break;
+                                    }
+                                if (!selectedModel) qFatal("Dynamics model did not reopen for note velocity editing");
                                 dispatchMenu(window, "command://notation/select-all");
                                 QTest::qWait(250);
-                                QMetaObject::invokeMethod(model, "followSelection", Qt::DirectConnection);
-                                const auto state = model->property("state").toMap();
+                                QMetaObject::invokeMethod(selectedModel, "followSelection", Qt::DirectConnection);
+                                const auto state = selectedModel->property("state").toMap();
                                 if (state.value("scope").toString() != "notes" || !state.value("velocityKnown").toBool())
                                     qFatal("Selected notes did not expose a known custom velocity");
                                 qWarning() << "DYNAMICS INSPECTOR selected notes" << state.value("title")
                                            << state.value("noteCategory") << state.value("effectiveVelocity");
-                                verifyVelocityEnter(window, model);
+                                verifyVelocityEnter(window, selectedModel);
                                 verifyFeatureDebug(window);
                                 auto noteSpin = findItem(window->contentItem(), "dynamics-note-velocity");
                                 auto noteEditor = noteSpin ? qvariant_cast<QQuickItem*>(noteSpin->property("contentItem")) : nullptr;
