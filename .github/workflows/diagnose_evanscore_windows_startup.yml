@@ -24,6 +24,13 @@ on:
           - desktop.png
           - feature-debug.png
         default: desktop.png
+      image_scope:
+        description: Workspace capture to review
+        type: choice
+        options:
+          - score
+          - home
+        default: score
       mode:
         description: Inspect launch logs or run desktop checks
         type: choice
@@ -293,6 +300,7 @@ jobs:
       - name: Report small desktop capture for startup inspection
         env:
           INSPECT_IMAGE_NAME: ${{ inputs.image_name }}
+          INSPECT_IMAGE_SCOPE: ${{ inputs.image_scope }}
         run: |
           python3 -m venv /tmp/capture-tools
           /tmp/capture-tools/bin/pip install --quiet pillow
@@ -307,7 +315,9 @@ jobs:
               raise RuntimeError('Unsupported capture name')
           files = sorted(Path('checks').rglob(image_name))
           if files:
-              file = next((f for f in files if f.parent.name.endswith('score')), files[0])
+              scope = os.environ.get('INSPECT_IMAGE_SCOPE') or 'score'
+              suffix = 'empty' if scope == 'home' else 'score'
+              file = next((f for f in files if f.parent.name.endswith(suffix)), files[0])
               data = file.read_bytes()
               if len(data) > 20000:
                   preview = Image.open(file).convert('RGB')
