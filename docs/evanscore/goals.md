@@ -4,10 +4,10 @@ Updated 2026-10-10. Battery is the primary focus; keyboard percussion receives i
 
 ## Current priorities
 
-1. Complete the full reference-driven UI overhaul, including Home, compact toolbar arrangement and shared controls; verify the crash/optimization fixes before delivery.
+1. Finish the active Windows release: reference-driven Home/toolbars/controls, native mallet panel, dynamics shortcut/performance fixes, and complete regression/rendering gates.
 2. Integrate the user's existing Kontakt-based VDL 2.5.5 library: Player setup, every instrument's documented maps, staff-text techniques, and automatic Muse Drumline conversion.
-3. Add shared sticking recognition and feature diagnostics for VDL playback and the later mallet visualizer.
-4. Continue the mallet visualizer, then the remaining UI, workflow, mixer/effects, and performance work below. New scope must not obscure the current release's verification requirements.
+3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.
+4. Extend the first mallet visualizer with passage analysis/calibrated geometry, then continue mixer/effects, spatial placement, and the remaining workflow/performance roadmap. Preserve current release verification requirements.
 
 ## Full roadmap
 
