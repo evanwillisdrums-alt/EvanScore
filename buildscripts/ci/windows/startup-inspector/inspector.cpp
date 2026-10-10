@@ -29,6 +29,7 @@
 #include <QSignalSpy>
 #include <QSet>
 #include <QElapsedTimer>
+#include <QFontMetricsF>
 #include <algorithm>
 
 class Inspector final : public QObject {
@@ -453,6 +454,16 @@ private:
         if (instrumentView->width() < 200 || instrumentView->height() < 60
             || instrumentView->property("scene").toMap().value("bars").toList().size() != 61)
             qFatal("Native mallet geometry hides the instrument/player or loses render inputs");
+        for (const auto name : {"mallet-score-selection", "mallet-pick-bars", "mallet-commit", "Diagnostics", "Alternatives", "Player"}) {
+            auto button = findItem(panel, name);
+            if (!button) qFatal("Mallet caption button is unavailable: %s", name);
+            const auto font = button->property("textFont").value<QFont>();
+            const double captionWidth = QFontMetricsF(font).horizontalAdvance(button->property("text").toString());
+            qWarning() << "MALLET INSPECTOR native caption" << name << "width" << button->width()
+                       << "text width" << captionWidth;
+            if (button->width() + .5 < captionWidth + 2 * button->property("margins").toDouble())
+                qFatal("Native mallet caption is clipped: %s", name);
+        }
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
         qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
