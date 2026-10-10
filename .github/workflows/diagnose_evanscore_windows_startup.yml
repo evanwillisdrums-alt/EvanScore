@@ -545,6 +545,9 @@ jobs:
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics' -and (Test-Path checks/drum-score/ff-snare.mscz)) {
               pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app -ScorePath checks/drum-score/ff-snare.mscz > checks/inspector-exceptions.log 2>&1
             }
+            if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets' -and (Test-Path checks/score/mallet-chords.mscz)) {
+              pwsh -NoProfile -File ./buildscripts/ci/windows/observe_evanscore_exceptions.ps1 -InstallRoot downloaded-app -ScorePath checks/score/mallet-chords.mscz > checks/inspector-exceptions.log 2>&1
+            }
             throw
           }
       - name: Report captured fault stack
