@@ -247,7 +247,7 @@ MuseScore {
         } catch (error) {
             curScore.endCmd(true);
             showNotice("Native articulation edit failed; no changes applied.");
-            return false;
+            return true; // Failure handled; keep the specific notice.
         }
         curScore.endCmd();
         return true;
@@ -302,7 +302,7 @@ MuseScore {
         } catch (error) {
             curScore.endCmd(true);
             showNotice("Notehead edit failed; no changes applied.");
-            return false;
+            return true; // Failure handled; keep the specific notice.
         }
         curScore.endCmd();
         openNoteheads = !allOpen;
@@ -388,7 +388,7 @@ MuseScore {
         } catch (error) {
             curScore.endCmd(true);
             showNotice("Fermata edit failed; no changes applied.");
-            return false;
+            return true; // Failure handled; keep the specific notice.
         }
         curScore.endCmd();
         return true;
