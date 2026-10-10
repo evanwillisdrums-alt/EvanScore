@@ -451,7 +451,8 @@ private:
         qWarning() << "MALLET INSPECTOR native instrument geometry" << instrumentView->size()
                    << "panel" << panel->size()
                    << "paint bars" << instrumentView->property("scene").toMap().value("bars").toList().size();
-        if (instrumentView->width() < 200 || instrumentView->height() < 60
+        if (instrumentView->width() < 200 || instrumentView->height() < 80 || panel->height() < 200
+            || instrumentView->mapToItem(panel, QPointF(0, instrumentView->height())).y() > panel->height() + .5
             || instrumentView->property("scene").toMap().value("bars").toList().size() != 61)
             qFatal("Native mallet geometry hides the instrument/player or loses render inputs");
         for (const auto name : {"mallet-score-selection", "mallet-pick-bars", "mallet-commit", "Diagnostics", "Alternatives", "Player"}) {
