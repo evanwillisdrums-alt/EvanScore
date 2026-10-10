@@ -326,10 +326,13 @@ private:
     static void verifyMallets(QQuickWindow* window) {
         dispatchMenu(window, "command://notation/select-all");
         dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(700);
-        QObject* model = nullptr;
-        for (auto* obj : objects(window)) if (QByteArray(obj->metaObject()->className()).contains("MalletPanelModel")) { model = obj; break; }
+        const auto findModel = [window]() -> QObject* {
+            for (auto* obj : objects(window)) if (QByteArray(obj->metaObject()->className()).contains("MalletPanelModel")) return obj;
+            return nullptr;
+        };
+        QPointer<QObject> model = findModel();
         if (!model || !model->property("active").toBool()) qFatal("Native mallet model did not activate");
-        const auto state = [model] { return model->property("state").toMap(); };
+        const auto state = [&model] { return model ? model->property("state").toMap() : QVariantMap(); };
         const auto original = state();
         if (!original.value("supported").toBool() || original.value("bars").toList().size() != 61
             || original.value("pose").toMap().value("pitches").toList().size() != 4)
@@ -368,9 +371,10 @@ private:
         reportMemory("before mallet visibility loop");
         for (int cycle = 0; cycle < 20; ++cycle) {
             dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(40);
-            if (model->property("active").toBool()) qFatal("Hidden mallet model retained subscriptions");
+            if (model && model->property("active").toBool()) qFatal("Hidden mallet model retained subscriptions");
             dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(80);
-            if (!model->property("active").toBool() || state().value("bars").toList().size() != 61) qFatal("Mallet panel did not reopen");
+            model = findModel();
+            if (!model || !model->property("active").toBool() || state().value("bars").toList().size() != 61) qFatal("Mallet panel did not reopen");
         }
         reportMemory("after mallet visibility loop");
         window->resize(1100, 760); QTest::qWait(150);
