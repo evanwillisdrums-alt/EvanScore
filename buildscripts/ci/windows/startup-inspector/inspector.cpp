@@ -47,7 +47,11 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "dynamics") {
+        if (mode == "mallets") {
+            QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
+                if (window && window->title().contains("mallet-chords")) verifyMallets(window);
+            });
+        } else if (mode == "dynamics") {
             QTimer::singleShot(4000, window, [root = QPointer<QObject>(root), window = QPointer<QQuickWindow>(window)] {
                 if (!root || !window) return;
                 if (window->title() == "EvanScore") {
@@ -221,7 +225,7 @@ public:
                                         QTest::qWait(40);
                                     }
                                     QMetaObject::invokeMethod(model, "setColumnMapping", Qt::DirectConnection,
-                                                              Q_ARG(int, 2), Q_ARG(int, 31 + cycle));
+                                                              Q_ARG(int, 2), Q_ARG(int, cycle == 11 ? 49 : 31 + cycle));
                                     QTest::qWait(40);
                                     for (int undoIndex = 0; undoIndex < 3; ++undoIndex) {
                                         dispatchMenu(window, "command://notation/undo");
@@ -267,6 +271,7 @@ public:
                                     qFatal("Selected notes did not expose a known custom velocity");
                                 qWarning() << "DYNAMICS INSPECTOR selected notes" << state.value("title")
                                            << state.value("noteCategory") << state.value("effectiveVelocity");
+                                verifyVelocityEnter(window, model);
                                 verifyFeatureDebug(window);
                                 dispatchMenu(window, "command://project/save");
                                 QTimer::singleShot(1000, window, [] {
@@ -295,6 +300,83 @@ public:
     }
 private:
     bool done = false;
+    static void verifyVelocityEnter(QQuickWindow* window, QObject* model) {
+        const auto before = model->property("state").toMap();
+        auto spin = findItem(window->contentItem(), "dynamics-note-velocity");
+        if (!spin || !spin->isVisible()) qFatal("Note velocity editor is unavailable");
+        for (const int key : {Qt::Key_Return, Qt::Key_Enter}) {
+            reveal(spin);
+            auto editor = qvariant_cast<QQuickItem*>(spin->property("contentItem"));
+            if (!editor) qFatal("Note velocity text editor is unavailable");
+            editor->forceActiveFocus();
+            QSignalSpy modified(spin, SIGNAL(valueModified()));
+            QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
+            QTest::keyClick(window, Qt::Key_4); QTest::keyClick(window, Qt::Key_9);
+            QTest::keyClick(window, Qt::Key(key)); QTest::qWait(200);
+            if (modified.count() != 1 || model->property("state").toMap().value("effectiveVelocity").toInt() != 49)
+                qFatal("Enter did not commit a single native note velocity edit");
+            dispatchMenu(window, "command://notation/undo"); QTest::qWait(200);
+            const auto restored = model->property("state").toMap();
+            if (restored.value("effectiveVelocity") != before.value("effectiveVelocity")
+                || restored.value("localOverride") != before.value("localOverride"))
+                qFatal("Enter triggered an extra score command or did not undo cleanly");
+        }
+        qWarning() << "DYNAMICS INSPECTOR Return and keypad Enter commit velocities without extra score commands passed";
+    }
+    static void verifyMallets(QQuickWindow* window) {
+        dispatchMenu(window, "command://notation/select-all");
+        dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(700);
+        QObject* model = nullptr;
+        for (auto* obj : objects(window)) if (QByteArray(obj->metaObject()->className()).contains("MalletPanelModel")) { model = obj; break; }
+        if (!model || !model->property("active").toBool()) qFatal("Native mallet model did not activate");
+        const auto state = [model] { return model->property("state").toMap(); };
+        const auto original = state();
+        if (!original.value("supported").toBool() || original.value("bars").toList().size() != 61
+            || original.value("pose").toMap().value("pitches").toList().size() != 4)
+            qFatal("Selected marimba chord or five-octave range did not load");
+        auto panel = findItem(window->contentItem(), "MalletPanel");
+        if (!panel || panel->height() > 221 || panel->height() < 100) qFatal("Mallet panel did not open compactly");
+        const auto source = original.value("sourceKey");
+        const auto appearance = original.value("skin");
+        int octave = -1;
+        for (auto value : model->property("alternatives").toList()) {
+            const auto row = value.toMap();
+            if (row.value("valid").toBool() && row.value("description").toString().contains("Octave")) { octave = row.value("index").toInt(); break; }
+        }
+        if (octave < 0) qFatal("No valid octave alternative was generated");
+        QMetaObject::invokeMethod(model, "selectAlternative", Q_ARG(int, octave));
+        if (state().value("sourceKey") != source || !state().value("canCommit").toBool()) qFatal("Preview changed the score or cannot commit");
+        QMetaObject::invokeMethod(model, "commit"); QTest::qWait(150);
+        const auto committed = state().value("sourceKey");
+        if (committed == source || state().value("sticking").toString().isEmpty()) qFatal("Mallet Commit did not apply pitches and sticking");
+        dispatchMenu(window, "command://notation/undo"); QTest::qWait(150);
+        if (state().value("sourceKey") != source || state().value("sticking") != original.value("sticking"))
+            qFatal("Mallet Commit did not undo pitches and original sticking together");
+        dispatchMenu(window, "command://notation/redo"); QTest::qWait(150);
+        if (state().value("sourceKey") != committed) qFatal("Mallet Commit redo failed");
+        dispatchMenu(window, "command://notation/undo"); QTest::qWait(150);
+        QMetaObject::invokeMethod(model, "setPickMode", Q_ARG(bool, true));
+        QMetaObject::invokeMethod(model, "clearPicked");
+        for (int pitch : {60, 64, 67, 71}) QMetaObject::invokeMethod(model, "togglePitch", Q_ARG(int, pitch));
+        if (state().value("pose").toMap().value("pitches").toList().size() != 4 || state().value("canCommit").toBool())
+            qFatal("Manual bar picking failed or was allowed to commit to the score");
+        QMetaObject::invokeMethod(model, "setOption", Q_ARG(QString, "sideView"), Q_ARG(QVariant, QVariant(true)));
+        QTest::qWait(100);
+        QMetaObject::invokeMethod(model, "setOption", Q_ARG(QString, "sideView"), Q_ARG(QVariant, QVariant(false)));
+        QMetaObject::invokeMethod(model, "setPickMode", Q_ARG(bool, false));
+        if (state().value("skin") != appearance || state().value("sourceKey") != source) qFatal("Appearance or score changed during preview");
+        reportMemory("before mallet visibility loop");
+        for (int cycle = 0; cycle < 20; ++cycle) {
+            dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(40);
+            if (model->property("active").toBool()) qFatal("Hidden mallet model retained subscriptions");
+            dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(80);
+            if (!model->property("active").toBool() || state().value("bars").toList().size() != 61) qFatal("Mallet panel did not reopen");
+        }
+        reportMemory("after mallet visibility loop");
+        window->resize(1100, 760); QTest::qWait(150);
+        dispatchMenu(window, "command://project/save"); QTest::qWait(600);
+        qWarning() << "MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed";
+    }
     static void verifyTransport(QQuickWindow* window) {
         for (const auto name : {"mainToolBar", "playbackToolBar", "undoRedoToolBar"}) {
             auto dock = findItem(window->contentItem(), name);

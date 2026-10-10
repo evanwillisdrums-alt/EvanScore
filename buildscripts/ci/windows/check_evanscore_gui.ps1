@@ -168,6 +168,16 @@ try {
             $closeRequested = $process.CloseMainWindow()
             $closedCleanly = $process.WaitForExit(10000)
             $process.Refresh()
+            if (-not $process.HasExited) {
+                @([EvanScoreWindows]::Visible($process.Id)) | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $output 'shutdown-windows.json')
+                Add-Type -AssemblyName System.Drawing
+                $bitmap = [System.Drawing.Bitmap]::new($main.Width, $main.Height)
+                $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+                try {
+                    $graphics.CopyFromScreen($main.Left, $main.Top, 0, 0, $bitmap.Size)
+                    $bitmap.Save((Join-Path $output 'shutdown-desktop.png'))
+                } finally { $graphics.Dispose(); $bitmap.Dispose() }
+            }
             $closedCleanly = $closeRequested -and $closedCleanly -and $process.ExitCode -eq 0
             @{
                 closeRequested = $closeRequested

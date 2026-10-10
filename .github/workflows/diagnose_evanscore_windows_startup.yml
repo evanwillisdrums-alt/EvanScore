@@ -41,6 +41,7 @@ on:
           - layout
           - verify-package
           - dynamics
+          - mallets
           - crash-kit
           - vdl-setup
           - vdl-package
@@ -411,13 +412,13 @@ jobs:
           retention-days: 3
 
   layout:
-    if: inputs.mode == 'layout' || inputs.mode == 'dynamics'
+    if: inputs.mode == 'layout' || inputs.mode == 'dynamics' || inputs.mode == 'mallets'
     runs-on: windows-2025
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        trial: ${{ fromJSON(inputs.mode == 'dynamics' && '["dynamics"]' || '["baseline", "left", "wide"]') }}
+        trial: ${{ fromJSON(inputs.mode == 'dynamics' && '["dynamics"]' || inputs.mode == 'mallets' && '["mallets"]' || '["baseline", "left", "wide"]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v5
@@ -497,9 +498,14 @@ jobs:
           }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
-            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } else { 0 }
+            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 20 } else { 0 }
             $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
-            ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath src/engraving/tests/tuplet_data/tuplet1-ref.mscx -MinimumOpenSeconds $interactionTime
+            $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
+            ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath $fixture -MinimumOpenSeconds $interactionTime
+            if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') {
+              $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+              if (-not $logs.Contains('MALLET INSPECTOR range, preview, commit, undo, redo, pick, front and 20 reopen checks passed')) { throw 'Native mallet checks did not complete' }
+            }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') {
               $env:EVANSCORE_EXPECT_MUSICAL_TIME = '1'
               $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/drum-score/feature-debug.png')
