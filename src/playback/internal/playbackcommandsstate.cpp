@@ -167,6 +167,14 @@ CommandState PlaybackCommandsState::commandState(const Command& command) const
         return CommandState(false, false);
     }
 
+    // Mixer presentation does not depend on the audio engine being ready.
+    // In particular, keep View controls usable while sounds load or the
+    // selected audio device is unavailable.
+    if (command == TOGGLE_MIXER_SECTION_COMMAND || command == TOGGLE_AUX_SEND_COMMAND
+        || command == TOGGLE_AUX_CHANNEL_COMMAND) {
+        return CommandState(true, false);
+    }
+
     if (!playbackController()->isPlayAllowed()) {
         return CommandState(false, false);
     }
