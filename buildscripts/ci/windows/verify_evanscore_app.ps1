@@ -76,8 +76,8 @@ $relativeApp
 
 Keep the DLLs, plugins, fonts, and other supplied folders together.
 This is the native MuseScore fork with the implemented gray styling and rounded controls.
-Use the Regular / Percussion button in the top toolbar to select a saved workspace mode.
-Percussion uses the supplied style until you save your own default, and places accents above.
+Use the percussion icon in the top toolbar to select a saved workspace mode.
+New percussion scores use the supplied style until you save your own default, and place accents above.
 In Preferences > Shortcuts, search Flam, Diddle, or Roll, or record side/middle mouse-button bindings.
 Percussion input uses one compact notation strip that fits the panel without sideways scrolling.
 The reference-style translucent floating keypad has working Windows minimize/close buttons.
@@ -96,7 +96,12 @@ Make Default Dynamics persists for new scores, including templates and after res
 Apply Default Dynamics explicitly applies that profile to an existing score without restyling it.
 Mappings and curves save with the score; local edits support undo/redo and reset to inherited settings.
 Sound libraries determine the audible response to these values; patch-specific Virtual Drumline techniques still use the host's playback setup.
-The optional mallet visualizer is still in planning and is not implemented in this build.
+Open View > Mallet visualizer for the optional native bottom panel alongside Mixer.
+It follows selected keyboard-percussion chords with range-aware bars, an overhead player and a front view.
+Inspect sticking and estimated reach/opening, preview alternatives, and audition or compare them.
+Commit writes safe octave/sticking changes in one Undo step; previews do not change the score.
+Player comfort limits and instrument dimensions are estimates, not calibrated physical guarantees.
+Full animated passage analysis and Virtual Drumline-specific sample routing remain future work.
 The internal executable and application name remain MuseScore.
 
 Build checks passed: Windows x64 executable header, native process exit, score-to-PDF export, and sustained desktop response for an empty workspace and an opened score with both default and software rendering. Automatic startup dialogs are checked as well.

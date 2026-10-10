@@ -340,6 +340,22 @@ private:
         auto panel = findItem(window->contentItem(), "MalletPanel");
         if (!panel || panel->height() > 221 || panel->height() < 100) qFatal("Mallet panel did not open compactly");
         const auto source = original.value("sourceKey");
+        panel->setProperty("currentTab", 2); QTest::qWait(100);
+        auto opening = findItem(panel, "mallet-player-opening");
+        if (!opening) qFatal("Mallet player opening editor is unavailable");
+        for (const int key : {Qt::Key_Return, Qt::Key_Enter}) {
+            reveal(opening);
+            auto editor = qvariant_cast<QQuickItem*>(opening->property("contentItem"));
+            if (!editor) qFatal("Mallet player text editor is unavailable");
+            editor->forceActiveFocus(); QSignalSpy modified(opening, SIGNAL(valueModified()));
+            QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
+            QTest::keyClick(window, Qt::Key_3); QTest::keyClick(window, Qt::Key_0);
+            QTest::keyClick(window, Qt::Key(key)); QTest::qWait(100);
+            if (modified.count() != 1 || state().value("opening").toInt() != 30 || state().value("sourceKey") != source)
+                qFatal("Mallet player Enter did not commit a single setting without editing notes");
+            QMetaObject::invokeMethod(model, "setOption", Q_ARG(QString, "opening"), Q_ARG(QVariant, original.value("opening")));
+        }
+        panel->setProperty("currentTab", 0); QTest::qWait(100);
         const auto appearance = original.value("skin");
         int octave = -1;
         for (auto value : model->property("alternatives").toList()) {

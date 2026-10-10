@@ -448,12 +448,25 @@ Item {
                                             Layout.fillWidth: true
                                         }
                                         Controls.SpinBox {
+                                            objectName: "mallet-player-" + modelData.key
                                             implicitWidth: 84
                                             from: modelData.min
                                             to: modelData.max
                                             editable: true
                                             value: root.panelState[modelData.key] || modelData.min
                                             onValueModified: root.model.setOption(modelData.key, value)
+                                            Keys.onShortcutOverride: function (event) {
+                                                if (!activeFocus && !contentItem.activeFocus)
+                                                    return;
+                                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                                    || event.key === Qt.Key_Escape || event.key === Qt.Key_Backspace
+                                                    || event.key === Qt.Key_Delete || event.key === Qt.Key_Left
+                                                    || event.key === Qt.Key_Right || event.key === Qt.Key_Up
+                                                    || event.key === Qt.Key_Down || event.key === Qt.Key_Home
+                                                    || event.key === Qt.Key_End || event.text.length > 0) {
+                                                    event.accepted = true;
+                                                }
+                                            }
                                             palette.text: ui.theme.fontPrimaryColor
                                             background: Rectangle {
                                                 color: ui.theme.textFieldColor

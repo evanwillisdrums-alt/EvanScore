@@ -9,6 +9,7 @@ with ZipFile(path) as archive:
     root = ET.fromstring(archive.read(name))
 score = root.find("Score")
 assert score is not None, "Saved score XML is missing"
+assert not score.findall(".//LayoutBreak"), "Player Enter leaked into score layout shortcuts"
 staves = score.findall("Staff")
 assert len(staves) == 2, "Commit changed the grand staff"
 notes = [note for staff in staves for note in staff.findall(".//Note")]

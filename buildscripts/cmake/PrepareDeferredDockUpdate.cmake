@@ -3,6 +3,16 @@
 if(MUSE_MODULE_DOCKWINDOW AND MUSE_MODULE_DOCKWINDOW_QML AND MUSE_MODULE_DOCKWINDOW_KDDOCKWIDGETS_V2)
     set(dock_source "${MUSE_FRAMEWORK_SRC_PATH}/dockwindow_v2/internal/dockbase.cpp")
     file(READ "${dock_source}" dock_content)
+    # KDDW's Item::setMaxSizeHint updates the cached limit but does not shrink
+    # an already allocated dock. Bootstrap can give each toolbar a share of
+    # the window before QML content limits load. Resize through the supported
+    # layout API after applying the final limits, outside geometry signals.
+    set(dock_maximum_marker "    dockWidgetView->setMaximumSize(maximumSize);")
+    string(FIND "${dock_content}" "${dock_maximum_marker}" dock_maximum_position)
+    if(dock_maximum_position LESS 0)
+        message(FATAL_ERROR "Deferred dock adapter: maximum-size application changed")
+    endif()
+    string(REPLACE "${dock_maximum_marker}" "${dock_maximum_marker}\n\n    if (m_properties.type == DockType::ToolBar && inited() && group\n        && group->isInMainWindow() && !group->beingDeletedLater()\n        && height() > maximumSize.height()) {\n        resize(static_cast<int>(width()), maximumSize.height());\n    }" dock_content "${dock_content}")
     foreach(dock_method IN ITEMS applySizeConstraints syncLayoutItemMinSize)
         set(dock_start "void DockBase::${dock_method}()\n{\n")
         string(FIND "${dock_content}" "${dock_start}" dock_start_position)
