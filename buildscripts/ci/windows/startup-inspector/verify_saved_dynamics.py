@@ -15,6 +15,7 @@ for folder in ('score', 'drum-score'):
         style = ET.fromstring(archive.read('score_style.mss')).find('./Style') \
             if 'score_style.mss' in archive.namelist() else score.find('./Score/Style')
     assert style is not None, 'Missing saved style'
+    assert score.find('.//LayoutBreak') is None, 'Numeric editing added a printed layout break'
     assert style.findtext('evanDynamicsEnabled') == '1', 'Custom dynamics did not persist'
     values = style.findtext('evanDynamicsTap', '').split()
     assert len(values) > 10 and all(int(value) == 30 for value in values[1:]), 'Bulk taps did not persist'
