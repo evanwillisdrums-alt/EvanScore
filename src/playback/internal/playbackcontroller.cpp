@@ -404,6 +404,7 @@ void PlaybackController::playNotes(const NoteValList& notes, staff_idx_t staffId
 {
     Segment* seg = const_cast<Segment*>(segment);
     Chord* chord = engraving::Factory::createChord(seg);
+    chord->setStaffIdx(staffIdx);
 
     std::vector<const EngravingItem*> elements;
     elements.reserve(notes.size());

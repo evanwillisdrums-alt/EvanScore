@@ -242,7 +242,11 @@ void MalletPanelModel::setStrikePoint(int id, double fraction) {
 }
 void MalletPanelModel::playPitches(const std::vector<int>& pitches) {
     auto chords = selectedOnset(); if (!m_active || !m_supported || chords.empty()) return;
-    NoteValList values; for (int pitch : pitches) values.emplace_back(pitch);
+    // The diagram uses sounding pitches; native audition applies the selected
+    // staff's ottava/capo offsets to its temporary notes again.
+    const auto* reference = chords.front()->notes().empty() ? nullptr : chords.front()->notes().front();
+    const int offset = reference ? reference->ppitch() - reference->pitch() : 0;
+    NoteValList values; for (int pitch : pitches) values.emplace_back(pitch - offset);
     playback::IPlaybackController::PlayParams params; params.duration = 450000;
     playbackController()->playNotes(values, chords.front()->staffIdx(), chords.front()->segment(), params);
 }

@@ -30,6 +30,7 @@ signals:
     void pitchClicked(int pitch);
     void strikePointDragged(int mallet, double fraction);
 protected:
+    bool event(QEvent*) override;
     void hoverMoveEvent(QHoverEvent*) override;
     void hoverLeaveEvent(QHoverEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -47,5 +48,7 @@ private:
     int m_hoveredPitch = -1;
     int m_dragged = -1;
     int m_draggedPitch = -1;
+    QPointF m_hoverPosition { -1, -1 };
+    bool m_keyboardHover = false;
 };
 }

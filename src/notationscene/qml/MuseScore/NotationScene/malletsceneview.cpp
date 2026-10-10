@@ -115,8 +115,14 @@ int MalletSceneView::pitchAt(QPointF point) const {
     return -1;
 }
 void MalletSceneView::setHovered(int pitch) { if (pitch == m_hoveredPitch) return; m_hoveredPitch = pitch; update(); emit hoveredPitchChanged(); }
-void MalletSceneView::hoverMoveEvent(QHoverEvent* event) { setHovered(pitchAt(event->position())); }
-void MalletSceneView::hoverLeaveEvent(QHoverEvent*) { setHovered(-1); }
+void MalletSceneView::hoverMoveEvent(QHoverEvent* event) {
+    // Qt can redeliver hover after repaint. A stationary pointer must not
+    // immediately erase the bar selected with arrow keys.
+    if (m_keyboardHover && event->position() == m_hoverPosition) return;
+    m_keyboardHover = false; m_hoverPosition = event->position();
+    setHovered(pitchAt(event->position()));
+}
+void MalletSceneView::hoverLeaveEvent(QHoverEvent*) { m_keyboardHover = false; m_hoverPosition = {-1, -1}; setHovered(-1); }
 void MalletSceneView::mousePressEvent(QMouseEvent* event) {
     forceActiveFocus();
     if (m_scene.value("sideView").toBool()) { event->accept(); return; }
@@ -144,11 +150,22 @@ void MalletSceneView::mouseMoveEvent(QMouseEvent* event) {
     event->accept();
 }
 void MalletSceneView::mouseReleaseEvent(QMouseEvent* event) { m_dragged = -1; m_draggedPitch = -1; event->accept(); }
+bool MalletSceneView::event(QEvent* event) {
+    if (event->type() == QEvent::ShortcutOverride && hasActiveFocus()) {
+        const auto* key = static_cast<QKeyEvent*>(event);
+        if (key->key() == Qt::Key_Left || key->key() == Qt::Key_Right
+            || key->key() == Qt::Key_Space || key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter) {
+            event->accept(); return true;
+        }
+    }
+    return QQuickPaintedItem::event(event);
+}
 void MalletSceneView::wheelEvent(QWheelEvent* event) { setZoom(m_zoom + (event->angleDelta().y() > 0 ? .2 : -.2)); event->accept(); }
 void MalletSceneView::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Left || event->key() == Qt::Key_Right) {
+        m_keyboardHover = true;
         int next = m_hoveredPitch < 0 ? m_scene.value("low").toInt() : m_hoveredPitch + (event->key() == Qt::Key_Left ? -1 : 1);
         setHovered(std::clamp(next, m_scene.value("low").toInt(), m_scene.value("high").toInt())); event->accept();
-    } else if ((event->key() == Qt::Key_Space || event->key() == Qt::Key_Return) && m_hoveredPitch >= 0) { emit pitchClicked(m_hoveredPitch); event->accept(); }
+    } else if ((event->key() == Qt::Key_Space || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && m_hoveredPitch >= 0) { emit pitchClicked(m_hoveredPitch); event->accept(); }
     else QQuickPaintedItem::keyPressEvent(event);
 }
