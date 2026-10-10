@@ -30,6 +30,11 @@
 #include <QSet>
 #include <QElapsedTimer>
 #include <QFontMetricsF>
+#include <QQmlEngine>
+#include <QQmlContext>
+#include <QQmlComponent>
+#include <QQmlExpression>
+#include <QDirIterator>
 #include <algorithm>
 
 class Inspector final : public QObject {
@@ -48,7 +53,11 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "mallets") {
+        if (mode == "keypad") {
+            QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
+                if (window && window->title() != "EvanScore") verifyKeypad(window);
+            });
+        } else if (mode == "mallets") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
                 if (window && window->title().contains("mallet-chords")) verifyMallets(window);
             });
@@ -361,6 +370,55 @@ private:
                 qFatal("Enter triggered an extra score command or did not undo cleanly");
         }
         qWarning() << "DYNAMICS INSPECTOR Return and keypad Enter commit velocities without extra score commands passed";
+    }
+    static void verifyKeypad(QQuickWindow* window) {
+        dispatchMenu(window, "command://notation/select-all");
+        QQmlEngine* hostEngine = qmlEngine(window->contentItem());
+        if (!hostEngine) hostEngine = qmlEngine(findItem(window->contentItem(), "WindowContent"));
+        if (!hostEngine) qFatal("Keypad host QML engine unavailable");
+        auto* engine = new QQmlEngine(window);
+        engine->setImportPathList(hostEngine->importPathList());
+        const auto context = hostEngine->rootContext()->contextProperty("ioc_context");
+        engine->rootContext()->setContextProperty("ioc_context", context);
+        engine->setProperty("ioc_context", context);
+        engine->rootContext()->setContextProperty("ui", hostEngine->rootContext()->contextProperty("ui"));
+        engine->setProperty("apiversion", 1);
+        QString pluginPath;
+        QDirIterator files(QCoreApplication::applicationDirPath() + "/..", {"EvanScoreNoteInput.qml"}, QDir::Files, QDirIterator::Subdirectories);
+        if (files.hasNext()) pluginPath = files.next();
+        if (pluginPath.isEmpty()) qFatal("Bundled keypad plugin unavailable");
+        QQmlComponent component(engine, QUrl::fromLocalFile(pluginPath));
+        if (!component.isReady()) qFatal("Actual keypad QML failed: %s", qPrintable(component.errorString()));
+        auto* plugin = component.create();
+        if (!plugin) qFatal("Actual keypad creation failed: %s", qPrintable(component.errorString()));
+        plugin->setParent(engine);
+        if (!QMetaObject::invokeMethod(plugin, "run")) qFatal("Keypad Run unavailable");
+        QTest::qWait(700);
+        auto* keypad = plugin->findChild<QQuickWindow*>("evanscore-keypad");
+        if (!keypad || !keypad->isVisible()) qFatal("Actual keypad window unavailable");
+        const auto evaluate = [plugin](const QString& code) {
+            QQmlExpression expression(qmlContext(plugin), plugin, code);
+            const auto value = expression.evaluate();
+            if (expression.hasError()) qFatal("Keypad expression failed: %s", qPrintable(expression.error().toString()));
+            return value;
+        };
+        qWarning() << "KEYPAD INSPECTOR actual selection" << evaluate("selectedNotes().length")
+                   << "chords" << evaluate("selectedChords().length")
+                   << "single element enum" << evaluate("elementTypes.TREMOLO_SINGLECHORD")
+                   << "buzz enum" << evaluate("tremoloTypes.BUZZ_ROLL");
+        auto* buzz = findItem(keypad->contentItem(), "keypad-key-buzz");
+        if (!buzz) qFatal("Buzz button missing");
+        QTest::mouseClick(keypad, Qt::LeftButton, Qt::NoModifier, buzz->mapToScene(QPointF(buzz->width()/2, buzz->height()/2)).toPoint());
+        QTest::qWait(200);
+        qWarning() << "KEYPAD INSPECTOR buzz click" << plugin->property("activeTremolo")
+                   << "notice" << plugin->property("notice")
+                   << "native chords" << evaluate("JSON.stringify(selectedChords().map(function(c) { return {track:c.track, tremolo: c.tremoloSingleChord ? c.tremoloSingleChord.tremoloType : null}; }))");
+        if (plugin->property("activeTremolo").toString() != "BUZZ_ROLL") qFatal("Actual buzz button did not add buzz rolls");
+        qWarning() << "KEYPAD INSPECTOR buzz real click passed";
+        QMetaObject::invokeMethod(plugin, "cmd", Q_ARG(QString, QString("command://notation/undo")));
+        QTest::qWait(200);
+        keypad->close();
+        delete engine;
     }
     static void verifyMallets(QQuickWindow* window) {
         dispatchMenu(window, "command://notation/select-all");
