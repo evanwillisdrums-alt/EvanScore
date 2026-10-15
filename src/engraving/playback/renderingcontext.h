@@ -165,6 +165,7 @@ inline muse::mpe::NoteEvent buildNoteEvent(const NominalNoteCtx& ctx, const muse
                                 ctx.userVelocityFraction,
                                 pitchCurve);
     event.setPercussionSource(ctx.percussion);
+    event.setCustomDynamics(ctx.chordCtx.score && DynamicsPlayback::enabled(ctx.chordCtx.score));
     return event;
 }
 }

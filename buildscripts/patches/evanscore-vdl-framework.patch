@@ -1,3 +1,44 @@
+diff --git a/framework/audio/common/rpc/rpcpacker.h b/framework/audio/common/rpc/rpcpacker.h
+index 5bc8c7ceb..6f0e1d27a 100644
+--- a/framework/audio/common/rpc/rpcpacker.h
++++ b/framework/audio/common/rpc/rpcpacker.h
+@@ -528,12 +528,12 @@ inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::ArticulationApp
+ 
+ inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::ExpressionContext& value)
+ {
+-    p.process(value.articulations, value.nominalDynamicLevel, value.expressionCurve, value.velocityOverride);
++    p.process(value.articulations, value.nominalDynamicLevel, value.expressionCurve, value.velocityOverride, value.customDynamics);
+ }
+ 
+ inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::ExpressionContext& value)
+ {
+-    p.process(value.articulations, value.nominalDynamicLevel, value.expressionCurve, value.velocityOverride);
++    p.process(value.articulations, value.nominalDynamicLevel, value.expressionCurve, value.velocityOverride, value.customDynamics);
+ }
+ 
+ inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::NoteEvent& value)
+diff --git a/framework/audio/tests/rpcpacker_tests.cpp b/framework/audio/tests/rpcpacker_tests.cpp
+index 2a4bb8a3e..fa203f6ed 100644
+--- a/framework/audio/tests/rpcpacker_tests.cpp
++++ b/framework/audio/tests/rpcpacker_tests.cpp
+@@ -667,6 +667,7 @@ static mpe::ExpressionContext makeExpressionContext()
+     origin.nominalDynamicLevel = 2;
+     origin.expressionCurve.insert({ 56, 68 });
+     origin.velocityOverride = std::make_optional<float>(0.6);
++    origin.customDynamics = true;
+     return origin;
+ }
+ 
+@@ -678,7 +679,8 @@ TEST_F(Audio_RpcPackerTests, MPE_ExpressionContext)
+                  origin.articulations,
+                  origin.nominalDynamicLevel,
+                  origin.expressionCurve,
+-                 origin.velocityOverride);
++                 origin.velocityOverride,
++                 origin.customDynamics);
+ 
+     ByteArray data = rpc::RpcPacker::pack(origin);
+ 
 diff --git a/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml b/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml
 index dab16732c..25e008719 100644
 --- a/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml
@@ -109,7 +150,7 @@ index dab16732c..25e008719 100644
  
      Item {
 diff --git a/framework/mpe/events.h b/framework/mpe/events.h
-index 5ceb30e60..005d3dbc4 100644
+index 5ceb30e60..4ed0da02f 100644
 --- a/framework/mpe/events.h
 +++ b/framework/mpe/events.h
 @@ -23,6 +23,7 @@
@@ -133,15 +174,129 @@ index 5ceb30e60..005d3dbc4 100644
                 && pitchCurve == other.pitchCurve;
      }
  };
-@@ -144,6 +146,8 @@ struct NoteEvent
+@@ -86,13 +88,15 @@ struct ExpressionContext
+     dynamic_level_t nominalDynamicLevel = MIN_DYNAMIC_LEVEL;
+     ExpressionCurve expressionCurve;
+     std::optional<float> velocityOverride;
++    bool customDynamics = false;
+ 
+     bool operator==(const ExpressionContext& other) const
+     {
+         return articulations == other.articulations
+                && nominalDynamicLevel == other.nominalDynamicLevel
+                && expressionCurve == other.expressionCurve
+-               && velocityOverride == velocityOverride;
++               && velocityOverride == other.velocityOverride
++               && customDynamics == other.customDynamics;
+     }
+ };
+ 
+@@ -144,6 +148,9 @@ struct NoteEvent
          return m_pitchCtx;
      }
  
 +    void setPercussionSource(const PercussionSource& source) { m_pitchCtx.percussion = source; }
++    void setCustomDynamics(bool enabled) { m_expressionCtx.customDynamics = enabled; }
 +
      const ExpressionContext& expressionCtx() const
      {
          return m_expressionCtx;
+diff --git a/framework/musesampler/internal/musesamplersequencer.cpp b/framework/musesampler/internal/musesamplersequencer.cpp
+index 25d17f5e2..87eb71330 100644
+--- a/framework/musesampler/internal/musesamplersequencer.cpp
++++ b/framework/musesampler/internal/musesamplersequencer.cpp
+@@ -180,6 +180,8 @@ void MuseSamplerSequencer::clearAllTracks()
+ {
+     m_layerIdxToTrackIdx.clear();
+     m_presetChangesByTrack.clear();
++    m_customDynamicLayers.clear();
++    m_customNoteDynamics.clear();
+ 
+     for (ms_Track track : allTracks()) {
+         m_samplerLib->clearTrack(m_sampler, track);
+@@ -283,23 +285,34 @@ void MuseSamplerSequencer::loadEvents(const PlaybackEventsMap& changes)
+ void MuseSamplerSequencer::loadDynamicEvents(const DynamicAutomationLayers& changes)
+ {
+     constexpr timestamp_t STEP_INTERVAL_US = 30000;
+-
+-    for (const auto& layer : changes) {
+-        ms_Track track = findTrack(layer.first);
+-        if (!track) {
+-            continue;
++    const auto writeLayer = [&](layer_idx_t layer, const DynamicAutomationMap& curve) {
++        ms_Track track = findTrack(layer);
++        if (!track) return;
++        std::map<timestamp_t, double> points;
++        const bool custom = m_customDynamicLayers.contains(layer);
++        resampleCurve(curve, STEP_INTERVAL_US, [&](timestamp_t t, real_t normalized) {
++            // Custom profiles already contain exact normalized MIDI velocities.
++            // Converting them as symbolic p/ff levels made playback disagree
++            // with audition and with the sidebar's tap/accent values.
++            points[t] = custom ? std::clamp(double(normalized), 0.0, 1.0)
++                : dynamicLevelRatio(dynamicLevelFromNormalized(normalized));
++        });
++        const auto attacks = m_customNoteDynamics.find(layer);
++        if (attacks != m_customNoteDynamics.end()) {
++            for (const auto& [t, value] : attacks->second) points[t] = value;
+         }
+-
+         std::optional<double> lastRatio;
+-
+-        resampleCurve(layer.second, STEP_INTERVAL_US, [&](timestamp_t t, real_t normalized) {
+-            const double ratio = dynamicLevelRatio(dynamicLevelFromNormalized(normalized));
++        for (const auto& [t, ratio] : points) {
+             if (lastRatio.has_value() && RealIsEqual(*lastRatio, ratio)) {
+-                return;
++                continue;
+             }
+             lastRatio = ratio;
+             m_samplerLib->addDynamicsEvent(m_sampler, track, DynamicEvent { t, ratio });
+-        });
++        }
++    };
++    for (const auto& [layer, curve] : changes) writeLayer(layer, curve);
++    for (const auto& [layer, _] : m_customNoteDynamics) {
++        if (!changes.contains(layer)) writeLayer(layer, {});
+     }
+ }
+ 
+@@ -319,6 +332,15 @@ void MuseSamplerSequencer::addNoteEvent(const mpe::NoteEvent& noteEvent)
+         return;
+     }
+ 
++    const auto& expression = noteEvent.expressionCtx();
++    if (expression.customDynamics) {
++        m_customDynamicLayers.insert(layerIdx);
++        if (expression.velocityOverride.has_value() && arrangementCtx.hasStart()) {
++            auto& point = m_customNoteDynamics[layerIdx][arrangementCtx.nominalTimestamp];
++            point = std::max(point, std::clamp(double(*expression.velocityOverride), 0.0, 1.0));
++        }
++    }
++
+     for (const auto& art : articulations) {
+         if (art.first == ArticulationType::Pedal) {
+             addPedalEvent(art.second.meta, track);
+diff --git a/framework/musesampler/internal/musesamplersequencer.h b/framework/musesampler/internal/musesamplersequencer.h
+index 404dc23bf..136742a8b 100644
+--- a/framework/musesampler/internal/musesamplersequencer.h
++++ b/framework/musesampler/internal/musesamplersequencer.h
+@@ -20,6 +20,7 @@
+  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  */
+ #pragma once
++#include <set>
+ 
+ #include "audio/engine/internal/abstracteventsequencer.h"
+ #include "imusesamplertracks.h"
+@@ -89,6 +90,8 @@ private:
+ 
+     std::unordered_map<mpe::layer_idx_t, track_idx_t> m_layerIdxToTrackIdx;
+     std::unordered_map<ms_Track, std::map<long long /*startUs*/, ms_PresetChange> > m_presetChangesByTrack;
++    std::set<mpe::layer_idx_t> m_customDynamicLayers;
++    std::map<mpe::layer_idx_t, std::map<mpe::timestamp_t, double> > m_customNoteDynamics;
+ 
+     std::string m_defaultPresetCode;
+     AuditionParams m_auditionParamsCache;
 diff --git a/framework/vst/internal/synth/vstsequencer.cpp b/framework/vst/internal/synth/vstsequencer.cpp
 index 48555b3e6..a4cc2f968 100644
 --- a/framework/vst/internal/synth/vstsequencer.cpp

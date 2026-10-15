@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <sstream>
+#include <iomanip>
 #include "articulation.h"
 #include "chord.h"
 #include "dynamic.h"
@@ -11,6 +12,7 @@
 #include "note.h"
 #include "score.h"
 #include "masterscore.h"
+#include "measure.h"
 #include "segment.h"
 #include "staff.h"
 #include "spanner.h"
@@ -79,6 +81,105 @@ bool DynamicsPlayback::accented(const Chord* chord)
     return std::any_of(chord->articulations().begin(), chord->articulations().end(), [](const Articulation* a) { return a->playArticulation() && (a->isAccent() || a->isMarcato()); });
 }
 
+int DynamicsPlayback::markingRole(const Dynamic* dynamic)
+{
+    const auto* staff = dynamic->staff();
+    return profile(dynamic->score()).styleB(Sid::evanDynamicsBattery)
+        && staff && staff->isDrumStaff(dynamic->tick()) ? Accent : Normal;
+}
+
+static DynamicType settledType(DynamicType type)
+{
+    switch (type) {
+    case DynamicType::FP: case DynamicType::SFP: return DynamicType::P;
+    case DynamicType::PF: return DynamicType::F;
+    case DynamicType::SFPP: return DynamicType::PP;
+    default: return type;
+    }
+}
+
+int DynamicsPlayback::markingVelocity(const Dynamic* dynamic, int role, DynamicType resolvedType)
+{
+    const auto type = resolvedType == DynamicType::OTHER ? dynamic->dynamicType() : resolvedType;
+    const bool settled = type != dynamic->dynamicType();
+    // Legacy VELOCITY is often imported with a library-specific stock number.
+    // With custom dynamics enabled the table wins; only the explicit EvanScore
+    // marking override takes priority. On battery it edits the accent lane.
+    if (!settled && dynamic->preciseVelocity() >= 0 && (markingRole(dynamic) != Accent || role == Accent))
+        return dynamic->preciseVelocity();
+    const int locked = dynamic->lockedVelocity(role, settled);
+    return locked >= 0 ? locked : level(dynamic->score(), type, role);
+}
+
+int DynamicsPlayback::curveShape(const Hairpin* h)
+{
+    if (h->dynamicsLocked()) return int(h->lockedDynamicsValue(0));
+    return h->dynamicsCurveShape() < 0 ? profile(h->score()).styleI(Sid::evanDynamicsCurveShape) : h->dynamicsCurveShape();
+}
+
+double DynamicsPlayback::curveBend(const Hairpin* h)
+{
+    if (h->dynamicsLocked()) return h->lockedDynamicsValue(1);
+    return h->dynamicsCurveBend() < -2 ? profile(h->score()).styleD(Sid::evanDynamicsCurveBend) : h->dynamicsCurveBend();
+}
+
+String DynamicsPlayback::lockSnapshot(const EngravingItem* item)
+{
+    if (item->isNote()) return String::number(velocity(toNote(item), 80));
+    std::ostringstream text;
+    text << std::setprecision(17);
+    if (item->isDynamic()) {
+        const auto* d = toDynamic(item);
+        for (bool settled : {false, true}) for (int role = Normal; role <= Unstress; ++role)
+            text << markingVelocity(d, role, settled ? settledType(d->dynamicType()) : d->dynamicType()) << ' ';
+    } else if (item->isHairpin()) {
+        const auto* h = toHairpin(item);
+        text << curveShape(h) << ' ' << curveBend(h) << ' ' << int(smoothArticulations(h)) << ' ';
+        for (bool arrival : {true, false}) for (bool end : {false, true}) for (int role = Auto; role <= Unstress; ++role)
+            text << endpoint(h, end, role, arrival) << ' ';
+    }
+    return String::fromStdString(text.str());
+}
+
+void DynamicsPlayback::resetUnlockedOverrides(Score* score)
+{
+    const auto reset = [](EngravingItem* item, Pid id, const PropertyValue& value) {
+        if (item->getProperty(id) != value) item->undoChangeProperty(id, value);
+    };
+    const auto resetChord = [&](const auto& self, Chord* chord) -> void {
+        for (Note* note : chord->notes()) {
+            if (note->dynamicsLocked()) continue;
+            reset(note, Pid::USER_VELOCITY, 0);
+            reset(note, Pid::VELO_TYPE, VeloType::OFFSET_VAL);
+            reset(note, Pid::PLAY, true);
+        }
+        for (Chord* grace : chord->graceNotes()) self(self, grace);
+    };
+    Score* master = score->masterScore() ? score->masterScore() : score;
+    for (Score* current : master->scoreList()) {
+        for (Measure* measure = current->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            for (Segment* segment = measure->first(); segment; segment = segment->next()) {
+                for (auto* item : segment->elist()) if (item && item->isChord()) resetChord(resetChord, toChord(item));
+                for (auto* item : segment->annotations()) {
+                    if (!item->isDynamic() || toDynamic(item)->dynamicsLocked()) continue;
+                    reset(item, Pid::DYNAMICS_MARK_VELOCITY, -1);
+                    reset(item, Pid::VELOCITY, -1);
+                    reset(item, Pid::PLAY, true);
+                }
+            }
+        }
+        for (const auto& [_, spanner] : current->spannerMap().map()) {
+            if (!spanner->isHairpin() || toHairpin(spanner)->dynamicsLocked()) continue;
+            auto* h = toHairpin(spanner);
+            for (Pid id : {Pid::DYNAMICS_CURVE_SHAPE, Pid::DYNAMICS_CURVE_BEND, Pid::DYNAMICS_START_DYNAMIC,
+                 Pid::DYNAMICS_END_DYNAMIC, Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE,
+                 Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY, Pid::DYNAMICS_SMOOTH_ARTICULATIONS,
+                 Pid::VELO_CHANGE, Pid::SINGLE_NOTE_DYNAMICS, Pid::VELO_CHANGE_METHOD, Pid::PLAY})
+                reset(h, id, h->propertyDefault(id));
+        }
+    }
+}
+
 static const Dynamic* previousDynamic(const Segment* segment, track_idx_t track)
 {
     for (const Segment* s = segment; s; s = s->prev1()) {
@@ -134,6 +235,11 @@ static int roleAt(const Score* score, const Segment* segment, track_idx_t track)
 int DynamicsPlayback::role(const Note* note)
 {
     if (note->ghost()) return Ghost;
+    // A flam's grace chord shares the main chord's segment. Looking up that
+    // segment's articulations would incorrectly give its grace stroke an accent.
+    const auto* staff = note->staff();
+    if (note->chord() && note->chord()->isGrace() && staff
+        && profile(note->score()).styleB(Sid::evanDynamicsBattery) && staff->isDrumStaff(note->tick())) return Tap;
     return roleAt(note->score(), note->chord() ? note->chord()->segment() : nullptr, note->track());
 }
 
@@ -162,29 +268,31 @@ const Hairpin* DynamicsPlayback::activeHairpin(const Score* score, const Fractio
 
 bool DynamicsPlayback::smoothArticulations(const Hairpin* h)
 {
+    if (h->dynamicsLocked()) return h->lockedDynamicsValue(2) != 0;
     return h->dynamicsSmoothArticulations() < 0 ? profile(h->score()).styleB(Sid::evanDynamicsSmoothArticulations)
         : h->dynamicsSmoothArticulations() != 0;
 }
 
-double DynamicsPlayback::hairpinValue(const Hairpin* h, double position, int noteRole)
+double DynamicsPlayback::hairpinValue(const Hairpin* h, double position, int noteRole, bool independentLane)
 {
-    int shape = h->dynamicsCurveShape();
-    double bend = h->dynamicsCurveBend();
-    if (shape < 0) shape = profile(h->score()).styleI(Sid::evanDynamicsCurveShape);
-    if (bend < -2.0) bend = profile(h->score()).styleD(Sid::evanDynamicsCurveBend);
+    const int shape = curveShape(h);
+    const double bend = curveBend(h);
     // Optional shared envelope: printed articulations do not switch velocity
     // lanes mid-ramp. Explicit note overrides are still applied by callers.
-    const int lane = smoothArticulations(h) ? Auto : noteRole;
-    const int from = endpoint(h, false, lane), to = endpoint(h, true, lane);
+    const int lane = !independentLane && smoothArticulations(h) ? Auto : noteRole;
+    const int from = endpoint(h, false, lane, !independentLane), to = endpoint(h, true, lane, !independentLane);
     return std::clamp(from + (to - from) * progress(position, shape, bend), 0.0, 127.0);
 }
 
-int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
+int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane, bool arrival)
 {
+    if (h->dynamicsLocked()) return int(h->lockedDynamicsValue(3 + (arrival ? 0 : 20) + (end ? 10 : 0) + std::clamp(lane, 0, 9)));
     const int overrideVelocity = end ? h->dynamicsEndVelocity() : h->dynamicsStartVelocity();
     const int configuredRole = end ? h->dynamicsEndRole() : h->dynamicsStartRole();
-    if (overrideVelocity >= 0 && (lane == Auto || configuredRole == Auto || lane == configuredRole || configuredRole == Tap)) return std::clamp(overrideVelocity, 0, 127);
     const Segment* segment = end ? h->endSegment() : h->startSegment();
+    const int endpointRole = configuredRole == Auto ? roleAt(h->score(), segment, h->track()) : configuredRole;
+    if (overrideVelocity >= 0 && (lane == Auto || lane == endpointRole
+        || (arrival && (configuredRole == Auto || configuredRole == Tap)))) return std::clamp(overrideVelocity, 0, 127);
     const Dynamic* snapped = h->spannerSegments().empty() ? nullptr : end ? h->dynamicSnappedAfter() : h->dynamicSnappedBefore();
     const Dynamic* dynamic = snapped;
     if (!dynamic) dynamic = previousDynamic(segment, h->track());
@@ -194,7 +302,7 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
     const bool typeFromNotation = type < 0;
     int role = lane == Auto ? configuredRole : lane;
     // A mixed accent-to-tap destination resolves to the tap mapping for every arrival.
-    if (lane != Auto && lane != Tap && configuredRole == Tap) role = Tap;
+    if (arrival && lane != Auto && lane != Tap && configuredRole == Tap) role = Tap;
     if (!role) role = roleAt(h->score(), segment, h->track());
     if (type < 0) {
         const auto textType = end ? h->dynamicTypeTo() : h->dynamicTypeFrom();
@@ -203,16 +311,15 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
         else type = static_cast<int>(end ? (h->isCrescendo() ? DynamicType::F : DynamicType::P) : DynamicType::MF);
     }
     int value = level(h->score(), static_cast<DynamicType>(type), role);
-    if (typeFromNotation && dynamic) {
-        if (dynamic->preciseVelocity() >= 0) value = dynamic->preciseVelocity();
-        else if (role != Tap && dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) value = dynamic->velocity();
-    }
+    if (typeFromNotation && dynamic && static_cast<int>(dynamic->dynamicType()) == type)
+        value = markingVelocity(dynamic, role);
     int startRole = h->dynamicsStartRole();
     if (startRole == Auto) startRole = roleAt(h->score(), h->startSegment(), h->track());
     // A shared ramp ending in a different stroke category already has an
     // inferred destination (e.g. accent -> tap). Do not shift that target by
     // the default unmarked-hairpin +/-16 change.
-    if (inferredEnd && (h->veloChange() != 0 || !smoothArticulations(h) || role == startRole))
+    if (inferredEnd && (h->veloChange() != 0 || ((role != Tap && role != Ghost && role != Unstress)
+        && (!smoothArticulations(h) || role == startRole))))
         value += (h->isCrescendo() ? 1 : -1) * (h->veloChange() ? std::abs(h->veloChange()) : 16);
     return std::clamp(value, 0, 127);
 }
@@ -220,13 +327,14 @@ int DynamicsPlayback::endpoint(const Hairpin* h, bool end, int lane)
 int DynamicsPlayback::velocityAt(const Note* note, const Fraction& position, int fallback)
 {
     if (!enabled(note->score())) return fallback;
+    if (note->dynamicsLocked()) return note->lockedDynamicsVelocity();
     // A silent battery ghost stays silent through shared articulation curves.
     if (note->ghost() && velocity(note, fallback) == 0) return 0;
     const Hairpin* h = activeHairpin(note->score(), position, note->track());
     if (!h) h = activeHairpin(note->score(), note->tick(), note->track());
     if (h && h->ticks().ticks() > 0) {
         const double t = double((position - h->tick()).ticks()) / h->ticks().ticks();
-        return static_cast<int>(std::lround(hairpinValue(h, t, role(note))));
+        return static_cast<int>(std::lround(hairpinValue(h, t, role(note), note->chord() && note->chord()->isGrace())));
     }
     return velocity(note, fallback);
 }
@@ -235,33 +343,20 @@ int DynamicsPlayback::velocity(const Note* note, int fallback)
 {
     const Score* score = note->score();
     if (!profile(score).styleB(Sid::evanDynamicsEnabled)) return fallback;
+    if (note->dynamicsLocked()) return note->lockedDynamicsVelocity();
     const Segment* segment = note->chord() ? note->chord()->segment() : nullptr;
     const Dynamic* dynamic = previousDynamic(segment, note->track());
-    if (note->ghost() && level(score, dynamic ? dynamic->dynamicType() : DynamicType::MF, Ghost) == 0) return 0;
+    auto type = dynamic ? dynamic->dynamicType() : DynamicType::MF;
+    if (dynamic && dynamic->tick() < note->tick()) type = settledType(type);
+    const bool silentGhost = note->ghost() && (dynamic ? markingVelocity(dynamic, Ghost, type) : level(score, type, Ghost)) == 0;
     const Hairpin* active = activeHairpin(score, note->tick(), note->track());
     if (active && active->ticks().ticks() > 0) {
+        if (note->ghost() && (active->dynamicsLocked()
+            ? endpoint(active, false, Ghost, false) == 0 && endpoint(active, true, Ghost, false) == 0 : silentGhost)) return 0;
         const double t = double((note->tick() - active->tick()).ticks()) / active->ticks().ticks();
-        return static_cast<int>(std::lround(hairpinValue(active, t, role(note))));
+        return static_cast<int>(std::lround(hairpinValue(active, t, role(note), note->chord() && note->chord()->isGrace())));
     }
-    auto type = dynamic ? dynamic->dynamicType() : DynamicType::MF;
-    bool settledCompound = false;
-    if (dynamic && dynamic->tick() < note->tick()) {
-        switch (type) {
-        case DynamicType::FP: case DynamicType::SFP: type = DynamicType::P; settledCompound = true; break;
-        case DynamicType::PF: type = DynamicType::F; settledCompound = true; break;
-        case DynamicType::SFPP: type = DynamicType::PP; settledCompound = true; break;
-        default: break;
-        }
-    }
-    int result = level(score, type, role(note));
-    // A local velocity on a dynamic marking remains an explicit override.
-    if (dynamic && !settledCompound) {
-        const int role = DynamicsPlayback::role(note);
-        if (dynamic->preciseVelocity() >= 0) result = dynamic->preciseVelocity();
-        // Legacy markings often contain imported playback velocities (e.g.
-        // p=64). They must not supersede a custom battery tap mapping.
-        else if (role != Tap && dynamic->velocityOverride() > 0 && dynamic->velocity() != Dynamic::definitions()[static_cast<int>(dynamic->dynamicType())].velocity) result = dynamic->velocity();
-    }
+    int result = dynamic ? markingVelocity(dynamic, role(note), type) : level(score, type, role(note));
     // A completed playback-only ramp holds its destination until the next written dynamic.
     const Hairpin* completed = nullptr;
     for (const auto& entry : score->spannerMap().map()) {
@@ -271,7 +366,8 @@ int DynamicsPlayback::velocity(const Note* note, int fallback)
         if (applies(h, note->track()) && (!dynamic || dynamic->tick() < h->tick2())
             && (!completed || h->tick2() > completed->tick2())) completed = h;
     }
-    if (completed) result = static_cast<int>(std::lround(hairpinValue(completed, 1.0, role(note))));
+    if (completed) result = endpoint(completed, true, role(note), false);
+    if (silentGhost && (!completed || !completed->dynamicsLocked())) return 0;
     return std::clamp(result, 0, 127);
 }
 
@@ -374,7 +470,7 @@ muse::ByteArray DynamicsPlayback::preset(const Score* score)
     return muse::JsonDocument(root).toJson();
 }
 
-bool DynamicsPlayback::readPreset(const muse::ByteArray& data, MStyle& target)
+bool DynamicsPlayback::readPreset(const muse::ByteArray& data, MStyle& target, bool preservePlaybackMode)
 {
     std::string error;
     const auto document = muse::JsonDocument::fromJson(data, &error);
@@ -406,8 +502,9 @@ bool DynamicsPlayback::readPreset(const muse::ByteArray& data, MStyle& target)
         }
         candidate.set(mappingStyle(role), muse::String::fromStdString(values));
     }
-    candidate.set(Sid::evanDynamicsEnabled, root.value("enabled").toBool());
-    candidate.set(Sid::evanDynamicsBattery, root.value("battery").toBool());
+    candidate.set(Sid::evanDynamicsEnabled, root.value("enabled").toBool()
+        || (preservePlaybackMode && target.styleB(Sid::evanDynamicsEnabled)));
+    candidate.set(Sid::evanDynamicsBattery, preservePlaybackMode ? target.styleB(Sid::evanDynamicsBattery) : root.value("battery").toBool());
     candidate.set(Sid::evanDynamicsSmoothArticulations, root.value("smoothArticulations").toBool());
     candidate.set(Sid::evanDynamicsCurveShape, shape.toInt());
     candidate.set(Sid::evanDynamicsCurveBend, bend.toDouble());

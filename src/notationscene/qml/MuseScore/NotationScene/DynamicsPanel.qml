@@ -156,8 +156,29 @@ Item {
                         }
                         PanelButton { objectName: "dynamics-make-default"; text: qsTrc("notation", "Make Default Dynamics"); Layout.fillWidth: true; onClicked: root.model.makeDefault() }
                         PanelButton { objectName: "dynamics-apply-default"; text: qsTrc("notation", "Apply Default Dynamics"); enabled: root.state.hasDefault === true; Layout.fillWidth: true; onClicked: root.model.applyDefault() }
-                        Caption { text: root.state.notice || qsTrc("notation", "Defaults apply to new scores. Presets contain playback settings only."); Layout.fillWidth: true; opacity: .7; font.pixelSize: 11; Accessible.role: Accessible.StaticText }
+                        Caption { text: root.state.notice || qsTrc("notation", "Make Default saves settings for new scores. Apply Default resets all unlocked notes, markings and hairpins in this score; one Undo restores them."); Layout.fillWidth: true; opacity: .7; font.pixelSize: 11; Accessible.role: Accessible.StaticText }
                     }
+                }
+                UiComponents.CheckBox {
+                    objectName: "dynamics-selection-lock"
+                    visible: root.state.scope === "notes" || root.state.scope === "dynamic" || root.state.scope === "hairpin"
+                    Layout.fillWidth: true
+                    enabled: root.state.enabled === true
+                    text: qsTrc("notation", "Lock playback settings")
+                    checked: root.state.locked || false
+                    onClicked: root.model.setSelectionLocked(!checked)
+                    font.pixelSize: 12
+                    navigation.panel: settingsNavigation
+                    navigation.order: 4
+                }
+                Caption {
+                    visible: root.state.scope === "notes" || root.state.scope === "dynamic" || root.state.scope === "hairpin"
+                    Layout.fillWidth: true
+                    text: root.state.someLocked && !root.state.locked ? qsTrc("notation", "Some selected notes are locked. Locked notes are protected when applying defaults.")
+                        : root.state.locked ? qsTrc("notation", "Locked: applying defaults keeps these playback settings. Unlock to edit.")
+                        : qsTrc("notation", "Unlocked: Apply Default Dynamics resets this item's playback settings. Printed notation stays the same.")
+                    opacity: .7
+                    font.pixelSize: 11
                 }
                 UiComponents.CheckBox {
                     objectName: "dynamics-smooth-articulations"
@@ -165,6 +186,7 @@ Item {
                     Layout.fillWidth: true
                     text: qsTrc("notation", "Smooth through articulations")
                     checked: root.state.smoothArticulations || false
+                    enabled: !root.state.locked
                     onClicked: root.model.setSmoothArticulations(!checked)
                     font.pixelSize: 12
                     navigation.panel: settingsNavigation
@@ -179,6 +201,7 @@ Item {
                 }
                 Rectangle {
                     visible: (root.state.scope === "score" || root.state.scope === "hairpin")
+                    enabled: !root.state.locked
                     Layout.fillWidth: true
                     implicitHeight: curveCard.implicitHeight + 20
                     radius: 10; color: ui.theme.backgroundSecondaryColor
@@ -240,6 +263,7 @@ Item {
                         id: endpoint
                         required property int index
                         readonly property bool end: index === 1
+                        enabled: !root.state.locked
                         readonly property int selectedDynamic: end ? root.state.endDynamic : root.state.startDynamic
                         readonly property int selectedRole: end ? root.state.endRole : root.state.startRole
                         function save(dynamic, role, velocity) { root.model.setEndpoint(end, dynamic, role, velocity) }
@@ -276,16 +300,23 @@ Item {
                 }
                 ColumnLayout {
                     visible: (root.state.scope === "notes" || root.state.scope === "dynamic")
+                    enabled: !root.state.someLocked
                     Layout.fillWidth: true
-                    Caption { text: qsTrc("notation", "Note playback"); font.bold: true }
+                    Caption { text: root.state.scope === "dynamic" ? qsTrc("notation", "Marking playback") : qsTrc("notation", "Note playback"); font.bold: true }
+                    Caption {
+                        visible: root.state.scope === "dynamic" && root.state.markingAccentLane
+                        Layout.fillWidth: true
+                        text: qsTrc("notation", "This marking's override changes accents only. Taps, tenutos, marcato and ghosts keep their own mappings.")
+                        opacity: .7
+                    }
                     Caption {
                         visible: root.state.velocityKnown === false
                         Layout.fillWidth: true
                         text: qsTrc("notation", "Auto: using standard playback. Enable custom dynamics to see accent/tap mapping levels, or enter a note velocity override.")
                         opacity: .7
                     }
-                    Caption { text: root.state.mixed ? qsTrc("notation", "Mixed values — editing applies to all selected notes.") : root.state.localOverride ? qsTrc("notation", "Local override") : qsTrc("notation", "Following score dynamics"); Layout.fillWidth: true; opacity: .7 }
-                    Caption { visible: root.state.scope === "notes"; text: qsTrc("notation", "Category: %1").arg(root.state.noteCategory || ""); opacity: .7 }
+                    Caption { text: root.state.locked ? qsTrc("notation", "Locked playback settings") : root.state.mixed ? qsTrc("notation", "Mixed values — editing applies to all selected notes.") : root.state.localOverride ? qsTrc("notation", "Local override") : qsTrc("notation", "Following score dynamics"); Layout.fillWidth: true; opacity: .7 }
+                    Caption { visible: root.state.scope === "notes" || root.state.scope === "dynamic"; text: qsTrc("notation", "Category: %1").arg(root.state.noteCategory || ""); opacity: .7 }
                     RowLayout {
                         Caption { text: qsTrc("notation", "Velocity"); Layout.fillWidth: true }
                         LevelSpin {

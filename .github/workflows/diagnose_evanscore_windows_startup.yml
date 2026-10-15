@@ -519,7 +519,7 @@ jobs:
           }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
-            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'dynamics') { 40 } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets' -or $env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 60 } else { 0 }
+            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -in @('dynamics', 'mallets', 'keypad')) { 60 } else { 0 }
             $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
             $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 'buildscripts/ci/windows/fixtures/keypad-notes.mscx' } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath $fixture -MinimumOpenSeconds $interactionTime
@@ -539,7 +539,7 @@ jobs:
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath buildscripts/ci/windows/fixtures/ff-snare.mscx -MinimumOpenSeconds $interactionTime
               foreach ($folder in @('score', 'drum-score')) {
                 $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-                foreach ($marker in @('transport pointer toggle, alignment and format checks passed', 'mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mixer visibility and ownership checks passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'mapping save requested')) {
+                foreach ($marker in @('transport pointer toggle, alignment and format checks passed', 'mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mixer visibility and ownership checks passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'native note lock, save default, apply default, unlock and undo checks passed', 'mapping save requested')) {
                   if (-not $logs.Contains("DYNAMICS INSPECTOR $marker")) {
                     throw "The native interaction check did not complete in ${folder}: $marker"
                   }
@@ -547,6 +547,25 @@ jobs:
               }
               python buildscripts/ci/windows/startup-inspector/verify_saved_dynamics.py
               if ($LASTEXITCODE -ne 0) { throw 'Native score dynamics persistence verification failed' }
+              foreach ($folder in @('score', 'drum-score')) {
+                $inputScore = [System.IO.Path]::GetFullPath("checks/$folder/locks/locked.mscz")
+                $outputScore = [System.IO.Path]::GetFullPath("checks/$folder/locks/reopened.mscx")
+                $exe = (Get-ChildItem downloaded-app -Recurse -Filter MuseScoreStudio5.exe | Select-Object -First 1).FullName
+                $roundTrip = Start-Process $exe -ArgumentList @('-o', "`"$outputScore`"", "`"$inputScore`"") -PassThru
+                if (-not $roundTrip.WaitForExit(120000)) { $roundTrip.Kill(); throw 'Locked score round trip timed out' }
+                if ($roundTrip.ExitCode -ne 0) { throw 'Locked score round trip failed' }
+              }
+              @'
+              from pathlib import Path
+              import xml.etree.ElementTree as ET
+              files = list(Path('checks').glob('*/locks/reopened.mscx'))
+              assert len(files) == 2, 'Missing reopened locked score'
+              for path in files:
+                  notes = ET.parse(path).findall('.//Note')
+                  assert notes and all(n.findtext('dynamicsLock', '') for n in notes), f'Locks lost on reopen: {path}'
+                  print(f'{path}: {len(notes)} reopened locks')
+              '@ | python -
+              if ($LASTEXITCODE -ne 0) { throw 'Locked score reopen lost playback locks' }
               # Converter mode starts the real audio engine without requiring
               # a physical Windows audio device. This covers MS Basic audio;
               # it does not substitute for an installed Muse Drumline test.

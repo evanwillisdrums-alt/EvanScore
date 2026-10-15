@@ -21,6 +21,7 @@
  */
 
 #pragma once
+#include <array>
 
 #include "../types/types.h"
 
@@ -180,6 +181,8 @@ public:
     void setSnapToItemAfter(bool v) { m_snapToItemAfter = v; }
 
     int dynamicsCurveShape() const { return m_dynamicsCurveShape; }
+    bool dynamicsLocked() const { return m_lockedDynamics.front() >= 0; }
+    double lockedDynamicsValue(size_t index) const { return m_lockedDynamics.at(index); }
     int dynamicsSmoothArticulations() const { return m_dynamicsSmoothArticulations; }
     double dynamicsCurveBend() const { return m_dynamicsCurveBend; }
     int dynamicsStartDynamic() const { return m_dynamicsStartDynamic; }
@@ -200,6 +203,7 @@ private:
     Sid getPropertyStyle(Pid) const override;
 
     int m_dynamicsCurveShape = -1;
+    std::array<double, 43> m_lockedDynamics = [] { std::array<double, 43> values; values.fill(-1); return values; }();
     int m_dynamicsSmoothArticulations = -1;
     double m_dynamicsCurveBend = -100.0;
     int m_dynamicsStartDynamic = -1;

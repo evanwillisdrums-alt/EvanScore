@@ -28,3 +28,11 @@ for folder in ('score', 'drum-score'):
         assert [bool(c.findall('Articulation')) for c in chords] == [True, False, False, True], 'Accents changed'
         assert voice.findtext('Dynamic/subtype') == 'ff', 'Written ff changed'
     print(f'Native saved Dynamics validated: {folder}, taps=30, notation preserved')
+    locked = Path('checks', folder, 'locks', 'locked.mscz')
+    assert locked.exists(), 'Missing actual locked GUI score'
+    with ZipFile(locked) as archive:
+        name = next(n for n in archive.namelist() if n.endswith('.mscx'))
+        locked_xml = ET.fromstring(archive.read(name))
+    locked_notes = locked_xml.findall('.//Note')
+    assert locked_notes and all(n.findtext('dynamicsLock', '') for n in locked_notes), 'Note locks did not save'
+    print(f'Native locked-note snapshot validated: {folder}, {len(locked_notes)} locks')

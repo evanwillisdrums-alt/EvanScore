@@ -328,6 +328,8 @@ public:
 
     float userVelocityFraction() const;
     int userVelocity() const { return m_userVelocity; }
+    int lockedDynamicsVelocity() const { return m_lockedDynamicsVelocity; }
+    bool dynamicsLocked() const { return m_lockedDynamicsVelocity >= 0; }
     void setUserVelocity(int v) { m_userVelocity = v; }
 
     void setOnTimeOffset(int v);
@@ -539,6 +541,7 @@ private:
     mutable double m_centOffset = 0.0; // Pitch offset in cents (100 cents = 1 semitone)
 
     int m_userVelocity = 0;     // velocity user offset in percent, or absolute velocity for this note
+    int m_lockedDynamicsVelocity = -1;
     int m_fixedLine = 0;        // fixed line number if _fixed == true
     double m_tuning = 0.0;      // pitch offset in cent, playable only by internal synthesizer
 

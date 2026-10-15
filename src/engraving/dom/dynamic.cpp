@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "dynamic.h"
+#include <sstream>
 
 #include "../editing/edithairpin.h"
 #include "../editing/textedit.h"
@@ -130,6 +131,7 @@ Dynamic::Dynamic(const Dynamic& d)
 {
     m_dynamicType = d.m_dynamicType;
     m_preciseVelocity = d.m_preciseVelocity;
+    m_lockedDynamics = d.m_lockedDynamics;
     m_velocity    = d.m_velocity;
     m_changeInVelocity = d.m_changeInVelocity;
     m_velChangeSpeed = d.m_velChangeSpeed;
@@ -447,6 +449,11 @@ std::unique_ptr<ElementGroup> Dynamic::getDragGroup(std::function<bool(const Eng
 PropertyValue Dynamic::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
+    case Pid::DYNAMICS_LOCK: {
+        std::string text;
+        if (dynamicsLocked()) for (int value : m_lockedDynamics) text += std::to_string(value) + " ";
+        return String::fromStdString(text);
+    }
     case Pid::DYNAMICS_MARK_VELOCITY:
         return m_preciseVelocity;
     case Pid::DYNAMIC_TYPE:
@@ -481,6 +488,19 @@ PropertyValue Dynamic::getProperty(Pid propertyId) const
 bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
 {
     switch (propertyId) {
+    case Pid::DYNAMICS_LOCK: {
+        auto values = m_lockedDynamics;
+        const auto text = v.value<String>();
+        if (text.empty()) values.fill(-1);
+        else {
+            std::istringstream stream(text.toStdString());
+            for (int& value : values) if (!(stream >> value) || value < 0 || value > 127) return false;
+            stream >> std::ws;
+            if (!stream.eof()) return false;
+        }
+        m_lockedDynamics = values;
+        return true; // Playback metadata has no printed layout.
+    }
     case Pid::DYNAMICS_MARK_VELOCITY:
         m_preciseVelocity = std::clamp(v.toInt(), -1, 127);
         break;
@@ -531,6 +551,7 @@ bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
 PropertyValue Dynamic::propertyDefault(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_LOCK: return String();
     case Pid::DYNAMICS_MARK_VELOCITY: return -1;
     case Pid::TEXT_STYLE:
         return TextStyleType::DYNAMICS;

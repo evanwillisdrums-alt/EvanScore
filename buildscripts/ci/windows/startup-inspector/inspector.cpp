@@ -35,6 +35,8 @@
 #include <QQmlComponent>
 #include <QQmlExpression>
 #include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <algorithm>
 
 class Inspector final : public QObject {
@@ -317,6 +319,7 @@ public:
                                            << state.value("noteCategory") << state.value("effectiveVelocity");
                                 verifyVelocityEnter(window, selectedModel);
                                 verifyFeatureDebug(window);
+                                verifyDynamicsLocksAndDefaults(window, selectedModel);
                                 auto noteSpin = findItem(window->contentItem(), "dynamics-note-velocity");
                                 auto noteEditor = noteSpin ? qvariant_cast<QQuickItem*>(noteSpin->property("contentItem")) : nullptr;
                                 if (!noteEditor) qFatal("Note velocity editor disappeared before keyboard Save");
@@ -348,6 +351,50 @@ public:
     }
 private:
     bool done = false;
+    static void verifyDynamicsLocksAndDefaults(QQuickWindow* window, QObject* model) {
+        const auto originalMappings = model->property("mappings");
+        const auto originalState = model->property("state").toMap();
+        QMetaObject::invokeMethod(model, "makeDefault", Qt::DirectConnection);
+        if (!model->property("state").toMap().value("hasDefault").toBool()
+            || model->property("mappings") != originalMappings)
+            qFatal("Saving the default changed score mappings or failed");
+        QMetaObject::invokeMethod(model, "setNoteVelocity", Qt::DirectConnection, Q_ARG(int, 49));
+        auto lock = findItem(window->contentItem(), "dynamics-selection-lock");
+        if (!lock || !lock->isVisible() || !lock->isEnabled()) qFatal("Native dynamics lock is unavailable");
+        reveal(lock);
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, lock->mapToScene(QPointF(10,lock->height()/2)).toPoint());
+        QTest::qWait(100);
+        if (!model->property("state").toMap().value("locked").toBool()) qFatal("Pointer click did not lock selected notes");
+        QMetaObject::invokeMethod(model, "setMapping", Qt::DirectConnection, Q_ARG(int,10), Q_ARG(int,2), Q_ARG(int,37));
+        QMetaObject::invokeMethod(model, "applyDefault", Qt::DirectConnection);
+        if (model->property("mappings") != originalMappings
+            || model->property("state").toMap().value("effectiveVelocity").toInt() != 49)
+            qFatal("Applying defaults changed locked notes or failed to restore mappings");
+        dispatchMenu(window, "command://project/save"); QTest::qWait(500);
+        const QDir folder(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath());
+        const auto files = folder.entryList({"*.mscz"}, QDir::Files);
+        if (files.size() != 1 || !folder.mkpath("locks")) qFatal("Cannot locate native lock snapshot score");
+        const auto snapshot = folder.filePath("locks/locked.mscz");
+        if (QFile::exists(snapshot)) QFile::remove(snapshot);
+        if (!QFile::copy(folder.filePath(files.front()), snapshot)) qFatal("Cannot retain native lock snapshot");
+        reveal(lock);
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, lock->mapToScene(QPointF(10,lock->height()/2)).toPoint());
+        QTest::qWait(100);
+        if (model->property("state").toMap().value("someLocked").toBool()) qFatal("Pointer click did not unlock notes");
+        QMetaObject::invokeMethod(model, "applyDefault", Qt::DirectConnection);
+        if (model->property("state").toMap().value("localOverride").toBool()) qFatal("Defaults left an unlocked note override");
+        dispatchMenu(window, "command://notation/undo"); QTest::qWait(100);
+        if (model->property("state").toMap().value("effectiveVelocity").toInt() != 49) qFatal("Default reset did not undo in one step");
+        dispatchMenu(window, "command://notation/redo"); QTest::qWait(100);
+        if (model->property("state").toMap().value("localOverride").toBool()) qFatal("Default reset did not redo");
+        for (int i=0; i<6; ++i) { dispatchMenu(window, "command://notation/undo"); QTest::qWait(80); }
+        const auto restored = model->property("state").toMap();
+        if (model->property("mappings") != originalMappings || restored.value("someLocked").toBool()
+            || restored.value("effectiveVelocity") != originalState.value("effectiveVelocity")
+            || restored.value("localOverride") != originalState.value("localOverride"))
+            qFatal("Lock/default test did not restore the source score");
+        qWarning() << "DYNAMICS INSPECTOR native note lock, save default, apply default, unlock and undo checks passed";
+    }
     static void verifyVelocityEnter(QQuickWindow* window, QObject* model) {
         const auto before = model->property("state").toMap();
         auto spin = findItem(window->contentItem(), "dynamics-note-velocity");
@@ -485,7 +532,10 @@ private:
                              "flam","appoggiatura","grace4","grace16","grace32","grace8after","grace16after","grace32after","openheads","delete",
                              "beamstart","beamjoin","beamnone","beambreak8","beambreak16"}) {
             const bool beam=QByteArray(id).startsWith("beam");
-            selectTick(beam ? 2160 : QByteArray(id)=="half" ? 960 : 0);
+            // Secondary beams require sixteenths; tertiary beams require
+            // thirty-seconds. Native eighth notes correctly reject both.
+            selectTick(QByteArray(id)=="beambreak8" ? 7800 : QByteArray(id)=="beambreak16" ? 8220
+                       : beam ? 2160 : QByteArray(id)=="half" ? 960 : 0);
             choose(id);
             if(snapshot()==baseline) qFatal("Actual keypad button had no score effect: %s",id);
             click("keypad-undo");
@@ -557,7 +607,8 @@ private:
         auto edge=findItem(panel,"mallet-strike-edge");
         auto center=findItem(panel,"mallet-strike-center");
         if(!edge || !center || !edge->isVisible()) qFatal("Manual strike controls unavailable");
-        QSignalSpy edgeClick(edge,SIGNAL(clicked()));
+        QSignalSpy edgeClick(edge,SIGNAL(clicked(QVariant)));
+        if (!edgeClick.isValid()) qFatal("Native mallet button click signal is unavailable");
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,edge->mapToScene({edge->width()/2,edge->height()/2}).toPoint());QTest::qWait(100);
         auto voices=state().value("pose").toMap().value("voices").toList();
         qWarning() << "MALLET INSPECTOR edge click" << edgeClick.count() << "selected" << panel->property("selectedMallet") << "voices" << voices << "notice" << state().value("notice");

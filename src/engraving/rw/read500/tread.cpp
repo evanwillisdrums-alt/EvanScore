@@ -843,6 +843,8 @@ void TRead::read(Dynamic* d, XmlReader& e, ReadContext& ctx)
             d->setDynamicType(e.readText());
         } else if (tag == "velocity") {
             d->setVelocity(e.readInt());
+        } else if (tag == "dynamicsMarkVelocity" || tag == "dynamicsLock") {
+            readProperty(d, e, ctx, propertyId(tag));
         } else if (tag == "veloChange") {
             d->setChangeInVelocity(e.readInt());
         } else if (tag == "veloChangeSpeed") {
@@ -2964,6 +2966,11 @@ void TRead::read(Hairpin* h, XmlReader& e, ReadContext& ctx)
         if (tag == "subtype") {
             h->setHairpinType(HairpinType(e.readInt()));
         } else if (TRead::readStyledProperty(h, tag, e, ctx)) {
+        } else if (tag == "dynamicsLock" || tag == "dynamicsCurveShape" || tag == "dynamicsCurveBend"
+                   || tag == "dynamicsStartDynamic" || tag == "dynamicsEndDynamic" || tag == "dynamicsStartRole"
+                   || tag == "dynamicsEndRole" || tag == "dynamicsStartVelocity" || tag == "dynamicsEndVelocity"
+                   || tag == "dynamicsSmoothArticulations") {
+            readProperty(h, e, ctx, propertyId(tag));
         } else if (tag == "hairpinCircledTip") {
             h->setHairpinCircledTip(e.readInt());
         } else if (tag == "veloChange") {
@@ -3339,7 +3346,9 @@ bool TRead::readProperties(Note* n, XmlReader& e, ReadContext& ctx)
 {
     const AsciiStringView tag(e.name());
 
-    if (tag == "pitch") {
+    if (tag == "dynamicsLock") {
+        readProperty(n, e, ctx, Pid::DYNAMICS_LOCK);
+    } else if (tag == "pitch") {
         n->setPitch(clampPitch(e.readInt()), false);
     } else if (TRead::readProperty(n, tag, e, ctx, Pid::CENT_OFFSET)) {
     } else if (tag == "tpc") {

@@ -45,6 +45,7 @@ public:
     Q_INVOKABLE void setEndpoint(bool end, int dynamic, int role, int velocity);
     Q_INVOKABLE void setNoteVelocity(int velocity);
     Q_INVOKABLE void setNotePlayback(bool play);
+    Q_INVOKABLE void setSelectionLocked(bool locked);
     Q_INVOKABLE void adjustNotes(int operation, double amount, int category);
     Q_INVOKABLE void resetSelection();
 signals:
@@ -62,7 +63,7 @@ private:
     muse::async::Asyncable m_notationReceiver;
     INotationPtr m_notation;
     bool writePreset(const muse::io::path_t& path);
-    void readPreset(const muse::io::path_t& path);
+    void readPreset(const muse::io::path_t& path, bool resetUnlocked = false);
     QString m_notice;
     bool m_forceScore = true;
     QVariantList m_mappings;

@@ -74,11 +74,16 @@ QVariantMap DynamicsPanelModel::state() const {
     const bool unsupported = !m_forceScore && !h && !dyn && ns.empty() && m_notation->interaction()->selection()->element();
     const auto& st = DynamicsPlayback::profile(s);
     int shape = st.styleI(Sid::evanDynamicsCurveShape); double bend = st.styleD(Sid::evanDynamicsCurveBend);
-    if (h) { if (h->dynamicsCurveShape() >= 0) shape = h->dynamicsCurveShape(); if (h->dynamicsCurveBend() >= -2.0) bend = h->dynamicsCurveBend(); }
+    if (h) { shape = DynamicsPlayback::curveShape(h); bend = DynamicsPlayback::curveBend(h); }
+    const bool allLocked = h ? h->dynamicsLocked() : dyn ? dyn->dynamicsLocked()
+        : !ns.empty() && std::all_of(ns.begin(), ns.end(), [](const Note* n) { return n->dynamicsLocked(); });
+    const bool someLocked = h ? h->dynamicsLocked() : dyn ? dyn->dynamicsLocked()
+        : std::any_of(ns.begin(), ns.end(), [](const Note* n) { return n->dynamicsLocked(); });
     QVariantMap result {
         {"available", true}, {"scope", unsupported ? "none" : h ? "hairpin" : dyn ? "dynamic" : ns.empty() ? "score" : "notes"},
         {"title", unsupported ? tr("Select notes, a dynamic, or a hairpin") : h ? (h->isCrescendo() ? tr("Selected crescendo") : tr("Selected decrescendo")) : dyn ? tr("Selected dynamic marking") : ns.empty() ? tr("Full score") : tr("%n selected note(s)", nullptr, static_cast<int>(ns.size()))},
         {"notice", m_notice}, {"hasDefault", !settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath().empty()},
+        {"locked", allLocked}, {"someLocked", someLocked},
         {"enabled", st.styleB(Sid::evanDynamicsEnabled)}, {"battery", st.styleB(Sid::evanDynamicsBattery)},
         {"smoothArticulations", h ? DynamicsPlayback::smoothArticulations(h) : st.styleB(Sid::evanDynamicsSmoothArticulations)},
         {"batteryHairpin", h && h->staff() && h->staff()->isDrumStaff(h->tick()) && st.styleB(Sid::evanDynamicsBattery)},
@@ -93,7 +98,10 @@ QVariantMap DynamicsPanelModel::state() const {
     };
     if (dyn) {
         result["noteVelocity"] = dyn->preciseVelocity() >= 0 ? dyn->preciseVelocity() : 0; result["mixed"] = false;
-        result["effectiveVelocity"] = dyn->preciseVelocity() >= 0 ? dyn->preciseVelocity() : DynamicsPlayback::level(s, dyn->dynamicType(), DynamicsPlayback::Normal); result["notePlay"] = dyn->playDynamic();
+        const int role = DynamicsPlayback::markingRole(dyn);
+        result["effectiveVelocity"] = DynamicsPlayback::markingVelocity(dyn, role); result["notePlay"] = dyn->playDynamic();
+        result["noteCategory"] = role == DynamicsPlayback::Accent ? tr("Accent") : tr("Normal");
+        result["markingAccentLane"] = role == DynamicsPlayback::Accent;
         result["velocityKnown"] = DynamicsPlayback::enabled(s) || dyn->preciseVelocity() >= 0;
         result["localOverride"] = dyn->preciseVelocity() >= 0;
     }
@@ -154,6 +162,7 @@ void DynamicsPanelModel::setEnabled(bool enabled) { edit([&]() { setScoreStyle(S
 void DynamicsPanelModel::setBattery(bool enabled) { edit([&]() { setScoreStyle(Sid::evanDynamicsBattery, enabled); }, "Change accent and tap dynamics"); }
 void DynamicsPanelModel::setSmoothArticulations(bool enabled) {
     if (!score() || state().value("scope").toString() == "none" || dynamic() || !notes().empty()) return;
+    if (auto h = hairpin(); h && h->dynamicsLocked()) return;
     edit([&]() {
         if (auto h = hairpin()) h->undoChangeProperty(Pid::DYNAMICS_SMOOTH_ARTICULATIONS, enabled ? 1 : 0);
         else setScoreStyle(Sid::evanDynamicsSmoothArticulations, enabled);
@@ -202,6 +211,7 @@ void DynamicsPanelModel::applyMarchingDefaults() {
 void DynamicsPanelModel::setCurve(int shape, double bend) {
     shape = std::clamp(shape, 0, 2); bend = std::clamp(bend, -2.0, 2.0);
     if (!score() || state().value("scope").toString() == "none" || dynamic() || !notes().empty()) return;
+    if (auto h = hairpin(); h && h->dynamicsLocked()) return;
     if (DynamicsPlayback::enabled(score())) {
         if (auto h = hairpin()) {
             if (h->dynamicsCurveShape() == shape && h->dynamicsCurveBend() == bend) return;
@@ -215,6 +225,7 @@ void DynamicsPanelModel::setCurve(int shape, double bend) {
 }
 void DynamicsPanelModel::setEndpoint(bool end, int dynamic, int role, int velocity) {
     auto h = hairpin(); if (!h) return;
+    if (h->dynamicsLocked()) return;
     if (dynamic < -1 || dynamic >= static_cast<int>(Dynamic::definitions().size())) return;
     edit([&]() {
         h->undoChangeProperty(end ? Pid::DYNAMICS_END_DYNAMIC : Pid::DYNAMICS_START_DYNAMIC, dynamic);
@@ -225,8 +236,10 @@ void DynamicsPanelModel::setEndpoint(bool end, int dynamic, int role, int veloci
 }
 void DynamicsPanelModel::setNoteVelocity(int velocity) {
     velocity = std::clamp(velocity, 0, 127);
-    if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, std::clamp(velocity, 0, 127)); setScoreStyle(Sid::evanDynamicsEnabled, true); }, "Change selected dynamic level"); return; }
+    if (auto dyn = dynamic()) { if (dyn->dynamicsLocked()) return; edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, std::clamp(velocity, 0, 127)); setScoreStyle(Sid::evanDynamicsEnabled, true); }, "Change selected dynamic level"); return; }
     auto ns = notes(); if (ns.empty()) return;
+    ns.erase(std::remove_if(ns.begin(), ns.end(), [](const Note* n) { return n->dynamicsLocked(); }), ns.end());
+    if (ns.empty()) return;
     if (std::all_of(ns.begin(), ns.end(), [velocity](const Note* note) {
         return note->getProperty(Pid::VELO_TYPE).value<VeloType>() == VeloType::USER_VAL
             && note->userVelocity() == std::max(1, velocity)
@@ -234,11 +247,11 @@ void DynamicsPanelModel::setNoteVelocity(int velocity) {
     })) return;
     edit([&]() { for (auto n : ns) { n->undoChangeProperty(Pid::VELO_TYPE, VeloType::USER_VAL); n->undoChangeProperty(Pid::USER_VELOCITY, std::clamp(velocity, 1, 127)); n->undoChangeProperty(Pid::PLAY, velocity > 0); } }, "Change selected note dynamics");
 }
-void DynamicsPanelModel::setNotePlayback(bool play) { if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::PLAY, play); }, "Change dynamic playback"); return; } auto ns = notes(); if (ns.empty()) return; edit([&]() { for (auto n : ns) n->undoChangeProperty(Pid::PLAY, play); }, "Change selected note playback"); }
+void DynamicsPanelModel::setNotePlayback(bool play) { if (auto dyn = dynamic()) { if (dyn->dynamicsLocked()) return; edit([&]() { dyn->undoChangeProperty(Pid::PLAY, play); }, "Change dynamic playback"); return; } auto ns = notes(); if (ns.empty()) return; edit([&]() { for (auto n : ns) if (!n->dynamicsLocked()) n->undoChangeProperty(Pid::PLAY, play); }, "Change selected note playback"); }
 void DynamicsPanelModel::adjustNotes(int operation, double amount, int category) {
     auto ns = notes();
     if (ns.empty() || operation < 0 || operation > 2 || !std::isfinite(amount)) return;
-    ns.erase(std::remove_if(ns.begin(), ns.end(), [category](const Note* n) { return category && DynamicsPlayback::role(n) != category; }), ns.end());
+    ns.erase(std::remove_if(ns.begin(), ns.end(), [category](const Note* n) { return n->dynamicsLocked() || (category && DynamicsPlayback::role(n) != category); }), ns.end());
     if (ns.empty()) return;
     edit([&]() {
         for (Note* n : ns) {
@@ -261,11 +274,11 @@ void DynamicsPanelModel::adjustNotes(int operation, double amount, int category)
     }, "Adjust selected dynamics");
 }
 void DynamicsPanelModel::resetSelection() {
-    if (auto dyn = dynamic()) { edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, -1); }, "Reset dynamic override"); return; }
-    if (auto h = hairpin()) { edit([&]() {
+    if (auto dyn = dynamic()) { if (dyn->dynamicsLocked()) return; edit([&]() { dyn->undoChangeProperty(Pid::DYNAMICS_MARK_VELOCITY, -1); }, "Reset dynamic override"); return; }
+    if (auto h = hairpin()) { if (h->dynamicsLocked()) return; edit([&]() {
         for (Pid id : {Pid::DYNAMICS_CURVE_SHAPE, Pid::DYNAMICS_CURVE_BEND, Pid::DYNAMICS_START_DYNAMIC, Pid::DYNAMICS_END_DYNAMIC, Pid::DYNAMICS_START_ROLE, Pid::DYNAMICS_END_ROLE, Pid::DYNAMICS_START_VELOCITY, Pid::DYNAMICS_END_VELOCITY, Pid::DYNAMICS_SMOOTH_ARTICULATIONS}) h->undoChangeProperty(id, h->propertyDefault(id));
     }, "Use score hairpin defaults"); }
-    else { auto ns = notes(); if (!ns.empty()) edit([&]() { for (auto n : ns) { n->undoChangeProperty(Pid::VELO_TYPE, VeloType::OFFSET_VAL); n->undoChangeProperty(Pid::USER_VELOCITY, 0); n->undoChangeProperty(Pid::PLAY, true); } }, "Use score note dynamics"); }
+    else { auto ns = notes(); if (!ns.empty()) edit([&]() { for (auto n : ns) { if (n->dynamicsLocked()) continue; n->undoChangeProperty(Pid::VELO_TYPE, VeloType::OFFSET_VAL); n->undoChangeProperty(Pid::USER_VELOCITY, 0); n->undoChangeProperty(Pid::PLAY, true); } }, "Use score note dynamics"); }
 }
 
 // Presets contain score-wide playback settings only, keeping engraving and local overrides intact.
@@ -281,7 +294,7 @@ bool DynamicsPanelModel::writePreset(const muse::io::path_t& path)
     return true;
 }
 
-void DynamicsPanelModel::readPreset(const muse::io::path_t& path)
+void DynamicsPanelModel::readPreset(const muse::io::path_t& path, bool resetUnlocked)
 {
     if (!score()) return;
     QFile file(path.toQString());
@@ -290,14 +303,16 @@ void DynamicsPanelModel::readPreset(const muse::io::path_t& path)
         interactive()->error(tr("Could not load dynamics preset").toStdString(), file.errorString().toStdString());
         return;
     }
-    if (file.size() > 1024 * 1024 || !DynamicsPlayback::readPreset(muse::ByteArray::fromQByteArray(file.readAll()), candidate)) {
+    if (file.size() > 1024 * 1024 || !DynamicsPlayback::readPreset(muse::ByteArray::fromQByteArray(file.readAll()), candidate, true)) {
         interactive()->error(tr("Could not load dynamics preset").toStdString(), tr("This is not a valid supported EvanScore dynamics preset. No settings were changed.").toStdString());
         return;
     }
     edit([&]() {
         for (Sid sid : DynamicsPlayback::profileStyles()) setScoreStyle(sid, candidate.value(sid));
+        if (resetUnlocked) DynamicsPlayback::resetUnlockedOverrides(score());
     }, "Load score dynamics preset");
-    m_notice = tr("Preset applied to this score. Local note and hairpin edits are preserved.");
+    m_notice = resetUnlocked ? tr("Default applied to all unlocked notes, markings and hairpins. Locks and printed notation are preserved.")
+        : tr("Preset applied. Accent/tap mode and local note, marking and hairpin overrides are preserved.");
     emit stateChanged();
 }
 
@@ -338,5 +353,23 @@ void DynamicsPanelModel::makeDefault()
 void DynamicsPanelModel::applyDefault()
 {
     const auto path = settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath();
-    if (!path.empty()) readPreset(path);
+    if (!path.empty()) readPreset(path, true);
+}
+
+void DynamicsPanelModel::setSelectionLocked(bool locked)
+{
+    if (!score() || !DynamicsPlayback::enabled(score())) return;
+    std::vector<EngravingItem*> items;
+    if (auto h = hairpin()) items.push_back(h);
+    else if (auto d = dynamic()) items.push_back(d);
+    else for (auto* note : notes()) items.push_back(note);
+    if (items.empty()) return;
+    edit([&] {
+        for (auto* item : items) {
+            const auto old = item->getProperty(Pid::DYNAMICS_LOCK).value<String>();
+            if (locked && !old.empty()) continue;
+            const auto value = locked ? DynamicsPlayback::lockSnapshot(item) : String();
+            if (old != value) item->undoChangeProperty(Pid::DYNAMICS_LOCK, value);
+        }
+    }, "Lock or unlock dynamics");
 }

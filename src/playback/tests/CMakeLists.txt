@@ -44,5 +44,11 @@ set(MODULE_TEST_LINK
 
 set(MODULE_TEST_DATA_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
+if(TARGET muse_musesampler)
+    list(APPEND MODULE_TEST_SRC ${CMAKE_CURRENT_LIST_DIR}/musesamplerdynamics_tests.cpp)
+    list(APPEND MODULE_TEST_INCLUDE ${MUSE_FRAMEWORK_SRC_PATH}/musesampler)
+    list(APPEND MODULE_TEST_LINK muse_musesampler)
+endif()
+
 include(SetupGTest)
 

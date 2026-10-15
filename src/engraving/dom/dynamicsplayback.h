@@ -5,7 +5,7 @@
 #include "types/bytearray.h"
 #include <array>
 namespace mu::engraving {
-class MStyle; class Score; class Note; class Hairpin; class Chord;
+class MStyle; class Score; class Note; class Hairpin; class Chord; class Dynamic; class EngravingItem;
 class DynamicsPlayback {
 public:
     enum Role { Auto = 0, Normal = 1, Tap = 2, Accent = 3, Tenuto = 4, Marcato = 5, Ghost = 6, SoftAccent = 7, Stress = 8, Unstress = 9 };
@@ -13,20 +13,28 @@ public:
     static std::array<Sid, 14> profileStyles();
     static muse::ByteArray preset(const Score* score);
     // Validates the complete preset before changing any style value.
-    static bool readPreset(const muse::ByteArray& data, MStyle& target);
+    static bool readPreset(const muse::ByteArray& data, MStyle& target, bool preservePlaybackMode = false);
     static MStyle marchingSnareDefaults(const MStyle& base);
     static const MStyle& profile(const Score* score);
     static bool enabled(const Score* score);
     static double progress(double t, int shape, double bend);
     static int level(const Score* score, DynamicType type, int role);
+    static int markingRole(const Dynamic* dynamic);
+    static int markingVelocity(const Dynamic* dynamic, int role, DynamicType resolvedType = DynamicType::OTHER);
+    static String lockSnapshot(const EngravingItem* item);
+    static void resetUnlockedOverrides(Score* score);
+    static int curveShape(const Hairpin* hairpin);
+    static double curveBend(const Hairpin* hairpin);
     static int velocity(const Note* note, int fallback);
     static int velocityAt(const Note* note, const Fraction& position, int fallback);
     static bool accented(const Chord* chord);
     static int role(const Note* note);
     static bool applies(const Hairpin* hairpin, track_idx_t track);
     static const Hairpin* activeHairpin(const Score* score, const Fraction& tick, track_idx_t track);
-    static double hairpinValue(const Hairpin* hairpin, double position, int role = Auto);
+    static double hairpinValue(const Hairpin* hairpin, double position, int role = Auto, bool independentLane = false);
     static bool smoothArticulations(const Hairpin* hairpin);
-    static int endpoint(const Hairpin* hairpin, bool end, int lane = Auto);
+    // Arrival may deliberately join different stroke categories; after the
+    // ramp, each category resumes its own destination mapping.
+    static int endpoint(const Hairpin* hairpin, bool end, int lane = Auto, bool arrival = true);
 };
 }

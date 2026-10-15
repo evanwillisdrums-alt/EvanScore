@@ -21,6 +21,7 @@
  */
 
 #pragma once
+#include <array>
 
 #include "textbase.h"
 
@@ -77,6 +78,8 @@ public:
     void setVelocity(int v) { m_velocity = v; }
     static const std::vector<Dyn>& definitions() { return DYN_LIST; }
     int preciseVelocity() const { return m_preciseVelocity; }
+    bool dynamicsLocked() const { return m_lockedDynamics.front() >= 0; }
+    int lockedVelocity(int role, bool settled) const { return role >= 1 && role <= 9 ? m_lockedDynamics[(settled ? 9 : 0) + role - 1] : -1; }
     int velocityOverride() const { return m_velocity; }
     int velocity() const;
 
@@ -156,6 +159,7 @@ private:
 
     mutable PointF m_dragOffset;
     int m_preciseVelocity = -1;
+    std::array<int, 18> m_lockedDynamics = [] { std::array<int, 18> values; values.fill(-1); return values; }();
     int m_velocity = -1;           // associated midi velocity 0-127
 
     int m_changeInVelocity = 128;

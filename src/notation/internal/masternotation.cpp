@@ -374,7 +374,7 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
         QFile file(dynamicsDefault.toQString());
         MStyle candidate = score->style();
         if (file.open(QIODevice::ReadOnly) && file.size() <= 1024 * 1024
-            && DynamicsPlayback::readPreset(muse::ByteArray::fromQByteArray(file.readAll()), candidate)) {
+            && DynamicsPlayback::readPreset(muse::ByteArray::fromQByteArray(file.readAll()), candidate, true)) {
             for (Sid sid : DynamicsPlayback::profileStyles()) score->style().set(sid, candidate.value(sid));
         } else {
             LOGW() << "Could not load the saved default dynamics; using the score's settings";

@@ -520,6 +520,7 @@ static constexpr PropertyMetaData propertyList[] = {
     { Pid::SHARED_PART_ENABLED,                 P_TYPE::BOOL,                      PropertyGroup::NONE,       false, "sharedPartEnabled",               QT_TRANSLATE_NOOP("engraving/propertyName", "shared part enabled") },
 
     { Pid::DYNAMICS_MARK_VELOCITY, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsMarkVelocity", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamic playback velocity") },
+    { Pid::DYNAMICS_LOCK, P_TYPE::STRING, PropertyGroup::NONE, true, "dynamicsLock", QT_TRANSLATE_NOOP("engraving/propertyName", "locked dynamic playback velocities") },
     { Pid::DYNAMICS_CURVE_SHAPE, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsCurveShape", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsCurveShape") },
     { Pid::DYNAMICS_CURVE_BEND, P_TYPE::REAL, PropertyGroup::NONE, true, "dynamicsCurveBend", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsCurveBend") },
     { Pid::DYNAMICS_START_DYNAMIC, P_TYPE::INT, PropertyGroup::NONE, true, "dynamicsStartDynamic", QT_TRANSLATE_NOOP("engraving/propertyName", "dynamicsStartDynamic") },

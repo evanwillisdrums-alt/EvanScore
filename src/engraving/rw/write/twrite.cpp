@@ -1346,6 +1346,7 @@ void TWrite::write(const Dynamic* item, XmlWriter& xml, WriteContext& ctx)
     xml.startElement(item);
     writeProperty(item, xml, Pid::DYNAMIC_TYPE);
     writeProperty(item, xml, Pid::DYNAMICS_MARK_VELOCITY);
+    writeProperty(item, xml, Pid::DYNAMICS_LOCK);
     writeProperty(item, xml, Pid::VELOCITY);
     writeProperty(item, xml, Pid::AVOID_BARLINES);
     writeProperty(item, xml, Pid::CENTER_ON_NOTEHEAD);
@@ -1746,6 +1747,7 @@ void TWrite::write(const Hairpin* item, XmlWriter& xml, WriteContext& ctx)
     xml.tag("subtype", int(item->hairpinType()));
     writeProperty(item, xml, Pid::VELO_CHANGE);
     writeProperty(item, xml, Pid::DYNAMICS_CURVE_SHAPE);
+    writeProperty(item, xml, Pid::DYNAMICS_LOCK);
     writeProperty(item, xml, Pid::DYNAMICS_SMOOTH_ARTICULATIONS);
     writeProperty(item, xml, Pid::DYNAMICS_CURVE_BEND);
     writeProperty(item, xml, Pid::DYNAMICS_START_DYNAMIC);
@@ -2522,7 +2524,7 @@ void TWrite::write(const Note* item, XmlWriter& xml, WriteContext& ctx)
         xml.endElement();
     }
     for (Pid id : { Pid::PITCH, Pid::CENT_OFFSET, Pid::TPC1, Pid::TPC2, Pid::SMALL, Pid::MIRROR_HEAD, Pid::DOT_POSITION,
-                    Pid::HEAD_SCHEME, Pid::HEAD_GROUP, Pid::USER_VELOCITY, Pid::PLAY, Pid::TUNING, Pid::FRET, Pid::STRING,
+                    Pid::HEAD_SCHEME, Pid::HEAD_GROUP, Pid::USER_VELOCITY, Pid::DYNAMICS_LOCK, Pid::PLAY, Pid::TUNING, Pid::FRET, Pid::STRING,
                     Pid::GHOST, Pid::DEAD, Pid::HEAD_TYPE, Pid::FIXED, Pid::FIXED_LINE }) {
         writeProperty(item, xml, id);
     }

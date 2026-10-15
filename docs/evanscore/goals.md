@@ -48,3 +48,7 @@ Final Dynamics/Mixer run 38035605557 passed repeated mixed edits, real Set all t
 ### Latest VDL implementation scope (2026-10-10)
 
 Prepared Kontakt state storage/background selection and notation-preserving switching are implemented, with a first reviewed SnareLine Manual/LITE core mapping and R/L/staff-text routing. Complete library mapping and actual licensed Windows playback remain outstanding. The Boss DB-90 regular click remains requested; no verified exact sound asset is available yet. Dock tabs retain their full labels and use an overflow picker instead of squeezing text.
+
+### Dynamics consistency and locks — 2026-10-15
+
+New priority: consistent taps/accents across imported markings, profile edits, insertion/audition, hairpin completion and save/reopen. Battery flam graces use Tap. Sticking must not be linked to dynamics. Add persistent, default-off locks for notes, markings and hairpins; Apply Default Dynamics resets all unlocked playback overrides in one Undo, preserving locked values, notation and score accent/tap mode. Broad mixed-edit, MIDI/automation, preset, lock, current/legacy persistence and actual Windows UI checks are required before delivery.

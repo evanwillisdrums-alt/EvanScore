@@ -21,6 +21,8 @@
  */
 
 #include "hairpin.h"
+#include <sstream>
+#include <iomanip>
 
 #include <cmath>
 #include <algorithm>
@@ -609,6 +611,12 @@ LineSegment* Hairpin::createLineSegment()
 PropertyValue Hairpin::getProperty(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_LOCK: {
+        std::ostringstream text;
+        text << std::setprecision(17);
+        if (dynamicsLocked()) for (double value : m_lockedDynamics) text << value << ' ';
+        return String::fromStdString(text.str());
+    }
     case Pid::DYNAMICS_CURVE_SHAPE: return m_dynamicsCurveShape;
     case Pid::DYNAMICS_SMOOTH_ARTICULATIONS: return m_dynamicsSmoothArticulations;
     case Pid::DYNAMICS_CURVE_BEND: return m_dynamicsCurveBend;
@@ -656,6 +664,22 @@ PropertyValue Hairpin::getProperty(Pid id) const
 bool Hairpin::setProperty(Pid id, const PropertyValue& v)
 {
     switch (id) {
+    case Pid::DYNAMICS_LOCK: {
+        auto values = m_lockedDynamics;
+        const auto text = v.value<String>();
+        if (text.empty()) values.fill(-1);
+        else {
+            std::istringstream stream(text.toStdString());
+            for (double& value : values) if (!(stream >> value) || !std::isfinite(value)) return false;
+            stream >> std::ws;
+            if (!stream.eof() || values[0] < 0 || values[0] > 2 || values[0] != std::floor(values[0])
+                || values[1] < -2 || values[1] > 2 || (values[2] != 0 && values[2] != 1)) return false;
+            for (size_t i = 3; i < values.size(); ++i)
+                if (values[i] < 0 || values[i] > 127 || values[i] != std::floor(values[i])) return false;
+        }
+        m_lockedDynamics = values;
+        return true;
+    }
     case Pid::DYNAMICS_CURVE_SHAPE: m_dynamicsCurveShape = v.toInt(); break;
     case Pid::DYNAMICS_SMOOTH_ARTICULATIONS: m_dynamicsSmoothArticulations = std::clamp(v.toInt(), -1, 1); break;
     case Pid::DYNAMICS_CURVE_BEND: m_dynamicsCurveBend = v.toDouble(); break;
@@ -716,6 +740,7 @@ bool Hairpin::setProperty(Pid id, const PropertyValue& v)
 PropertyValue Hairpin::propertyDefault(Pid id) const
 {
     switch (id) {
+    case Pid::DYNAMICS_LOCK: return String();
     case Pid::DYNAMICS_CURVE_SHAPE: return -1;
     case Pid::DYNAMICS_SMOOTH_ARTICULATIONS: return -1;
     case Pid::DYNAMICS_CURVE_BEND: return -100.0;

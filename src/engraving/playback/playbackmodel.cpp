@@ -708,6 +708,7 @@ void PlaybackModel::reloadMetronomeEvents()
 
 bool PlaybackModel::hasToReloadTracks(const ScoreChanges& changes) const
 {
+    if (changes.changedPropertyIdSet.count(Pid::DYNAMICS_LOCK)) return true;
     static const std::unordered_set<ElementType> REQUIRED_TYPES {
         ElementType::PART,
         ElementType::PLAYTECH_ANNOTATION,

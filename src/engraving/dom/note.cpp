@@ -728,6 +728,7 @@ Note::Note(const Note& n, bool link)
     m_tuning            = n.m_tuning;
     m_veloType          = n.m_veloType;
     m_userVelocity      = n.m_userVelocity;
+    m_lockedDynamicsVelocity = n.m_lockedDynamicsVelocity;
     m_headScheme        = n.m_headScheme;
     m_headGroup         = n.m_headGroup;
     m_headType          = n.m_headType;
@@ -3128,6 +3129,8 @@ PropertyValue Note::getProperty(Pid propertyId) const
         return headGroup();
     case Pid::USER_VELOCITY:
         return userVelocity();
+    case Pid::DYNAMICS_LOCK:
+        return dynamicsLocked() ? String::number(m_lockedDynamicsVelocity) : String();
     case Pid::TUNING:
         return tuning();
     case Pid::FRET:
@@ -3216,6 +3219,14 @@ bool Note::setProperty(Pid propertyId, const PropertyValue& v)
     case Pid::USER_VELOCITY:
         setUserVelocity(v.toInt());
         break;
+    case Pid::DYNAMICS_LOCK: {
+        const auto text = v.value<String>();
+        bool ok = true;
+        const int value = text.empty() ? -1 : text.toInt(&ok);
+        if (!ok || value < -1 || value > 127) return false;
+        m_lockedDynamicsVelocity = value;
+        return true;
+    }
     case Pid::TUNING:
         setTuning(v.toDouble());
         break;
@@ -3307,6 +3318,8 @@ PropertyValue Note::propertyDefault(Pid propertyId) const
         return NoteHeadGroup::HEAD_NORMAL;
     case Pid::USER_VELOCITY:
         return 0;
+    case Pid::DYNAMICS_LOCK:
+        return String();
     case Pid::TUNING:
         return 0.0;
     case Pid::FRET:
