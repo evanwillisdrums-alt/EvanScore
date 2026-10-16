@@ -11,7 +11,7 @@ Updated 2026-10-16. Battery is the primary focus; keyboard percussion receives i
 
 ## Next queued notation feature
 
-**Native cross-bar tuplets.** The user confirmed one continuous tuplet spanning a barline (for example, a triplet split across two measures). Investigate and implement after the current mallet/keypad/stem release gates. Require correct timing, editing/Undo, native save/reopen and continuation across system breaks; a visual bracket over separate hidden groups is not the requested feature.
+**Native cross-bar tuplets.** The user confirmed one continuous tuplet spanning a barline (for example, a triplet split across two measures). Investigate and implement after the current mallet/keypad/stem release gates. Require correct timing, editing/Undo, native save/reopen and continuation across system breaks; a visual bracket over separate hidden groups is not the requested feature. See [cross-bar-tuplets.md](cross-bar-tuplets.md) for concrete engine findings and acceptance cases.
 
 ## Full roadmap
 
