@@ -534,8 +534,15 @@ private:
                 evaluate("(function(){var c=curScore.newCursor();c.rewindToTick(2400);if(!curScore.selection.select(c.element.notes[0],true))throw Error('disjoint selection');})()");
             else if (QByteArray(selection)=="range" || QByteArray(selection)=="rests") {
                 const int end = QByteArray(selection)=="range" ? 2640 : 7680;
-                if(!evaluate(QString("curScore.selection.selectRange(1920,%1,0,1)").arg(end)).toBool())
-                    qFatal("Keypad partial range selection failed");
+                // Use the same native range-extension command as Shift+Right.
+                // selectRange's plugin wrapper currently leaves a stale element
+                // list until a later update, which is a separate API regression.
+                for(int step=0;step<16;++step) {
+                    evaluate("cmd('select-next-chord')"); QTest::qWait(20);
+                    if(evaluate(QString("curScore.selection.isRange && (!curScore.selection.endSegment || curScore.selection.endSegment.fraction.ticks >= %1)").arg(end)).toBool()) break;
+                }
+                if(!evaluate(QString("curScore.selection.isRange && curScore.selection.startSegment.fraction.ticks===1920 && curScore.selection.endSegment.fraction.ticks===%1").arg(end)).toBool())
+                    qFatal("Keypad native partial range selection failed");
             }
             const int count=evaluate("selectedChords().length").toInt();
             const int expected=QByteArray(selection)=="single" ? 1 : QByteArray(selection)=="disjoint" ? 2 : QByteArray(selection)=="range" ? 3 : 9;
@@ -590,8 +597,8 @@ private:
         if(!evaluate("selectedNotes()[0].tieForward !== null").toBool()) qFatal("Tie button did not create a tie");
         click("keypad-undo");
         if(snapshot()!=baseline) {
-            qWarning().noquote() << "KEYPAD TIE BASELINE" << baseline;
-            qWarning().noquote() << "KEYPAD TIE AFTER UNDO" << snapshot();
+            qWarning().noquote() << "KEYPAD INSPECTOR TIE BASELINE" << baseline;
+            qWarning().noquote() << "KEYPAD INSPECTOR TIE AFTER UNDO" << snapshot();
             qFatal("Tie did not undo cleanly");
         }
         selectTick(0); choose("slur");
