@@ -9,6 +9,10 @@ Updated 2026-10-16. Battery is the primary focus; keyboard percussion receives i
 3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.
 4. Extend the first mallet visualizer with passage analysis/calibrated geometry, then continue mixer/effects, spatial placement, and the remaining workflow/performance roadmap. Preserve current release verification requirements.
 
+## Next queued notation feature
+
+**Native cross-bar tuplets.** The user confirmed one continuous tuplet spanning a barline (for example, a triplet split across two measures). Investigate and implement after the current mallet/keypad/stem release gates. Require correct timing, editing/Undo, native save/reopen and continuation across system breaks; a visual bracket over separate hidden groups is not the requested feature.
+
 ## Full roadmap
 
 1. **Reliable Windows app and downloads.** Responsive startup beyond the splash, clean score opening/closing, tested save/export, meaningful regression/crash checks, memory measurements, and a complete extracted ZIP. Do not claim a live sound-library crash is fixed without evidence.

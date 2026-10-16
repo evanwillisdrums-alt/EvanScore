@@ -2,6 +2,12 @@
 
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Caption build and next queued notation request — 2026-10-16
+
+Native source **8a9647a381b894cfe114c42e34aaa46ff77c1cf9** is pushed. Windows app build **38971416510** is compiling. Run mallets, Dynamics, bundled keypad and stems gates against this exact artifact after complete success, then review native captures. No validated new download yet.
+
+User confirmed the newly queued request means **one native tuplet spanning a barline**. Preserve it after the current queue; this is not a bracket-position request. Tuplet currently has a Measure owner, measure-local missing-element repair and measure-local XML handling; assess cross-measure lifetime, system layout, save/reopen, input and timing before promising a small patch.
+
 ## Native gate results and caption correction — 2026-10-16
 
 App build **38921639237**, source **bc16f8efc04ebc32dd9ba3507489ba2104cb328c**, passed full compilation, fresh Windows startup/closure and export. **Dynamics 38927075674 and bundled keypad 38927098578 passed**. The native C++ Tie notification fix passes direct-command history plus Undo/Redo, independently of the QML transaction. All roll types/scopes and both saved pitched/snare fixtures pass. The plugin alone did not fix Tie on the older native host; README no longer claims that compatibility.
