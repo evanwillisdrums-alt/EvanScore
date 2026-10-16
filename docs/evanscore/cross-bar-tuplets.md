@@ -13,6 +13,12 @@ The requested result is one continuous tuplet group across a barline, retaining 
 - Paste explicitly excludes tuplets from splitting over a barline (`src/engraving/editing/paste.cpp`). Removing a UI restriction alone would leave this operation incorrect.
 - Tuplet layout keeps one bracket/number and measure-relative geometry (`src/engraving/rendering/score/tupletlayout.cpp`). A group continuing onto another system needs real layout segments and hit testing, without changing its musical identity.
 
+- MusicXML import explicitly calls `resetTuplets()` at every measure boundary (`src/importexport/musicxml/internal/import/importmusicxmlpass2.cpp`, comment “prevent tuplets from crossing measure boundaries”). An open group may be filled/stopped there. MusicXML import is therefore also part of the implementation, rather than an existing way to obtain native continuous groups.
+
+## Concrete timing reference
+
+[Reference MusicXML](research/cross-bar-tuplet-reference.musicxml) describes a quarter-note 3:2 C–D–E group beginning on beat 4 of 4/4 and ending after beat 1 of the next measure. D splits into tied triplet eighths over the barline; there are three attacks and four printed note fragments. Both measures contain exactly four beats, and the one group lasts two beats. XML structure/rational durations have been checked; import/rendering in the current app is **not** claimed to preserve the group. Use this as an implementation acceptance input, not a released workaround.
+
 ## Implementation direction to prove
 
 Retain one logical tuplet and its existing ratio/nesting semantics. Give it system-specific bracket geometry, resolve event ownership by actual tick, and carry explicitly identified open groups between measure/voice reader contexts. Keep ordinary one-measure tuplets and their saved files unchanged.
