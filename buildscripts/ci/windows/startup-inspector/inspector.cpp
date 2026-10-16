@@ -44,6 +44,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <algorithm>
 
 class Inspector final : public QObject {
@@ -524,6 +525,11 @@ private:
             evaluate("cmd('command://notation/redo')"); QTest::qWait(200);
             if(lengths()!=shorter) qFatal("Global stem style did not redo");
             dialogEdit(2);
+            QFile styleIdentity(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath()+"/default-style.json");
+            if(!styleIdentity.open(QIODevice::WriteOnly)) qFatal("Cannot retain saved default style path");
+            styleIdentity.write(QJsonDocument(QJsonObject{{"path",QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                +"/"+QCoreApplication::applicationName()+"/Styles/EvanScore-Default.mss"}}).toJson());
+            styleIdentity.close();
             dispatchMenu(window,"command://project/save"); QTest::qWait(500);
             qWarning() << "STEMS INSPECTOR real Styles pointer/typing, independent shortening, all stems, cancel, reset, undo, redo, default and save passed";
             keypad->close(); return;

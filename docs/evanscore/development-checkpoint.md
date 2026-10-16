@@ -2,6 +2,16 @@
 
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Native gate results and caption correction — 2026-10-16
+
+App build **38921639237**, source **bc16f8efc04ebc32dd9ba3507489ba2104cb328c**, passed full compilation, fresh Windows startup/closure and export. **Dynamics 38927075674 and bundled keypad 38927098578 passed**. The native C++ Tie notification fix passes direct-command history plus Undo/Redo, independently of the QML transaction. All roll types/scopes and both saved pitched/snare fixtures pass. The plugin alone did not fix Tie on the older native host; README no longer claims that compatibility.
+
+Mallet gate **38927050704**, job **117061173249**, passed original/suggestion body clicks, stable previews, edge edits and all 20 reopen cycles in both fixtures; the guarded panel-pointer QA fix resolves the earlier test lifetime error. It then caught a **real rendered-caption failure**: Score selection's label is only 23px wide inside a correctly sized 91px button. The component now keeps the native FlatButton but supplies nonwrapping native icon/text content with explicit font-based widths, removing the wrapping layout's width dependency. An isolated check using actual framework FlatButton/StyledTextLabel and navigation/theme substitutes passes resize/long-caption checks. This still requires full native verification in the next app build.
+
+Stem gate **38927122890**, job **117061413241**, passed every actual Styles UI/engraving/Undo/Redo/Make Default interaction. Its persistence verifier searched LOCALAPPDATA, but the production default correctly saves under Qt DocumentsLocation/applicationName/Styles. The Inspector now records that actual Qt path in default-style.json; the verifier reads it and still checks saved score/default values, note count and absence of spacing edits. The updated Inspector compiles locally. No new download until the corrected native mallet and stem gates pass.
+
+The previous /tmp monitor and runners did not survive the environment refresh; SDK/build outputs under /workspace remain. Check actual GitHub runs manually rather than assuming a background monitor is active. Remote branch head is 07bfbaec7cb before this correction; the local origin tracking ref is stale and must not be treated as the live remote identity. Preserve dirty muse and its root patch.
+
 ## Active validation handoff — 2026-10-16 15:26 UTC
 
 Native app source remains **bc16f8efc04ebc32dd9ba3507489ba2104cb328c**, build **38921639237** still compiling. Subsequent commits are diagnostic/documentation only with `[skip ci]`. `/tmp/evanscore-final-stems-build-watch.py` (session 90362) monitors that exact app source/build and dispatches **mallets, dynamics, keypad (bundled), stems** only after the complete build passes; it matches input-specific run titles, avoiding the older monitor's concurrent-dispatch ambiguity. Read its JSON/log; a running monitor is not verification. It withholds release until all gates pass and still requires native visual review.

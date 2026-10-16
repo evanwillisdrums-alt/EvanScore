@@ -53,15 +53,42 @@ Item {
         wrapMode: Text.WordWrap
     }
     component Button: FlatButton {
+        id: control
         height: 28
         orientation: Qt.Horizontal
-        minWidth: Math.max(28, buttonMetrics.advanceWidth(text) + 2 * margins)
+        minWidth: 28
+        implicitWidth: Math.max(minWidth, buttonMetrics.advanceWidth(text)
+                                + (icon === IconCode.NONE ? 0 : iconFont.pixelSize + (text.length ? 6 : 0))
+                                + 2 * margins)
         margins: 6
         backgroundRadius: 6
         navigation.panel: panelNavigation
         FontMetrics {
             id: buttonMetrics
-            font: ui.theme.bodyFont
+            font: control.textFont
+        }
+        // FlatButton's wrapping RowLayout can retain a squeezed implicit
+        // caption width after dock recreation. Size this single-line native
+        // content from its font, independently of the previous layout width.
+        contentItem: Row {
+            spacing: 6
+            StyledIconLabel {
+                visible: control.icon !== IconCode.NONE
+                iconCode: control.icon
+                font: control.iconFont
+                color: control.iconColor
+                width: visible ? control.iconFont.pixelSize : 0
+                height: 28
+            }
+            StyledTextLabel {
+                visible: control.text.length > 0
+                text: control.text
+                font: control.textFont
+                textFormat: control.textFormat
+                width: buttonMetrics.advanceWidth(text)
+                height: 28
+                wrapMode: Text.NoWrap
+            }
         }
     }
     ColumnLayout {
