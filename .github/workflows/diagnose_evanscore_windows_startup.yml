@@ -24,6 +24,7 @@ on:
         options:
           - desktop.png
           - feature-debug.png
+          - feature-debug.png.style.png
         default: desktop.png
       image_scope:
         description: Workspace capture to review
@@ -327,7 +328,7 @@ jobs:
           from io import BytesIO
           from PIL import Image
           image_name = os.environ.get('INSPECT_IMAGE_NAME') or 'desktop.png'
-          if image_name not in ('desktop.png', 'feature-debug.png'):
+          if image_name not in ('desktop.png', 'feature-debug.png', 'feature-debug.png.style.png'):
               raise RuntimeError('Unsupported capture name')
           files = sorted(Path('checks').rglob(image_name))
           if files:
