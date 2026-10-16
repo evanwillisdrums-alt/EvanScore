@@ -18,6 +18,8 @@ Center remains the ordinary chord default. Suggestions may use front access on a
 
 Manual points stay attached to their notes and are not overridden by the automatic strike search. Strike edits are geometry previews; this version does not store them as printed score notation or change sample tone.
 
+In **Pick on bars**, click a selected bar again to remove that note; dragging it moves the strike point. The top range overview also picks natural and accidental notes across the full keyboard. The camera stays still as you pick; **Fit** or **Focus** deliberately reframes it. Editing a preview starts from the chord you are seeing, and inserting a lower note keeps manual strike points attached to the correct pitches. In Score selection, double-click an occupied bar to restore its center strike.
+
 **Focus** shows the active register and complete player at a larger scale, with a full-range overview above. **Full** fits the entire instrument; +/− or the mouse wheel magnifies either view. No Front view is exposed. The overhead illustration includes body, arms, hands, fingers, independent Stevens holding regions and shaft ends. Natural skin/hair colors change on opening and remain stable during that session.
 
 ## Evaluate a suggestion
@@ -31,7 +33,13 @@ Diagnostics shows pitch names and each mallet's central/end-access zone, left/ri
 
 Each alternative shows exact note/sticking/strike changes, benefits, drawbacks, remaining warnings, bass/top preservation and register changes. It retains every note and pitch class; it does not omit a chord tone. Chord naming is not used as a substitute for geometry.
 
-**Preview** changes the diagram only. **Audition** plays a temporary chord using the selected native instrument; **Compare** auditions original then preview. This is not a full rhythmic passage simulation. **Commit** applies pitches and numbered sticking in one native Undo step. Undo restores original pitches and written sticking. Commit refuses stale selections, incomplete chords, ties, grace attacks, arpeggiation, two-chord tremolos and uncertain placements.
+Click **anywhere on a suggestion card** to preview it. The chosen card keeps its blue border and the heading names the displayed suggestion; the list stays in place. **Original** returns to the written chord. Neither action edits the score.
+
+**Apply to score** writes the displayed pitches and numbered sticking in one native Undo step. It also works for the original comfortable assignment when the score has no sticking yet; you do not have to choose a worse alternative to write the recommended sticking. If the score already matches, or a tied/grace/arpeggiated/two-chord-tremolo attack cannot be rewritten, the panel explains why Apply is unavailable. Rapidly changing score selection refreshes the source before preview/application; an old suggestion is never silently applied to the new chord.
+
+**Audition** plays the displayed chord using that staff's selected native sound; **Compare** auditions original then preview. This is not a full rhythmic passage simulation. An unavailable audio engine or staff context disables audition with an explanation; analysis remains available. Changing selection or closing the panel cancels a pending comparison. Real hardware and licensed-library playback still require testing on the target machine.
+
+Diagnostics begins with the current chord, what to do next, concrete benefits and problems, and each mallet's pitch/inner/outer hand position. **Measurements and limits** expands individual opening, row-tilt and reach estimates, the configured limit and possible adjustments. Empty and unsupported selections show instructions rather than zero-valued measurements. The toolbar wraps into two rows in a narrow dock instead of overlapping its controls.
 
 ## Configure and inspect
 

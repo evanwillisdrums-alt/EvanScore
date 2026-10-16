@@ -19,6 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 set(MODULE_TEST notationscene_qml_tests)
+find_package(Qt6Test REQUIRED)
 
 set(MODULE_TEST_SRC
     ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/scorerw.cpp
@@ -30,13 +31,19 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/notationviewinputcontroller_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletplacement_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletscoreedit_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/malletpanelmodel_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/malletsceneview_tests.cpp
 )
 
 set(MODULE_TEST_LINK
     Qt::Quick
+    Qt6::Test
     engraving
+    notation
     notationscene_qml
 )
+
+set(MODULE_TEST_INCLUDE ${PROJECT_SOURCE_DIR}/src/notation)
 
 set(MODULE_TEST_DATA_ROOT ${CMAKE_CURRENT_LIST_DIR})
 

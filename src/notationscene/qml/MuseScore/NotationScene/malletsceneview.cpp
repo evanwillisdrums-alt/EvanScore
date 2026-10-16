@@ -6,6 +6,8 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QGuiApplication>
+#include <QStyleHints>
 #include <algorithm>
 #include <cmath>
 using namespace mu::notation;
@@ -14,8 +16,23 @@ MalletSceneView::MalletSceneView(QQuickItem* parent) : QQuickPaintedItem(parent)
     setAcceptedMouseButtons(Qt::LeftButton); setAcceptHoverEvents(true); setAntialiasing(true);
     setFlag(ItemIsFocusScope); setActiveFocusOnTab(true);
 }
-void MalletSceneView::setScene(const QVariantMap& value) { if (value == m_scene) return; m_scene = value; update(); emit sceneChanged(); }
-void MalletSceneView::setZoom(double value) { value = std::clamp(value, 1.0, 4.0); if (std::abs(value - m_zoom) < 0.001) return; m_zoom = value; update(); emit zoomChanged(); }
+void MalletSceneView::setScene(const QVariantMap& value) {
+    if (value == m_scene) return;
+    if (value.value("pickMode")!=m_scene.value("pickMode") || value.value("low")!=m_scene.value("low") || value.value("high")!=m_scene.value("high")) m_pickBounds={};
+    if (value.value("pickMode")!=m_scene.value("pickMode") || value.value("sourceKey")!=m_scene.value("sourceKey")) {m_dragged=-1;m_pendingPitch=-1;m_dragging=false;}
+    m_scene = value; update(); emit sceneChanged();
+}
+void MalletSceneView::setZoom(double value) { if(!std::isfinite(value))return;value = std::clamp(value, 1.0, 4.0); if (std::abs(value - m_zoom) < 0.001) return; m_zoom = value; update(); emit zoomChanged(); }
+void MalletSceneView::fit() {m_pickBounds={};m_zoom=1;update();emit zoomChanged();}
+QPointF MalletSceneView::barPoint(int pitch, bool overview) const {
+    for(const auto& value:m_scene.value("bars").toList()) {
+        const auto bar=value.toMap();if(bar.value("pitch").toInt()!=pitch)continue;
+        const double x=bar.value("x").toDouble()+bar.value("width").toDouble()/2;
+        if(overview)return {12+x*(width()-24)/std::max(1.0,m_scene.value("keyboardWidth").toDouble()),bar.value("accidental").toBool()?5.:15.};
+        return m_transform.map(QPointF(x,bar.value("y").toDouble()+bar.value("length").toDouble()/2));
+    }
+    return {-1,-1};
+}
 void MalletSceneView::paint(QPainter* p) {
     p->setRenderHint(QPainter::Antialiasing); p->fillRect(boundingRect(), m_background);
     const auto bars = m_scene.value("bars").toList();
@@ -39,9 +56,15 @@ void MalletSceneView::paint(QPainter* p) {
         }
         for(const auto& value:pose.value("wrists").toList()) {const auto w=location(value.toMap());left=std::min(left,w.x()-10);right=std::max(right,w.x()+10);bottom=std::max(bottom,w.y()+10);}
     }
+    // Keep the picking surface still while notes are added/removed. Fit/Focus
+    // explicitly reframes it; selecting a new note must not move the next key.
+    if(m_scene.value("pickMode").toBool() && m_focusPlacement) {
+        if(m_pickBounds.isEmpty()) m_pickBounds=QRectF(QPointF(left,top),QPointF(right,bottom));
+        left=m_pickBounds.left();right=m_pickBounds.right();top=m_pickBounds.top();bottom=m_pickBounds.bottom();
+    }
     const double overview=20;
     const double scale=std::max(.01,std::min((width()-20)/std::max(1.0,right-left),(height()-overview-10)/std::max(1.0,bottom-top)))*m_zoom;
-    const double center=m_zoom>1?body.x():(left+right)/2;
+    const double center=m_zoom>1 && !m_scene.value("pickMode").toBool()?body.x():(left+right)/2;
     m_transform=QTransform();m_transform.translate(width()/2-center*scale,overview+(height()-overview)/2-(top+bottom)*scale/2);m_transform.scale(scale,scale);
     // Range overview is deliberately a compact navigator, not a second
     // physical scene. The detailed scene below retains true proportions.
@@ -142,8 +165,17 @@ void MalletSceneView::paint(QPainter* p) {
 
 }
 int MalletSceneView::pitchAt(QPointF point) const {
-    if(point.y()<20) return -1;
-    const QPointF pos = m_transform.inverted().map(point); const auto bars = m_scene.value("bars").toList();
+    const auto bars = m_scene.value("bars").toList();
+    if(point.y()<20) {
+        const double scale=(width()-24)/std::max(1.0,m_scene.value("keyboardWidth").toDouble());
+        for(const auto& value:bars) {
+            const auto bar=value.toMap();const bool upper=bar.value("accidental").toBool();
+            if((point.y()<10)!=upper)continue;
+            if(QRectF(12+bar.value("x").toDouble()*scale,upper?0:10,std::max(1.0,bar.value("width").toDouble()*scale),10).contains(point))return bar.value("pitch").toInt();
+        }
+        return -1;
+    }
+    const QPointF pos = m_transform.inverted().map(point);
     for (int row = 1; row >= 0; --row) for (int i = bars.size()-1; i >= 0; --i) {
         const auto bar = bars[i].toMap();
         if (bar.value("accidental").toBool() != bool(row)) continue;
@@ -162,28 +194,36 @@ void MalletSceneView::hoverMoveEvent(QHoverEvent* event) {
 void MalletSceneView::hoverLeaveEvent(QHoverEvent*) { m_keyboardHover = false; m_hoverPosition = {-1, -1}; setHovered(-1); }
 void MalletSceneView::mousePressEvent(QMouseEvent* event) {
     forceActiveFocus();
-
+    m_pressPosition=event->position();m_dragging=false;m_dragged=-1;m_draggedPitch=-1;
+    const int pitch = pitchAt(event->position());
+    const bool picking=m_scene.value("pickMode").toBool();
+    m_pendingPitch=pitch;
     const auto pose = m_scene.value("pose").toMap(); const auto heads = pose.value("heads").toList();
+    const auto ids=pose.value("mallets").toList(),pitches=pose.value("pitches").toList();
     for (const auto& h : heads) {
         const auto head = h.toMap();
-        if (head.value("active").toBool() && QLineF(event->position(), m_transform.map(location(head))).length() < 9) {
-            m_dragged = head.value("id").toInt(); emit malletSelected(m_dragged);
-            const auto ids = pose.value("mallets").toList(); const auto pitches = pose.value("pitches").toList();
-            const int index = ids.indexOf(m_dragged); m_draggedPitch = index >= 0 ? pitches[index].toInt() : -1;
+        const int index=ids.indexOf(head.value("id"));
+        if (event->position().y()>=20 && head.value("active").toBool() && index>=0 && index<pitches.size()
+            && (pitch<0 || pitches[index].toInt()==pitch) && QLineF(event->position(), m_transform.map(location(head))).length() < 9) {
+            m_dragged = head.value("id").toInt();m_draggedPitch=pitches[index].toInt();
+            if(!picking) {emit malletSelected(m_dragged);m_pendingPitch=-1;}
+            else m_pendingPitch=m_draggedPitch;
             event->accept(); return;
         }
     }
-    const int pitch = pitchAt(event->position());
     if(pitch>=0) {
-        const auto pitches=pose.value("pitches").toList(),ids=pose.value("mallets").toList();const int index=pitches.indexOf(pitch);
-        if(index>=0 && index<ids.size() && !m_scene.value("pickMode").toBool()) {
+        const int index=pitches.indexOf(pitch);
+        if(index>=0 && index<ids.size() && event->position().y()>=20) {
             m_dragged=ids[index].toInt();m_draggedPitch=pitch;emit malletSelected(m_dragged);
-        } else emit pitchClicked(pitch);
+            if(!picking)m_pendingPitch=-1;
+        }
     }
     event->accept();
 }
 void MalletSceneView::mouseMoveEvent(QMouseEvent* event) {
     if (m_dragged < 0) return;
+    if(!m_dragging && QLineF(m_pressPosition,event->position()).length()<QGuiApplication::styleHints()->startDragDistance())return;
+    m_dragging=true;
     const auto position = m_transform.inverted().map(event->position());
     for (const auto& value : m_scene.value("bars").toList()) {
         const auto bar = value.toMap();
@@ -193,7 +233,17 @@ void MalletSceneView::mouseMoveEvent(QMouseEvent* event) {
     }
     event->accept();
 }
-void MalletSceneView::mouseReleaseEvent(QMouseEvent* event) { m_dragged = -1; m_draggedPitch = -1; event->accept(); }
+void MalletSceneView::mouseReleaseEvent(QMouseEvent* event) {
+    if(!m_dragging && m_pendingPitch>=0 && QLineF(m_pressPosition,event->position()).length()<QGuiApplication::styleHints()->startDragDistance())emit pitchClicked(m_pendingPitch);
+    m_dragged=-1;m_draggedPitch=-1;m_pendingPitch=-1;m_dragging=false;event->accept();
+}
+void MalletSceneView::mouseDoubleClickEvent(QMouseEvent* event) {
+    if(m_scene.value("pickMode").toBool()) {mousePressEvent(event);return;}
+    const int pitch=pitchAt(event->position());const auto pose=m_scene.value("pose").toMap();
+    const int index=pose.value("pitches").toList().indexOf(pitch);const auto ids=pose.value("mallets").toList();
+    if(index>=0 && index<ids.size() && !m_scene.value("pickMode").toBool()) {emit malletSelected(ids[index].toInt());emit strikePointDragged(ids[index].toInt(),.5);}
+    m_pendingPitch=-1;event->accept();
+}
 bool MalletSceneView::event(QEvent* event) {
     if (event->type() == QEvent::ShortcutOverride && hasActiveFocus()) {
         const auto* key = static_cast<QKeyEvent*>(event);
@@ -210,6 +260,11 @@ void MalletSceneView::keyPressEvent(QKeyEvent* event) {
         m_keyboardHover = true;
         int next = m_hoveredPitch < 0 ? m_scene.value("low").toInt() : m_hoveredPitch + (event->key() == Qt::Key_Left ? -1 : 1);
         setHovered(std::clamp(next, m_scene.value("low").toInt(), m_scene.value("high").toInt())); event->accept();
-    } else if ((event->key() == Qt::Key_Space || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && m_hoveredPitch >= 0) { emit pitchClicked(m_hoveredPitch); event->accept(); }
+    } else if ((event->key() == Qt::Key_Space || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && m_hoveredPitch >= 0) {
+        const auto pose=m_scene.value("pose").toMap();const int index=pose.value("pitches").toList().indexOf(m_hoveredPitch);const auto ids=pose.value("mallets").toList();
+        if(!m_scene.value("pickMode").toBool() && index>=0 && index<ids.size())emit malletSelected(ids[index].toInt());
+        else emit pitchClicked(m_hoveredPitch);
+        event->accept();
+    }
     else QQuickPaintedItem::keyPressEvent(event);
 }

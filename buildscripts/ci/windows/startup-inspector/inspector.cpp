@@ -597,6 +597,18 @@ private:
         auto panel = findItem(window->contentItem(), "MalletPanel");
         if (!panel || panel->height() > 221 || panel->height() < 100) qFatal("Mallet panel did not open compactly");
         const auto source = original.value("sourceKey");
+        if (original.value("sticking").toString().isEmpty()) {
+            auto apply=findItem(panel,"mallet-commit");
+            if(!apply || !apply->isEnabled())qFatal("The original suggested sticking cannot be applied");
+            QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,apply->mapToScene({apply->width()/2,apply->height()/2}).toPoint());QTest::qWait(120);
+            if(state().value("sticking").toString().isEmpty() || state().value("pose").toMap().value("pitches")!=original.value("pose").toMap().value("pitches"))qFatal("Applying original sticking changed notes or did nothing");
+            dispatchMenu(window,"command://notation/undo");QTest::qWait(120);
+            if(state().value("sourceKey")!=source)qFatal("Original sticking did not undo in one step");
+            dispatchMenu(window,"command://notation/redo");QTest::qWait(120);
+            if(state().value("sticking").toString().isEmpty())qFatal("Original sticking did not redo");
+            dispatchMenu(window,"command://notation/undo");QTest::qWait(120);
+        }
+        verifyMalletSuggestionClicks(window,panel,model);
         bool reassigned=false;
         for(auto value:model->property("alternatives").toList()) {
             const auto row=value.toMap();
@@ -680,6 +692,12 @@ private:
         reportMemory("after mallet visibility loop");
         window->resize(1100, 760); QTest::qWait(150);
         QMetaObject::invokeMethod(model, "selectAlternative", Q_ARG(int, octave));
+        const auto finalPreview=state().value("pose").toMap();
+        const QJsonObject expected{{"sourceKey",source.toString()}, {"pitches",QJsonArray::fromVariantList(finalPreview.value("pitches").toList())},
+            {"mallets",QJsonArray::fromVariantList(finalPreview.value("mallets").toList())},{"reverseNumbering",state().value("reverseNumbering").toBool()}};
+        QFile expectedFile(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath()+"/expected-mallet.json");
+        if(!expectedFile.open(QIODevice::WriteOnly) || expectedFile.write(QJsonDocument(expected).toJson())<0)qFatal("Cannot retain the exact native mallet preview");
+        expectedFile.close();
         QMetaObject::invokeMethod(model, "commit"); QTest::qWait(150);
         if (state().value("sourceKey") == source) qFatal("Final mallet edit did not reach the saved score");
         panel = findItem(window->contentItem(), "MalletPanel");
@@ -714,6 +732,35 @@ private:
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
         qWarning() << "MALLET INSPECTOR range, written links, preview, commit, undo, redo, pick, edge, focus and 20 reopen checks passed";
+    }
+    static void verifyMalletSuggestionClicks(QQuickWindow* window,QQuickItem* panel,QObject* model) {
+        panel->setProperty("currentTab",1);QTest::qWait(80);
+        auto explore=findItem(panel,"mallet-explore-alternatives");
+        if(explore && explore->isVisible() && !panel->property("showOtherOptions").toBool()) {
+            reveal(explore);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,explore->mapToScene({explore->width()/2,explore->height()/2}).toPoint());QTest::qWait(80);
+        }
+        const auto alternatives=model->property("alternatives").toList();
+        if(alternatives.empty())qFatal("Native fixture has no suggestion cards to test");
+        auto scroll=findItem(panel,"mallet-information-scroll");if(!scroll)qFatal("Native suggestion scroll view is unavailable");
+        const auto source=model->property("state").toMap().value("sourceKey");
+        QSignalSpy rowsChanged(model,SIGNAL(alternativesChanged()));if(!rowsChanged.isValid())qFatal("Stable suggestion-list notification is unavailable");
+        for(int i=0;i<alternatives.size();++i) {
+            QPointer<QQuickItem> card=findItem(panel,QString("mallet-alternative-card-%1").arg(i));
+            if(!card)qFatal("Native suggestion card is missing");
+            const double top=card->mapToItem(scroll,{0,0}).y()+scroll->property("contentY").toDouble();
+            scroll->setProperty("contentY",std::clamp(top,0.,std::max(0.,scroll->property("contentHeight").toDouble()-scroll->height())));QTest::qWait(50);
+            // Click the descriptive body, not the small pitch-name button.
+            QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,card->mapToScene({card->width()/2,45}).toPoint());QTest::qWait(60);
+            const auto selected=model->property("state").toMap();
+            if(!card || selected.value("selectedAlternative").toInt()!=i || selected.value("pose").toMap().value("pitchText")!=alternatives[i].toMap().value("pitches") || selected.value("sourceKey")!=source)
+                qFatal("Clicking a suggestion card failed, rebuilt the card, or changed the source score");
+            if(rowsChanged.count()!=0)qFatal("Selecting a suggestion rebuilt the list instead of retaining its cards");
+        }
+        auto original=findItem(panel,"mallet-original");if(!original)qFatal("Native Original button is missing");
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,original->mapToScene({original->width()/2,original->height()/2}).toPoint());QTest::qWait(80);
+        if(model->property("state").toMap().value("selectedAlternative").toInt()!=-1)qFatal("Original button failed to restore the written chord");
+        panel->setProperty("currentTab",0);QTest::qWait(80);
+        qWarning()<<"MALLET INSPECTOR every suggestion real body click, stable cards, preview and original passed"<<alternatives.size();
     }
     static void verifyTransport(QQuickWindow* window) {
         for (const auto name : {"mainToolBar", "playbackToolBar", "undoRedoToolBar"}) {

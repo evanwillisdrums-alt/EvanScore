@@ -1,32 +1,48 @@
-"""Verify the actual native panel's committed score, not a synthetic export."""
+"""Verify the exact native preview, including voice identity, in the GUI-saved score."""
 from pathlib import Path
+import json
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
-path = Path("checks/score/mallet-chords.mscz")
-with ZipFile(path) as archive:
-    name = next(name for name in archive.namelist() if name.endswith(".mscx"))
-    root = ET.fromstring(archive.read(name))
-score = root.find("Score")
-assert score is not None, "Saved score XML is missing"
-assert not score.findall(".//LayoutBreak"), "Player Enter leaked into score layout shortcuts"
-staves = score.findall("Staff")
-assert len(staves) == 2, "Commit changed the grand staff"
-notes = [note for staff in staves for note in staff.findall(".//Note")]
-assert len(notes) == 4, "Commit omitted or duplicated a voice"
-original = {0: 60, 4: 64, 7: 67, 11: 71}
-pitches = [int(note.findtext("pitch")) for note in notes]
-assert sorted(p % 12 for p in pitches) == sorted(original), "Commit changed pitch classes"
-changes = [pitch - original[pitch % 12] for pitch in pitches]
-assert sum(change != 0 for change in changes) == 1, "Expected one explicitly previewed octave change"
-assert all(change in (-12, 0, 12) for change in changes), "Commit changed pitches beyond its preview"
-ids = []
-for staff in staves:
-    chords = staff.findall(".//Chord")
-    assert len(chords) == 1 and chords[0].findtext("durationType") == "quarter", "Commit changed rhythm"
-    assert len(chords[0].findall("Note")) == 2, "Commit moved notes between staves"
-    text = staff.findall(".//Sticking/text")
-    assert len(text) == 1, "Commit duplicated or lost sticking"
-    ids.extend(int(value) for value in "".join(text[0].itertext()).split())
-assert sorted(ids) == [1, 2, 3, 4], "Commit lost physical mallet identities"
-print("Native saved mallet placement: two staves, four notes, quarter durations, one octave change and all four mallet identities passed.")
+for folder in ('score', 'mallet-unwritten'):
+    base = Path('checks', folder)
+    paths = list(base.glob('*.mscz'))
+    assert len(paths) == 1, f'Missing native saved score: {folder}'
+    expected = json.loads((base / 'expected-mallet.json').read_text())
+    source = []
+    for entry in expected['sourceKey'].split(';'):
+        values = entry.split(':')
+        if len(values) == 4 and all(v.lstrip('-').isdigit() for v in values):
+            source.append([int(v) for v in values])
+    assert len(source) == len(expected['pitches']) == len(expected['mallets']) == 4
+    per_staff = {}
+    changes = []
+    for (track, tick, written, sounding), pitch, mallet in zip(source, expected['pitches'], expected['mallets']):
+        delta = pitch - sounding
+        assert delta % 12 == 0, 'Preview changed pitch class'
+        changes.append(delta)
+        number = 5 - mallet if expected['reverseNumbering'] else mallet
+        per_staff.setdefault(track // 4 + 1, []).append((written + delta, number))
+    assert any(changes), 'Expected a deliberately selected octave revoicing'
+    with ZipFile(paths[0]) as archive:
+        name = next(name for name in archive.namelist() if name.endswith('.mscx'))
+        root = ET.fromstring(archive.read(name))
+    score = root.find('Score')
+    assert score is not None, 'Saved score XML is missing'
+    assert not score.findall('.//LayoutBreak'), 'Player Enter leaked into score layout shortcuts'
+    staves = score.findall('Staff')
+    assert len(staves) == 2, 'Commit changed the grand staff'
+    ids = []
+    for staff in staves:
+        chords = staff.findall('.//Chord')
+        assert len(chords) == 1 and chords[0].findtext('durationType') == 'quarter', 'Commit changed rhythm'
+        actual = sorted(int(note.findtext('pitch')) for note in chords[0].findall('Note'))
+        wanted = sorted(per_staff[int(staff.attrib['id'])])
+        assert actual == [pitch for pitch, _ in wanted], f'Committed notes differ from preview: {folder}'
+        text = staff.findall('.//Sticking/text')
+        assert len(text) == 1, 'Commit duplicated or lost sticking'
+        numbers = [int(value) for value in ''.join(text[0].itertext()).split()]
+        assert numbers == [mallet for _, mallet in wanted], 'Written sticking lost source-note identity'
+        ids.extend(numbers)
+    assert sorted(ids) == [1, 2, 3, 4], 'Commit lost physical mallet identities'
+    print(f'{folder}: native saved notes and sticking exactly match preview; staves, rhythm and voice identity retained')

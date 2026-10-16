@@ -528,8 +528,14 @@ jobs:
               if (-not $logs.Contains('KEYPAD INSPECTOR all notation buttons, undo and compact tabs passed')) { throw 'Actual keypad checks did not complete' }
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') {
-              $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-              if (-not $logs.Contains('MALLET INSPECTOR range, written links, preview, commit, undo, redo, pick, edge, focus and 20 reopen checks passed')) { throw 'Native mallet checks did not complete' }
+              $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/mallet-unwritten/feature-debug.png')
+              ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/mallet-unwritten -ScorePath buildscripts/ci/windows/fixtures/mallet-unwritten.mscx -MinimumOpenSeconds $interactionTime
+              foreach ($folder in @('score', 'mallet-unwritten')) {
+                $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+                foreach ($marker in @('range, written links, preview, commit, undo, redo, pick, edge, focus and 20 reopen checks passed', 'every suggestion real body click, stable cards, preview and original passed')) {
+                  if (-not $logs.Contains("MALLET INSPECTOR $marker")) { throw "Native mallet checks did not complete in ${folder}: $marker" }
+                }
+              }
               python buildscripts/ci/windows/startup-inspector/verify_saved_mallets.py
               if ($LASTEXITCODE -ne 0) { throw 'Native mallet score persistence verification failed' }
             }

@@ -17,7 +17,7 @@ class MalletPanelModel : public QObject, public muse::Contextable, public muse::
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QVariantMap state READ state NOTIFY stateChanged)
-    Q_PROPERTY(QVariantList alternatives READ alternativeRows NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList alternatives READ alternativeRows NOTIFY alternativesChanged)
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::ContextInject<playback::IPlaybackController> playbackController = { this };
@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE QVariantMap diagnostics() const;
 signals:
     void stateChanged();
+    void alternativesChanged();
     void activeChanged();
 private:
     void onNotationChanged();
@@ -49,7 +50,8 @@ private:
     std::vector<mu::engraving::Note*> sourceNotes() const;
     QString sourceKey() const;
     void analyze();
-    void publish();
+    void publish(bool rebuildAlternatives = true);
+    bool refreshStaleSource();
     void playPitches(const std::vector<int>& pitches);
     mallet::Player m_player;
     mallet::Keyboard m_keyboard;
@@ -67,7 +69,7 @@ private:
     QVariantMap m_state;
     QVariantList m_alternativeRows;
     QStringList m_contextNotes;
-    QString m_sourceKey, m_notice, m_sticking, m_instrument = "Marimba";
+    QString m_sourceKey, m_notice, m_sticking, m_instrumentId, m_instrument = "Marimba";
     QString m_skin = "#d99d78", m_hair = "#382b27";
     bool m_active = false, m_pick = false, m_supported = false, m_editing = false, m_metal = false, m_side = false;
     int m_selected = -1;

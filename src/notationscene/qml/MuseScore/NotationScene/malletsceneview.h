@@ -25,6 +25,8 @@ public:
     void setFocusPlacement(bool value) {if(m_focusPlacement==value)return;m_focusPlacement=value;update();emit zoomChanged();}
     double zoom() const { return m_zoom; }
     void setZoom(double value);
+    Q_INVOKABLE void fit();
+    Q_INVOKABLE QPointF barPoint(int pitch, bool overview = false) const;
     void paint(QPainter* painter) override;
 signals:
     void sceneChanged();
@@ -40,6 +42,7 @@ protected:
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
+    void mouseDoubleClickEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
 private:
@@ -48,10 +51,14 @@ private:
     QVariantMap m_scene;
     QColor m_background { "#414549" };
     QTransform m_transform;
+    QRectF m_pickBounds;
     double m_zoom = 1;
     int m_hoveredPitch = -1;
     int m_dragged = -1;
     int m_draggedPitch = -1;
+    int m_pendingPitch = -1;
+    QPointF m_pressPosition;
+    bool m_dragging = false;
     QPointF m_hoverPosition { -1, -1 };
     bool m_keyboardHover = false;
     bool m_focusPlacement = true;
