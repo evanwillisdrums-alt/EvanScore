@@ -593,12 +593,29 @@ private:
         if(!evaluate("selectedChords()[0].parent.annotations.length>0 && Array.from(selectedChords()[0].parent.annotations).some(function(a){return a.type===elementTypes.FERMATA;})").toBool())
             qFatal("Fermata landed on the wrong segment");
         click("keypad-undo"); if(snapshot()!=baseline) qFatal("Fermata did not undo cleanly");
-        selectTick(0); choose("tie");
+        QQmlComponent historyComponent(engine);
+        historyComponent.setData("import MuseScore.NotationScene; UndoHistoryModel {}", QUrl());
+        QScopedPointer<QObject> historyObject(historyComponent.create());
+        auto* history=qobject_cast<QAbstractItemModel*>(historyObject.data());
+        if(!history) qFatal("Keypad native history model unavailable");
+        const auto historyState=[history] {
+            const int index=history->property("currentIndex").toInt();
+            return QString("index=%1 rows=%2 action=%3").arg(index).arg(history->rowCount()).arg(history->data(history->index(index,0),Qt::DisplayRole).toString());
+        };
+        selectTick(0);
+        qWarning() << "KEYPAD INSPECTOR before tie" << historyState();
+        choose("tie");
+        qWarning() << "KEYPAD INSPECTOR after tie" << historyState();
         if(!evaluate("selectedNotes()[0].tieForward !== null").toBool()) qFatal("Tie button did not create a tie");
+        auto* undoButton=findItem(keypad->contentItem(),"keypad-undo");
+        QSignalSpy undoClick(undoButton,SIGNAL(clicked()));
         click("keypad-undo");
+        qWarning() << "KEYPAD INSPECTOR after tie undo" << historyState() << "pointer clicks" << undoClick.count();
         if(snapshot()!=baseline) {
             qWarning().noquote() << "KEYPAD INSPECTOR TIE BASELINE" << baseline;
             qWarning().noquote() << "KEYPAD INSPECTOR TIE AFTER UNDO" << snapshot();
+            evaluate("cmd('command://notation/undo')"); QTest::qWait(100);
+            qWarning() << "KEYPAD INSPECTOR after diagnostic direct undo" << historyState() << "matches baseline" << (snapshot()==baseline);
             qFatal("Tie did not undo cleanly");
         }
         selectTick(0); choose("slur");
