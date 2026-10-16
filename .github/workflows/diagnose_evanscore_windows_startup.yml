@@ -254,6 +254,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           files = [f for f in Path('checks').rglob('*') if f.is_file() and f.suffix in ('.log', '.json')]
+          for file in files:
+              lines = file.read_text(encoding='utf-8-sig', errors='replace').splitlines()
+              for index, line in enumerate(lines):
+                  if 'Traceback (most recent call last)' not in line: continue
+                  content = '\n'.join(lines[index:index+14])[:2800]
+                  message = content.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Verifier traceback::' + message)
           # Fatal inspector assertions can be buried beneath the docking
           # library's large geometry dump. Report them before bounded tails.
           import re
