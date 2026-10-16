@@ -509,6 +509,7 @@ jobs:
         shell: pwsh
         env:
           EVANSCORE_LAYOUT_TRIAL: ${{ matrix.trial }}
+          EVANSCORE_KEYPAD_SOURCE: ${{ inputs.keypad_source }}
         run: |
           $app = Get-ChildItem downloaded-app -Filter 'MuseScore*.exe' -Recurse | Select-Object -First 1
           $destination = Join-Path $app.DirectoryName 'platformthemes'

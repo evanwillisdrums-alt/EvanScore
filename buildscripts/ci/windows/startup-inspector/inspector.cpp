@@ -701,6 +701,18 @@ private:
             qWarning() << "KEYPAD INSPECTOR after diagnostic direct undo" << historyState() << "matches baseline" << (snapshot()==baseline);
             qFatal("Tie did not undo cleanly");
         }
+        if(qEnvironmentVariable("EVANSCORE_KEYPAD_SOURCE")=="bundled" && plugin->property("version").toString()=="1.6") {
+            selectTick(0);
+            QSignalSpy historyChanged(history,SIGNAL(currentIndexChanged()));
+            // Bypass the keypad transaction to verify the native app fix too.
+            evaluate("cmd('tie')"); QTest::qWait(100);
+            if(historyChanged.count()==0) qFatal("Native Tie did not publish its completed undo state");
+            click("keypad-undo"); if(snapshot()!=baseline) qFatal("Native Tie command still ignores Undo");
+            click("keypad-redo");
+            if(snapshot()==baseline) qFatal("Native Tie command did not Redo");
+            click("keypad-undo"); if(snapshot()!=baseline) qFatal("Native Tie command did not restore baseline");
+            qWarning() << "KEYPAD INSPECTOR native tie history notification, undo and redo passed";
+        }
         selectTick(0); choose("slur");
         if(evaluate("curScore.spanners.length").toInt()!=1) qFatal("Slur button did not create a spanner");
         // Cancel slur editing before invoking native Undo.
