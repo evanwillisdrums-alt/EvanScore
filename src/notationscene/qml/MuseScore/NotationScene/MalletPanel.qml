@@ -57,7 +57,7 @@ Item {
         height: 28
         orientation: Qt.Horizontal
         minWidth: 28
-        implicitWidth: Math.max(minWidth, buttonMetrics.advanceWidth(text)
+        implicitWidth: Math.max(minWidth, Math.ceil(buttonMetrics.advanceWidth(text)) + (text.length ? 2 : 0)
                                 + (icon === IconCode.NONE ? 0 : iconFont.pixelSize + (text.length ? 6 : 0))
                                 + 2 * margins)
         margins: 6
@@ -85,7 +85,9 @@ Item {
                 text: control.text
                 font: control.textFont
                 textFormat: control.textFormat
-                width: buttonMetrics.advanceWidth(text)
+                // QQuickText rounds its natural width differently from font
+                // advance metrics (e.g. Windows "Player": 33px vs 32px).
+                width: Math.ceil(buttonMetrics.advanceWidth(text)) + 2
                 height: 28
                 wrapMode: Text.NoWrap
             }

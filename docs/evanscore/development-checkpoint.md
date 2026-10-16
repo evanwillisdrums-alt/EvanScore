@@ -2,6 +2,14 @@
 
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Final native label rounding correction — 2026-10-16
+
+Full app **38971416510**, source **8a9647a381b894cfe114c42e34aaa46ff77c1cf9**, passes compilation, build-machine and fresh-machine startup/closure/export. Matching native **Dynamics 38972974725, keypad 38972984513 and stems 38972993709 all pass**. Corrected stem persistence also passes earlier rerun 38972207944. The actual Notes Style capture is reviewed.
+
+Mallet run **38972965455**, check **117215529352**, confirms the main caption fix: Score selection 79px/untruncated, Pick on bars 64px/untruncated, Apply 76px/untruncated, Diagnostics 61px/untruncated and Alternatives 62px/untruncated. It catches a remaining real 1px case: **Player has 32px font advance but QQuickText implicit width 33px**, and is truncated. Keep that assertion. Source now rounds advance width upward and reserves two extra pixels for native glyph rounding in both label and button. The actual-framework component check is expanded to every panel caption. Rebuild and rerun native gates; do not send the 8a artifact as the final mallet release.
+
+The previous persistent release watcher completed with featureGatesPassed=false; its capture helper correctly refused release review. Restart both for the corrected source/build and retain this failed run's evidence. The next build also incorporates the refreshed packaged README, which removes the obsolete Front-view instruction and explains original Apply, Focus, strike editing, locks and global stems.
+
 ## Caption build and next queued notation request — 2026-10-16
 
 Native source **8a9647a381b894cfe114c42e34aaa46ff77c1cf9** is pushed. Persistent watcher `/workspace/evanscore-validation/20261016/release-watch.py` (session 6486) records its exact build and four feature runs in release-watch.json/log; inspect actual results and still review captures. Windows app build **38971416510** is compiling. Run mallets, Dynamics, bundled keypad and stems gates against this exact artifact after complete success, then review native captures. No validated new download yet. The actual Notes Style dialog capture from run 38972210936/check 117213046986 is reviewed: all-notes scale at 80% remains enabled outside the unchecked conditional Shorten stems group; Make Default Style fits beside the bottom actions. Retained image: /workspace/evanscore-validation/20261016/native-stem-style.jpg. Corrected persistence rerun 38972207944 is pending; the earlier 38971595994 still used the wrong embedded-style lookup.
