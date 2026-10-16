@@ -526,6 +526,12 @@ private:
             qWarning() << "STEMS INSPECTOR real Styles pointer/typing, independent shortening, all stems, cancel, reset, undo, redo, default and save passed";
             keypad->close(); return;
         }
+        QFile keypadSource(pluginPath); if(!keypadSource.open(QIODevice::ReadOnly)) qFatal("Cannot read tested keypad source");
+        const auto keypadText=keypadSource.readAll();
+        qWarning() << "KEYPAD INSPECTOR source identity" << pluginPath << plugin->property("version")
+                   << "Tie transaction present" << keypadText.contains("Toggle tie");
+        if(qEnvironmentVariable("EVANSCORE_KEYPAD_SOURCE")=="checkout" && plugin->property("version").toString()!="1.6")
+            qFatal("Keypad overlay did not load the expected plugin version");
         qWarning() << "KEYPAD INSPECTOR actual selection" << evaluate("selectedNotes().length")
                    << "chords" << evaluate("selectedChords().length")
                    << "single element enum" << evaluate("elementTypes.TREMOLO_SINGLECHORD")
@@ -743,7 +749,8 @@ private:
     }
     static void verifyMallets(QQuickWindow* window) {
         dispatchMenu(window, "command://notation/select-all");
-        dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(700);
+        if(!dockOpen(window,"malletPanel")) dispatchMenu(window, "command://app/dock/toggle-mallet");
+        QTest::qWait(700);
         const auto findModel = [window]() -> QObject* {
             for (auto* obj : objects(window)) if (QByteArray(obj->metaObject()->className()).contains("MalletPanelModel")) return obj;
             return nullptr;
@@ -844,7 +851,12 @@ private:
         QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"keepMelody"),Q_ARG(QVariant,QVariant(false)));
         reportMemory("before mallet visibility loop");
         for (int cycle = 0; cycle < 20; ++cycle) {
-            dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(40);
+            qWarning() << "MALLET INSPECTOR before close" << cycle << "open" << dockOpen(window,"malletPanel")
+                       << "visible" << (panel && panel->isVisible()) << "active" << model->property("active");
+            dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(100);
+            qWarning() << "MALLET INSPECTOR after close" << cycle << "open" << dockOpen(window,"malletPanel")
+                       << "visible" << (panel && panel->isVisible()) << "active" << (model ? model->property("active") : QVariant());
+            if(dockOpen(window,"malletPanel")) qFatal("Native mallet dock did not close");
             if (model && model->property("active").toBool()) qFatal("Hidden mallet model retained subscriptions");
             dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(80);
             model = findModel();
@@ -889,6 +901,14 @@ private:
                        << "text width" << captionWidth;
             if (button->width() + .5 < captionWidth + 2 * button->property("margins").toDouble())
                 qFatal("Native mallet caption is clipped: %s", name);
+            for(QObject* child:objects(button)) {
+                auto* label=qobject_cast<QQuickItem*>(child);
+                if(!label || !label->isVisible() || label->property("text")!=button->property("text")
+                    || !label->property("truncated").isValid()) continue;
+                qWarning() << "MALLET INSPECTOR rendered caption" << name << "width" << label->width()
+                           << "implicit" << label->implicitWidth() << "truncated" << label->property("truncated");
+                if(label->property("truncated").toBool()) qFatal("Rendered mallet caption is truncated: %s",name);
+            }
         }
         if (!capturePath.isEmpty() && !window->grabWindow().save(capturePath))
             qFatal("Could not capture the complete native mallet window");
