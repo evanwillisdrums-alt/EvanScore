@@ -506,7 +506,9 @@ private:
                     operated=true;
                     QTest::mouseClick(buttons->button(phase==1 ? QDialogButtonBox::Cancel : QDialogButtonBox::Ok),Qt::LeftButton);
                 });
-                dispatchMenu(window,"command://notation/open-edit-style"); QTest::qWait(300);
+                dispatchMenu(window,"command://notation/open-edit-style");
+                for(int step=0;step<40 && !operated;++step) QTest::qWait(50);
+                QTest::qWait(200);
                 if(!operated) qFatal("Native Styles edit did not run");
             };
             dialogEdit(0);
