@@ -490,7 +490,7 @@ private:
                     if(e.type===elementTypes.CHORD){
                         row.notes=Array.from(e.notes).map(function(n){return {pitch:n.pitch,tpc:n.tpc,head:n.headType,dots:n.dots.length,tie:!!n.tieForward,accidental:n.accidental ? n.accidental.accidentalType : null};});
                         row.articulations=Array.from(e.articulations).map(function(a){return a.symbol;});
-                        row.grace=Array.from(e.graceNotes).map(function(g){return {type:g.noteType,duration:g.duration.numerator+'/'+g.duration.denominator};});
+                        row.grace=Array.from(e.graceNotes).map(function(g){return {type:g.noteType,duration:g.duration.numerator+'/'+g.duration.denominator,tremolo:g.tremoloSingleChord ? g.tremoloSingleChord.tremoloType : null};});
                         row.tremolo=e.tremoloSingleChord ? e.tremoloSingleChord.tremoloType : null;
                     }
                     row.fermata=Array.from(c.segment.annotations).filter(function(a){return a.type===elementTypes.FERMATA;}).map(function(a){return a.track;});
@@ -526,6 +526,43 @@ private:
         click("keypad-undo"); click("keypad-undo");
         if(snapshot()!=baseline) qFatal("Selected roll edit did not undo cleanly");
         qWarning() << "KEYPAD INSPECTOR selected roll resolves owning chord passed";
+        // User workflows differ from Select All: single notes, disjoint notes,
+        // partial ranges, and ranges containing rests must all retain their scope.
+        for (const auto selection : {"single", "disjoint", "range", "rests"}) {
+            selectTick(1920);
+            if (QByteArray(selection)=="disjoint")
+                evaluate("(function(){var c=curScore.newCursor();c.rewindToTick(2400);if(!curScore.selection.select(c.element.notes[0],true))throw Error('disjoint selection');})()");
+            else if (QByteArray(selection)=="range" || QByteArray(selection)=="rests") {
+                const int end = QByteArray(selection)=="range" ? 2640 : 7680;
+                if(!evaluate(QString("curScore.selection.selectRange(1920,%1,0,1)").arg(end)).toBool())
+                    qFatal("Keypad partial range selection failed");
+            }
+            const int count=evaluate("selectedChords().length").toInt();
+            const int expected=QByteArray(selection)=="single" ? 1 : QByteArray(selection)=="disjoint" ? 2 : QByteArray(selection)=="range" ? 3 : 9;
+            if(count!=expected) qFatal("Keypad selected scope %s expected %d chords, got %d",selection,expected,count);
+            for(const auto id : {"buzz", "diddle", "tremolo2", "roll", "tremolo4"}) {
+                choose(id);
+                if(!evaluate("selectedChords().every(function(c){return !!c.tremoloSingleChord;})").toBool())
+                    qFatal("Keypad roll skipped selected notes in %s",selection);
+                const auto changed=QJsonDocument::fromJson(snapshot().toUtf8()).object().value("rows").toArray();
+                int rolled=0; for(const auto& row:changed) if(row.toObject().contains("tremolo") && !row.toObject().value("tremolo").isNull()) ++rolled;
+                if(rolled!=expected) qFatal("Keypad roll escaped its selected scope in %s: %d",selection,rolled);
+                click("keypad-undo"); if(snapshot()!=baseline) qFatal("Keypad partial roll Undo failed in %s",selection);
+                click("keypad-redo"); choose(id); click("keypad-undo"); click("keypad-undo");
+                if(snapshot()!=baseline) qFatal("Keypad partial roll toggle cycle failed in %s",selection);
+            }
+            qWarning() << "KEYPAD INSPECTOR scoped real roll clicks" << selection << "passed";
+        }
+        selectTick(1920); choose("flam");
+        if(!evaluate("(function(){var c=curScore.newCursor();c.rewindToTick(1920);return curScore.selection.select(c.element.graceNotes[0].notes[0]);})()").toBool())
+            qFatal("Keypad grace note selection failed");
+        const auto graceBaseline=snapshot();
+        choose("buzz");
+        if(!evaluate("selectedChords().length===1 && selectedChords()[0].tremoloSingleChord && !selectedChords()[0].parent.tremoloSingleChord").toBool())
+            qFatal("Keypad grace roll did not stay on selected grace chord");
+        click("keypad-undo"); if(snapshot()!=graceBaseline) qFatal("Grace roll Undo failed");
+        click("keypad-undo"); if(snapshot()!=baseline) qFatal("Grace roll cycle changed other notation");
+        qWarning() << "KEYPAD INSPECTOR single, disjoint, partial range, rests and grace rolls passed";
         for(const auto id : {"whole","half","quarter","eighth","sixteenth","thirtysecond","sixtyfourth","breve","dot","dot2","dot3","rest",
                              "natural","sharp","flat","flat2","sharp2","flip","pitchup","pitchdown","octaveup","octavedown",
                              "accent","tenuto","marcato","staccato","staccatissimo","accenttenuto","accentstaccato","softaccent","stress","unstress",
@@ -551,7 +588,12 @@ private:
         click("keypad-undo"); if(snapshot()!=baseline) qFatal("Fermata did not undo cleanly");
         selectTick(0); choose("tie");
         if(!evaluate("selectedNotes()[0].tieForward !== null").toBool()) qFatal("Tie button did not create a tie");
-        click("keypad-undo"); if(snapshot()!=baseline) qFatal("Tie did not undo cleanly");
+        click("keypad-undo");
+        if(snapshot()!=baseline) {
+            qWarning().noquote() << "KEYPAD TIE BASELINE" << baseline;
+            qWarning().noquote() << "KEYPAD TIE AFTER UNDO" << snapshot();
+            qFatal("Tie did not undo cleanly");
+        }
         selectTick(0); choose("slur");
         if(evaluate("curScore.spanners.length").toInt()!=1) qFatal("Slur button did not create a spanner");
         // Cancel slur editing before invoking native Undo.
