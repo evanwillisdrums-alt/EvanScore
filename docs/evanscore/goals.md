@@ -4,7 +4,7 @@ Updated 2026-10-16. Battery is the primary focus; keyboard percussion receives i
 
 ## Current priorities
 
-1. Deliver the verified Windows mallet/dynamics release, then continue practical mallet readability, workflow and performance improvements in separately verified builds.
+1. Windows mallet/Dynamics/keypad/global-stem batch is verified in build 38973698269 (2026-10-16); see the checkpoint for its exact download and native gate evidence. The next queued notation task is native cross-bar tuplets. Continue practical mallet readability, workflow and performance improvements in separately verified builds.
 2. Integrate the user's existing Kontakt-based VDL 2.5.5 library: Player setup, every instrument's documented maps, staff-text techniques, and automatic Muse Drumline conversion.
 3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.
 4. Extend the first mallet visualizer with passage analysis/calibrated geometry, then continue mixer/effects, spatial placement, and the remaining workflow/performance roadmap. Preserve current release verification requirements.
