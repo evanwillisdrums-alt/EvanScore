@@ -387,6 +387,14 @@ void BeamLayout::layout2(Beam* item, const LayoutContext& ctx, const std::vector
         item->mutldata()->setAnchors(item->startAnchor(), item->endAnchor());
     }
 
+    if (!muse::RealIsEqual(ctx.conf().styleD(Sid::evanStemLengthScale), 1.0)) {
+        item->mutldata()->elements = chordRests;
+        BeamTremoloLayout::applyStemLengthScale(item->mutldata(), ctx);
+        item->setStartAnchor(item->ldata()->startAnchor);
+        item->setEndAnchor(item->ldata()->endAnchor);
+        item->computeAndSetSlope();
+    }
+
     item->beamFragments()[frag]->py1[fragmentIndex] = item->startAnchor().y() - item->pagePos().y();
     item->beamFragments()[frag]->py2[fragmentIndex] = item->endAnchor().y() - item->pagePos().y();
 

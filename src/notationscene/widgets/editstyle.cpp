@@ -515,6 +515,7 @@ void EditStyle::classBegin()
         { StyleId::dotNoteDistance,         false, noteDotDistance,         0 },
         { StyleId::dotDotDistance,          false, dotDotDistance,          0 },
         { StyleId::stemWidth,               false, stemWidth,               0 },
+        { StyleId::evanStemLengthScale,     true,  stemLengthScale,         resetStemLengthScale },
         { StyleId::ledgerLineWidth,         false, ledgerLineWidth,         0 },
         { StyleId::ledgerLineLength,        false, ledgerLineLength,        0 },
         { StyleId::shortestStem,            false, shortestStem,            0 },

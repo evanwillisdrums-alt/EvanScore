@@ -48,6 +48,7 @@ on:
           - dynamics
           - mallets
           - keypad
+          - stems
           - crash-kit
           - vdl-setup
           - vdl-package
@@ -425,13 +426,13 @@ jobs:
           retention-days: 3
 
   layout:
-    if: inputs.mode == 'layout' || inputs.mode == 'dynamics' || inputs.mode == 'mallets' || inputs.mode == 'keypad'
+    if: inputs.mode == 'layout' || inputs.mode == 'dynamics' || inputs.mode == 'mallets' || inputs.mode == 'keypad' || inputs.mode == 'stems'
     runs-on: windows-2025
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        trial: ${{ fromJSON(inputs.mode == 'dynamics' && '["dynamics"]' || inputs.mode == 'mallets' && '["mallets"]' || inputs.mode == 'keypad' && '["keypad"]' || '["baseline", "left", "wide"]') }}
+        trial: ${{ fromJSON(inputs.mode == 'dynamics' && '["dynamics"]' || inputs.mode == 'mallets' && '["mallets"]' || inputs.mode == 'keypad' && '["keypad"]' || inputs.mode == 'stems' && '["stems"]' || '["baseline", "left", "wide"]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v5
@@ -519,13 +520,27 @@ jobs:
           }
           try {
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/empty
-            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -in @('dynamics', 'mallets', 'keypad')) { 60 } else { 0 }
+            $interactionTime = if ($env:EVANSCORE_LAYOUT_TRIAL -in @('dynamics', 'mallets', 'keypad', 'stems')) { 60 } else { 0 }
             $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/score/feature-debug.png')
-            $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') { 'buildscripts/ci/windows/fixtures/keypad-notes.mscx' } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
+            $fixture = if ($env:EVANSCORE_LAYOUT_TRIAL -in @('keypad','stems')) { 'buildscripts/ci/windows/fixtures/keypad-notes.mscx' } elseif ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') { 'buildscripts/ci/windows/fixtures/mallet-chords.mscx' } else { 'src/engraving/tests/tuplet_data/tuplet1-ref.mscx' }
             ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/score -ScorePath $fixture -MinimumOpenSeconds $interactionTime
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'keypad') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
               if (-not $logs.Contains('KEYPAD INSPECTOR all notation buttons, undo and compact tabs passed')) { throw 'Actual keypad checks did not complete' }
+              $env:EVANSCORE_KEYPAD_ROLLS_ONLY = '1'
+              $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/keypad-snare/feature-debug.png')
+              ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/keypad-snare -ScorePath buildscripts/ci/windows/fixtures/keypad-snare.mscx -MinimumOpenSeconds $interactionTime
+              Remove-Item Env:EVANSCORE_KEYPAD_ROLLS_ONLY
+              $logs = (Get-ChildItem checks/keypad-snare -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+              if (-not $logs.Contains('KEYPAD INSPECTOR snare existing-note rolls, scoped undo and save passed')) { throw 'Native snare keypad checks did not complete' }
+              python buildscripts/ci/windows/startup-inspector/verify_saved_keypad.py
+              if ($LASTEXITCODE -ne 0) { throw 'Native keypad score persistence failed' }
+            }
+            if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'stems') {
+              $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+              if (-not $logs.Contains('STEMS INSPECTOR real Styles pointer/typing, independent shortening, all stems, cancel, reset, undo, redo, default and save passed')) { throw 'Native global stem style checks did not complete' }
+              python buildscripts/ci/windows/startup-inspector/verify_saved_stems.py
+              if ($LASTEXITCODE -ne 0) { throw 'Native stem style persistence failed' }
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'mallets') {
               $env:EVANSCORE_FEATURE_DEBUG_CAPTURE = [System.IO.Path]::GetFullPath('checks/mallet-unwritten/feature-debug.png')
@@ -610,7 +625,7 @@ jobs:
           Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
             if ($_.Name -like 'MuseScore*.log') {
-              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|ERROR|ASSERT' }) -join "`n"
+              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|STEMS INSPECTOR|ERROR|ASSERT' }) -join "`n"
             }
             if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {

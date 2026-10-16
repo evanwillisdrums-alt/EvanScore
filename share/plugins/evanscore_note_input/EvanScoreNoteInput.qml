@@ -12,7 +12,7 @@ MuseScore {
     id: root
     title: "EvanScore Note Input"
     description: "A customizable translucent keypad using native notation symbols."
-    version: "1.5"
+    version: "1.6"
     categoryCode: "composing-arranging-tools"
     thumbnailName: ""
     pluginType: ""
@@ -216,6 +216,9 @@ MuseScore {
                     tremolo.tremoloType = type;
                     chord.add(tremolo);
                 }
+                const applied = chord.tremoloSingleChord;
+                if (remove ? !!applied : (!applied || applied.tremoloType !== type))
+                    throw new Error("The native score did not accept this roll.");
             }
         } catch (error) {
             curScore.endCmd(true);
@@ -223,6 +226,8 @@ MuseScore {
             return true;
         }
         curScore.endCmd();
+        const label = name === "BUZZ_ROLL" ? "Buzz" : name === "R8" ? "Diddle" : "Tremolo";
+        showNotice(label + (remove ? " removed from " : " applied to ") + chords.length + (chords.length === 1 ? " chord" : " chords"));
         Qt.callLater(syncSelection);
         return true;
     }
@@ -403,6 +408,15 @@ MuseScore {
             if (!toggleSymbol(spec.symbolName)) showNotice("Select notes before adding an articulation.");
         } else if (spec.action === "add-fermata") {
             if (!addFermata()) showNotice("Select a note or rest first.");
+        } else if (spec.action === "tie") {
+            if (!curScore || !selectedNotes().length) { showNotice("Select notes before adding a tie."); return; }
+            // Group the native command and publish its undo state, including
+            // on app versions whose tie command does not notify the toolbar.
+            curScore.startCmd("Toggle tie");
+            try { cmd(spec.action); }
+            catch (error) { curScore.endCmd(true); showNotice("Tie could not be applied: " + error.message); return; }
+            curScore.endCmd();
+            Qt.callLater(syncSelection);
         } else {
             if (spec.action.indexOf("pad-note-") === 0) activeDuration = spec.action;
             cmd(spec.action);
@@ -421,7 +435,7 @@ MuseScore {
         maximumWidth: 900
         maximumHeight: 1200
         color: "transparent"
-        title: "EvanScore Keypad"
+        title: "EvanScore Keypad " + root.version
         flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         onWidthChanged: if (root.preferencesLoaded && !root.changingPage) sizeTimer.restart()
         onHeightChanged: if (root.preferencesLoaded && !root.changingPage) sizeTimer.restart()

@@ -285,6 +285,9 @@ void TremoloLayout::layoutTwoNotesTremolo(TremoloTwoChord* item, const LayoutCon
     std::sort(notes.begin(), notes.end());
     ldata->setMag(mag);
     BeamTremoloLayout::calculateAnchors(item, item->mutldata(), ctx, chordRests, notes);
+    if (!item->chord1()->beam() || item->chord1()->beam() != item->chord2()->beam()) {
+        BeamTremoloLayout::applyStemLengthScale(item->mutldata(), ctx);
+    }
     item->setStartAnchor(item->ldata()->startAnchor);
     item->setEndAnchor(item->ldata()->endAnchor);
 

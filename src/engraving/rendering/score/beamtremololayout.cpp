@@ -23,6 +23,8 @@
 #include "beamtremololayout.h"
 
 #include <array>
+#include <cmath>
+#include <limits>
 
 #include "../dom/beam.h"
 #include "../dom/chordrest.h"
@@ -790,6 +792,54 @@ bool BeamTremoloLayout::calculateAnchors(const BeamBase* item, BeamBase::LayoutD
     ldata->startAnchor.setX(chordBeamAnchorX(ldata, startCr, ChordBeamAnchorType::Start));
     ldata->endAnchor.setX(chordBeamAnchorX(ldata, endCr, ChordBeamAnchorType::End));
     return true;
+}
+
+// Move a connected beam as one unit: changing individual stems would detach
+// them. Apply after the normal optical rules, retaining slope and clearance.
+void BeamTremoloLayout::applyStemLengthScale(BeamBase::LayoutData* ldata, const LayoutContext& ctx)
+{
+    const double scale = ctx.conf().styleD(Sid::evanStemLengthScale);
+    if (!std::isfinite(scale) || muse::RealIsEqual(scale, 1.0)) {
+        return;
+    }
+    const double width = ldata->endAnchor.x() - ldata->startAnchor.x();
+    if (width <= 0.0) {
+        return;
+    }
+    double shortening = std::numeric_limits<double>::max();
+    bool found = false;
+    for (ChordRest* cr : ldata->elements) {
+        if (!cr->isChord()) {
+            continue;
+        }
+        Chord* chord = toChord(cr);
+        // Opposing cross-staff stems cannot all be shortened by moving one
+        // beam. Keep their native spacing instead of breaking the connection.
+        if (chord->up() != ldata->up) {
+            return;
+        }
+        const double x = chordBeamAnchorX(ldata, chord, ChordBeamAnchorType::Middle);
+        const double y = ldata->startAnchor.y() + (x - ldata->startAnchor.x()) / width
+                         * (ldata->endAnchor.y() - ldata->startAnchor.y());
+        const Note* start = chord->up() ? chord->downNote() : chord->upNote();
+        const double originY = ldata->isBesideTabStaff
+                               ? chord->pagePos().y() + StemLayout::tabRestStemPosY(chord, ldata->tab) * chord->spatium()
+                               : start->pagePos().y() - start->offset().y();
+        const double length = (originY - y) * (ldata->up ? 1.0 : -1.0) + ldata->beamWidth / 2.0;
+        const double target = StemLayout::scaledStemLength(chord, length, ctx);
+        shortening = std::min(shortening, length - target);
+        found = true;
+    }
+    if (found && std::isfinite(shortening)) {
+        // Never lengthen a beam while the requested operation is shortening:
+        // an already tight chord simply limits this group's reduction.
+        if (scale < 1.0) {
+            shortening = std::max(0.0, shortening);
+        }
+        const double offset = (ldata->up ? 1.0 : -1.0) * shortening;
+        ldata->startAnchor.ry() += offset;
+        ldata->endAnchor.ry() += offset;
+    }
 }
 
 bool BeamTremoloLayout::calculateAnchorsCross(const BeamBase* item, BeamBase::LayoutData* ldata,

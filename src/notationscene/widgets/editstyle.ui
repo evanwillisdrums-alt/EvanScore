@@ -5679,39 +5679,67 @@
             </widget>
            </item>
            <item row="0" column="0" colspan="2">
-            <widget class="QGroupBox" name="shortenStem">
-             <property name="title">
-              <string>Shorten stems</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_37">
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_47">
-                <property name="text">
-                 <string>Shortest stem:</string>
-                </property>
-                <property name="buddy">
-                 <cstring>shortestStem</cstring>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="shortestStem">
-                <property name="suffix">
-                 <string extracomment="space unit">sp</string>
-                </property>
-                <property name="minimum">
-                 <double>1.000000000000000</double>
-                </property>
-                <property name="singleStep">
-                 <double>0.250000000000000</double>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
+            <layout class="QGridLayout" name="allStemLengthsLayout">
+             <item row="0" column="0">
+              <widget class="QLabel" name="stemLengthScaleLabel">
+               <property name="text"><string>Stem length (all notes):</string></property>
+               <property name="buddy"><cstring>stemLengthScale</cstring></property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="stemLengthScaleLayout">
+               <item><widget class="QSpinBox" name="stemLengthScale">
+                <property name="toolTip"><string>100% uses normal engraving. Lower values shorten stems throughout the score, including beamed groups, grace notes, and ledger-line notes. Space for flags, rolls, and beams is preserved. Manually positioned beams and opposing cross-staff stems retain their positions.</string></property>
+                <property name="keyboardTracking"><bool>false</bool></property>
+                <property name="suffix"><string notr="true">%</string></property>
+                <property name="minimum"><number>50</number></property>
+                <property name="maximum"><number>150</number></property>
+                <property name="singleStep"><number>5</number></property>
+                <property name="value"><number>100</number></property>
+               </widget></item>
+               <item><widget class="QToolButton" name="resetStemLengthScale">
+                <property name="toolTip"><string>Reset to default</string></property>
+                <property name="accessibleName"><string>Reset stem length</string></property>
+                <property name="text"><string notr="true"/></property>
+               </widget></item>
+              </layout>
+             </item>
+             <item row="1" column="0" colspan="2">
+              <widget class="QGroupBox" name="shortenStem">
+               <property name="title">
+                <string>Shorten stems</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_37">
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_47">
+                  <property name="text">
+                   <string>Shortest stem:</string>
+                  </property>
+                  <property name="buddy">
+                   <cstring>shortestStem</cstring>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QDoubleSpinBox" name="shortestStem">
+                  <property name="suffix">
+                   <string extracomment="space unit">sp</string>
+                  </property>
+                  <property name="minimum">
+                   <double>1.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.250000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_25">
@@ -13904,6 +13932,7 @@ followed by dashes</string>
   <tabstop>radioTimeSigCourtesyBarlineAlwaysDouble</tabstop>
   <tabstop>radioTimeSigCourtesyBarlineAlwaysSingle</tabstop>
   <tabstop>radioTimeSigCourtesyBarlineDoubleBeforeNewSystem</tabstop>
+  <tabstop>stemLengthScale</tabstop>
   <tabstop>shortenStem</tabstop>
   <tabstop>shortestStem</tabstop>
   <tabstop>accidentalNoteDistance</tabstop>

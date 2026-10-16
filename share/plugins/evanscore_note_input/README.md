@@ -25,3 +25,5 @@ Drag the lower-right resize handle (or focus it and use the arrow keys, with Shi
 Rendered Qt previews: [Notes](previews/notes.png), [Percussion](previews/percussion.png), [Customize](previews/customize.png). These use the actual plugin QML and bundled fonts in an isolated test host; they are not screenshots of the complete Windows app.
 
 Large note selections avoid scanning every earlier note for duplicates. Native identity comparisons still keep distinct grace chords at the same tick separate.
+
+Version 1.6 verifies that each native roll edit was accepted and rolls back the entire edit on failure. A short status confirms the number of affected chords. Tie is grouped as one native transaction so Undo works even on older hosts with a missing tie-history notification. The window title includes the plugin version for troubleshooting. Existing-note checks cover single notes, disjoint selections, partial ranges, ranges containing rests, selected roll symbols, and grace notes, on both pitched and marching-snare notation; the current Windows run must pass before the package is released.

@@ -56,6 +56,8 @@ public:
     static bool calculateAnchors(const BeamBase* item, BeamBase::LayoutData* ldata, const LayoutContext& ctx,
                                  const std::vector<ChordRest*>& chordRests, const std::vector<BeamBase::NotePosition>& notePositions);
 
+    static void applyStemLengthScale(BeamBase::LayoutData* ldata, const LayoutContext& ctx);
+
     static double chordBeamAnchorX(const BeamBase::LayoutData* ldata, const ChordRest* chord, ChordBeamAnchorType anchorType);
     static double chordBeamAnchorY(const BeamBase::LayoutData* ldata, const ChordRest* chord);
     static PointF chordBeamAnchor(const BeamBase::LayoutData* ldata, const ChordRest* chord, ChordBeamAnchorType anchorType);

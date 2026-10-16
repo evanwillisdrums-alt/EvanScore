@@ -264,6 +264,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(stemWidth,                                  0.10_sp),
     styleDef(shortenStem,                                true),
     styleDef(stemLength,                                 PropertyValue(3.5)),
+    styleDef(evanStemLengthScale,                        1.0),
     styleDef(shortStemStartLocation,                     1),
     styleDef(shortestStem,                               PropertyValue(2.5)),
     styleDef(combineVoice,                               true),

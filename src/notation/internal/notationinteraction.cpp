@@ -5377,6 +5377,9 @@ void NotationInteraction::toggleTieForSelection()
     // Calls `startEdit` internally
     Tie* newTie = mu::engraving::EditTie::cmdToggleTie(score());
 
+    // EditTie commits through engraving directly. Publish that completed
+    // transaction so Undo/Redo availability and history leave their old state.
+    m_undoStack->stackChanged().notify();
     notifyAboutNotationChanged();
     m_selection->selectionChanged().notify();
 

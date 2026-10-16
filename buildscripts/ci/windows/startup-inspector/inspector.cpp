@@ -12,6 +12,13 @@
 #include <QCoreApplication>
 #include <QClipboard>
 #include <QGuiApplication>
+#include <QApplication>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QGroupBox>
+#include <QToolButton>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -55,13 +62,13 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "keypad") {
+        if (mode == "keypad" || mode == "stems") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
                 if (window && window->title() != "EvanScore") verifyKeypad(window);
             });
         } else if (mode == "mallets") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
-                if (window && window->title().contains("mallet-chords")) verifyMallets(window);
+                if (window && window->title().contains("mallet-")) verifyMallets(window);
             });
         } else if (mode == "dynamics") {
             QTimer::singleShot(4000, window, [root = QPointer<QObject>(root), window = QPointer<QQuickWindow>(window)] {
@@ -449,6 +456,76 @@ private:
             if (expression.hasError()) qFatal("Keypad expression failed: %s", qPrintable(expression.error().toString()));
             return value;
         };
+        if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="stems") {
+            const auto lengths=[&evaluate] {
+                return QJsonDocument::fromJson(evaluate(R"JS((function(){
+                    var c=curScore.newCursor(); c.rewind(0); var lengths=[];
+                    while(c.segment){if(c.element && c.element.type===elementTypes.CHORD && c.element.stem)
+                        lengths.push(c.element.stem.bbox.height); c.next();}
+                    return JSON.stringify(lengths);
+                })())JS").toString().toUtf8()).array();
+            };
+            const auto original=lengths();
+            if(original.size()<20) qFatal("Stem fixture did not expose ordinary and beamed stems");
+            if(evaluate("curScore.style.value('evanStemLengthScale')").toDouble()!=1.0)
+                qFatal("Initial stem scale was not 100 percent");
+            const auto dialogEdit=[window](int phase) {
+                bool operated=false;
+                QTimer::singleShot(500,window,[&operated,phase] {
+                    QDialog* dialog=nullptr;
+                    for(QWidget* w:QApplication::topLevelWidgets())
+                        if(w->isVisible() && w->findChild<QSpinBox*>("stemLengthScale")) dialog=qobject_cast<QDialog*>(w);
+                    if(!dialog) qFatal("Native Styles dialog/stem control unavailable");
+                    dialog->setProperty("currentPageCode","notes"); QTest::qWait(100);
+                    auto* spin=dialog->findChild<QSpinBox*>("stemLengthScale");
+                    auto* shorten=dialog->findChild<QGroupBox*>("shortenStem");
+                    auto* buttons=dialog->findChild<QDialogButtonBox*>("buttonBox");
+                    if(!spin->isVisible() || !spin->isEnabled() || !shorten || !buttons)
+                        qFatal("Stem scale is hidden, disabled or inside conditional shortening");
+                    if(phase==0) {
+                        if(spin->value()!=100) qFatal("Styles did not show 100 percent");
+                        if(shorten->isChecked()) QTest::mouseClick(shorten,Qt::LeftButton,Qt::NoModifier,QPoint(12,10));
+                        if(shorten->isChecked() || !spin->isEnabled()) qFatal("Global scale depends on Shorten stems");
+                        spin->setFocus(); QTest::keyClick(spin,Qt::Key_A,Qt::ControlModifier); QTest::keyClicks(spin,"80"); QTest::keyClick(spin,Qt::Key_Tab);
+                        QTest::qWait(150);
+                        const auto capture=qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+                        if(!capture.isEmpty() && !dialog->grab().save(capture+".style.png")) qFatal("Style capture failed");
+                    } else {
+                        if(spin->value()!=80 || shorten->isChecked()) qFatal("Native Styles lost the saved global stem settings");
+                        if(phase==1) {
+                            auto* reset=dialog->findChild<QToolButton*>("resetStemLengthScale");
+                            QTest::mouseClick(reset,Qt::LeftButton); QTest::qWait(50);
+                            if(spin->value()!=100) qFatal("Stem scale reset did not restore 100 percent");
+                        } else {
+                            auto* makeDefault=dialog->findChild<QPushButton*>("makeDefaultStyleButton");
+                            if(!makeDefault) qFatal("Make Default Style unavailable");
+                            QTest::mouseClick(makeDefault,Qt::LeftButton); QTest::qWait(100);
+                            if(!makeDefault->text().contains("Saved")) qFatal("Could not save default stem style");
+                        }
+                    }
+                    operated=true;
+                    QTest::mouseClick(buttons->button(phase==1 ? QDialogButtonBox::Cancel : QDialogButtonBox::Ok),Qt::LeftButton);
+                });
+                dispatchMenu(window,"command://notation/open-edit-style"); QTest::qWait(300);
+                if(!operated) qFatal("Native Styles edit did not run");
+            };
+            dialogEdit(0);
+            const auto shorter=lengths();
+            if(shorter.size()!=original.size()) qFatal("Stem style changed notation count");
+            for(int i=0;i<original.size();++i)
+                if(!(shorter[i].toDouble()>0 && shorter[i].toDouble()<original[i].toDouble()))
+                    qFatal("Global scale did not shorten stem %d: %f -> %f",i,original[i].toDouble(),shorter[i].toDouble());
+            dialogEdit(1);
+            if(lengths()!=shorter) qFatal("Cancel did not restore the 80-percent stems");
+            evaluate("cmd('command://notation/undo')"); QTest::qWait(200);
+            if(lengths()!=original) qFatal("Global stem style did not undo in one step");
+            evaluate("cmd('command://notation/redo')"); QTest::qWait(200);
+            if(lengths()!=shorter) qFatal("Global stem style did not redo");
+            dialogEdit(2);
+            dispatchMenu(window,"command://project/save"); QTest::qWait(500);
+            qWarning() << "STEMS INSPECTOR real Styles pointer/typing, independent shortening, all stems, cancel, reset, undo, redo, default and save passed";
+            keypad->close(); return;
+        }
         qWarning() << "KEYPAD INSPECTOR actual selection" << evaluate("selectedNotes().length")
                    << "chords" << evaluate("selectedChords().length")
                    << "single element enum" << evaluate("elementTypes.TREMOLO_SINGLECHORD")
@@ -570,6 +647,12 @@ private:
         click("keypad-undo"); if(snapshot()!=graceBaseline) qFatal("Grace roll Undo failed");
         click("keypad-undo"); if(snapshot()!=baseline) qFatal("Grace roll cycle changed other notation");
         qWarning() << "KEYPAD INSPECTOR single, disjoint, partial range, rests and grace rolls passed";
+        if(qEnvironmentVariableIsSet("EVANSCORE_KEYPAD_ROLLS_ONLY")) {
+            dispatchMenu(window,"command://notation/select-all"); choose("buzz");
+            dispatchMenu(window,"command://project/save"); QTest::qWait(500);
+            qWarning() << "KEYPAD INSPECTOR snare existing-note rolls, scoped undo and save passed";
+            keypad->close(); return;
+        }
         for(const auto id : {"whole","half","quarter","eighth","sixteenth","thirtysecond","sixtyfourth","breve","dot","dot2","dot3","rest",
                              "natural","sharp","flat","flat2","sharp2","flip","pitchup","pitchdown","octaveup","octavedown",
                              "accent","tenuto","marcato","staccato","staccatissimo","accenttenuto","accentstaccato","softaccent","stress","unstress",

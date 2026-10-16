@@ -21,6 +21,9 @@
  */
 
 #include "stemlayout.h"
+
+#include <algorithm>
+#include <cmath>
 #include "dom/chord.h"
 #include "dom/hook.h"
 #include "dom/note.h"
@@ -54,7 +57,8 @@ double StemLayout::calcDefaultStemLength(Chord* item, const LayoutContext& ctx)
 
     bool isBesideTabStaff = tab && !tab->stemless() && !tab->stemThrough();
     if (isBesideTabStaff) {
-        return tabStemLength(item, tab) * spatium;
+        const double length = tabStemLength(item, tab) * spatium;
+        return item->beam() || item->tremoloTwoChord() ? length : scaledStemLength(item, length, ctx);
     }
 
     int defaultStemLength = style.styleD(Sid::stemLength) * 4;
@@ -156,7 +160,37 @@ double StemLayout::calcDefaultStemLength(Chord* item, const LayoutContext& ctx)
             extraLength = target - stemEndMag;
         }
     }
-    return finalStemLength + extraLength;
+    const double length = finalStemLength + extraLength;
+    // Connected stems are adjusted together after their beam/tremolo is laid
+    // out, so its optical-position rules cannot undo the user's global scale.
+    return item->beam() || item->tremoloTwoChord() ? length : scaledStemLength(item, length, ctx);
+}
+
+double StemLayout::scaledStemLength(Chord* item, double length, const LayoutContext& ctx)
+{
+    const double value = ctx.conf().styleD(Sid::evanStemLengthScale);
+    const double scale = std::isfinite(value) ? std::clamp(value, 0.5, 1.5) : 1.0;
+    if (muse::RealIsEqual(scale, 1.0)) {
+        return length;
+    }
+
+    const double unit = item->spatium() * item->intrinsicMag();
+    const StaffType* staffType = item->staff() ? item->staff()->staffTypeForElement(item) : nullptr;
+    const bool besideTab = staffType && staffType->isTabStaff() && !staffType->stemThrough();
+    const double span = besideTab ? 0.0 : std::abs(item->downNote()->pos().y() - item->upNote()->pos().y());
+    // Keep the shaft through the chord intact. Shortening applies to the free
+    // stem beyond the outer note, including ledger-line and grace notes.
+    double clearance = item->hook() ? 2.0 : 1.0;
+    const int beams = calcBeamCount(item);
+    if (beams > 0) {
+        const double spacing = ctx.conf().styleB(Sid::useWideBeams) ? 1.0 : 0.75;
+        clearance = std::max(clearance, 1.0 + (beams - 1) * spacing + ctx.conf().styleS(Sid::beamWidth).val());
+    }
+    if (item->tremoloSingleChord()) {
+        clearance = std::max(clearance, calcMinStemLength(item, ctx) / 4.0);
+    }
+    const double minimum = scale < 1.0 ? std::min(length, span + clearance * unit) : span + clearance * unit;
+    return std::max(minimum, span + std::max(0.0, length - span) * scale);
 }
 
 int StemLayout::minStaffOverlap(bool up, int staffLines, int beamCount, bool hasHook, double beamSpacing, bool useWideBeams,
