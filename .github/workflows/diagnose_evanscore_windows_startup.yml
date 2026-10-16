@@ -555,16 +555,7 @@ jobs:
                 if (-not $roundTrip.WaitForExit(120000)) { $roundTrip.Kill(); throw 'Locked score round trip timed out' }
                 if ($roundTrip.ExitCode -ne 0) { throw 'Locked score round trip failed' }
               }
-              @'
-              from pathlib import Path
-              import xml.etree.ElementTree as ET
-              files = list(Path('checks').glob('*/locks/reopened.mscx'))
-              assert len(files) == 2, 'Missing reopened locked score'
-              for path in files:
-                  notes = ET.parse(path).findall('.//Note')
-                  assert notes and all(n.findtext('dynamicsLock', '') for n in notes), f'Locks lost on reopen: {path}'
-                  print(f'{path}: {len(notes)} reopened locks')
-              '@ | python -
+              python buildscripts/ci/windows/startup-inspector/verify_reopened_locks.py
               if ($LASTEXITCODE -ne 0) { throw 'Locked score reopen lost playback locks' }
               # Converter mode starts the real audio engine without requiring
               # a physical Windows audio device. This covers MS Basic audio;
