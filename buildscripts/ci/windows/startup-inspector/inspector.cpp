@@ -532,6 +532,11 @@ private:
         const auto keypadText=keypadSource.readAll();
         qWarning() << "KEYPAD INSPECTOR source identity" << pluginPath << plugin->property("version")
                    << "Tie transaction present" << keypadText.contains("Toggle tie");
+        QFile keypadIdentity(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath()+"/keypad-source.json");
+        if(!keypadIdentity.open(QIODevice::WriteOnly)) qFatal("Cannot retain keypad source identity");
+        keypadIdentity.write(QJsonDocument(QJsonObject{{"path",pluginPath},{"version",plugin->property("version").toString()},
+            {"tieTransaction",keypadText.contains("Toggle tie")},{"requestedSource",qEnvironmentVariable("EVANSCORE_KEYPAD_SOURCE")}}).toJson());
+        keypadIdentity.close();
         if(qEnvironmentVariable("EVANSCORE_KEYPAD_SOURCE")=="checkout" && plugin->property("version").toString()!="1.6")
             qFatal("Keypad overlay did not load the expected plugin version");
         qWarning() << "KEYPAD INSPECTOR actual selection" << evaluate("selectedNotes().length")

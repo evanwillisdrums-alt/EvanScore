@@ -625,7 +625,7 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
+          Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -eq 'keypad-source.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
             if ($_.Name -like 'MuseScore*.log') {
               $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|STEMS INSPECTOR|ERROR|ASSERT' }) -join "`n"
