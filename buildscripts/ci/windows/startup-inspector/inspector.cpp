@@ -769,7 +769,7 @@ private:
         if (!original.value("supported").toBool() || original.value("bars").toList().size() != 61
             || original.value("pose").toMap().value("pitches").toList().size() != 4)
             qFatal("Selected marimba chord or five-octave range did not load");
-        auto panel = findItem(window->contentItem(), "MalletPanel");
+        QPointer<QQuickItem> panel = findItem(window->contentItem(), "MalletPanel");
         if (!panel || panel->height() > 221 || panel->height() < 100) qFatal("Mallet panel did not open compactly");
         const auto source = original.value("sourceKey");
         if (original.value("sticking").toString().isEmpty()) {
@@ -867,7 +867,8 @@ private:
             if (model && model->property("active").toBool()) qFatal("Hidden mallet model retained subscriptions");
             dispatchMenu(window, "command://app/dock/toggle-mallet"); QTest::qWait(80);
             model = findModel();
-            if (!model || !model->property("active").toBool() || state().value("bars").toList().size() != 61) qFatal("Mallet panel did not reopen");
+            panel = findItem(window->contentItem(), "MalletPanel");
+            if (!model || !panel || !model->property("active").toBool() || state().value("bars").toList().size() != 61) qFatal("Mallet panel did not reopen");
         }
         reportMemory("after mallet visibility loop");
         window->resize(1100, 760); QTest::qWait(150);
