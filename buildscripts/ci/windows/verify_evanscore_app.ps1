@@ -84,6 +84,7 @@ The reference-style translucent floating keypad has working Windows minimize/clo
 The keypad’s top-left open notehead button changes appearance without changing duration or playback.
 In Format > Style, Make Default Style saves the current style for new scores and persists after restart.
 Existing scores retain their styles; Apply Default Style applies the saved default to the current score.
+Format > Style > Notes > Stem length (all notes) adjusts free stem length across the score, independently of Shorten stems. Try 80%; 100% restores ordinary engraving. Symbol clearance and manually positioned beams remain protected.
 Saving a default is a permanent preference change even if you later cancel score edits in the dialog.
 The optional floating keypad is bundled as the EvanScore Note Input plugin: enable it in Extensions > Manage plugins, then run it from the Extensions menu.
 Open View > Dynamics for the native Dynamics sidebar; close it like other panels without disabling saved playback settings.
@@ -94,12 +95,14 @@ Selection edits support exact values, add/subtract, scaling, and relative percen
 Save Preset / Load Preset transfer playback profiles as .evands files.
 Make Default Dynamics persists for new scores, including templates and after restarting.
 Apply Default Dynamics explicitly applies that profile to an existing score without restyling it.
+It resets unlocked note velocities/play flags, dynamic-marking overrides and hairpin playback settings in one Undo. Each note, marking and hairpin has a playback lock; items start unlocked. Loading a preset retains local overrides.
 Mappings and curves save with the score; local edits support undo/redo and reset to inherited settings.
 Sound libraries determine the audible response to these values; patch-specific Virtual Drumline techniques still use the host's playback setup.
 Open View > Mallet visualizer for the optional native bottom panel alongside Mixer.
-It follows selected keyboard-percussion chords with range-aware bars, an overhead player and a front view.
+Select any note in a keyboard-percussion chord. The panel collects that onset across its part's staves, with range-aware bars and an overhead player. Focus enlarges the active register; Full fits the entire instrument.
 Inspect sticking and estimated reach/opening, preview alternatives, and audition or compare them.
-Commit writes safe octave/sticking changes in one Undo step; previews do not change the score.
+Click anywhere on a suggestion card to preview it. Original returns to the source. Apply to score writes safe octave/sticking changes in one Undo step, including recommended sticking for an unwritten original; previews do not change the score.
+In Pick on bars, click to add/remove notes. Click an occupied bar to choose its mallet; drag its head or use Center/Near edge for a temporary strike-point preview. Measurements and limits expands concrete geometry estimates and advice.
 Player comfort limits and instrument dimensions are estimates, not calibrated physical guarantees.
 Full animated passage analysis and Virtual Drumline-specific sample routing remain future work.
 The internal executable and application name remain MuseScore.
