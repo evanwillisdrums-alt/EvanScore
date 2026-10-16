@@ -2,6 +2,14 @@
 
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
+## Current compile and monitors — 2026-10-16 22:08 UTC
+
+Native source **c1b8c665220596bd54e15b23743d5e38180551a7** is pushed; full Windows build **38973698269** is running. The only new product change after the fully compiled 8a source is two extra rounded pixels for mallet captions; it also includes updated package instructions. **Four actual-framework caption test entries pass**, covering all 14 panel captions plus repeated resize/long text. The native test still rejects any rendered truncation.
+
+Persistent watcher `/workspace/evanscore-validation/20261016/release-watch.py 38973698269 c1b8c665220596bd54e15b23743d5e38180551a7` (session **22509**) waits for this source/build and then runs mallets, dynamics, bundled keypad and stems. State/log: release-watch.json/log. The capture helper review-captures.py (session **2832**) waits for all gates, retrieves actual mallet and stem native captures, and stops on failure. Review both images yourself before setting ready or sending a download. Earlier watcher/evidence is retained with an 8a- prefix; that package's Player truncation was a real remaining failure, not a release pass.
+
+Cross-bar tuplets remain the next queued native notation task; the documented engine findings/acceptance plan is in cross-bar-tuplets.md. Do not lose that request or claim it is already implemented. Preserve dirty muse/root patch. No licensed VDL/Drumline audio proof exists.
+
 ## Final native label rounding correction — 2026-10-16
 
 Full app **38971416510**, source **8a9647a381b894cfe114c42e34aaa46ff77c1cf9**, passes compilation, build-machine and fresh-machine startup/closure/export. Matching native **Dynamics 38972974725, keypad 38972984513 and stems 38972993709 all pass**. Corrected stem persistence also passes earlier rerun 38972207944. The actual Notes Style capture is reviewed.
