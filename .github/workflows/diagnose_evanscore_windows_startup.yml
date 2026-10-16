@@ -1,4 +1,5 @@
 name: EvanScore Windows startup diagnostic
+run-name: "${{ inputs.mode }} checks for Windows build ${{ inputs.run_id }} (${{ inputs.keypad_source }})"
 
 on:
   workflow_dispatch:
@@ -428,7 +429,7 @@ jobs:
   layout:
     if: inputs.mode == 'layout' || inputs.mode == 'dynamics' || inputs.mode == 'mallets' || inputs.mode == 'keypad' || inputs.mode == 'stems'
     runs-on: windows-2025
-    timeout-minutes: 12
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
