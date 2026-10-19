@@ -29,6 +29,16 @@ the independent native validator enforces the same rules. The original remains
 comparison-only when excluded. Generated prose can still be wrong. Run the
 expanded real test again before claiming the complete assistant ready.
 
+**That expanded native test now passes**, source **9f88d8b9f45**, Windows
+**39314802495/check 118273387406**: actual setup, app-owned service startup and
+restart, real solver-based comfortable/difficult requests, expected checked IDs,
+and unloading after each. Installed model license reports Apache 2.0. Generated
+prose is still generic and can confuse original-versus-candidate tradeoffs; native
+Diagnostics/card measurements remain authoritative. It is not expert reasoning.
+The next cleanup gate **39315472598/check 118275707348**, source **8cb3f86e6db**,
+adds Windows kernel-job ownership and an abrupt-exit test to prevent private
+runtime/model descendants surviving the app. Inspect its actual outcome.
+
 New defaults permit octave/bass/top/inversion changes; saved choices remain.
 A small separate musical cost ranks register/outside-voice changes without
 increasing physical cost/severity. Overlap warnings include measured 3D head
@@ -37,14 +47,17 @@ The user's exact false-overlap case is not independently reproduced.
 Compact Focus provides a strike close-up, complete-player context inset and
 full-range navigator with the same uniform physical hit-test transform.
 
-Local **36 solver/client tests pass**. The last **35 native model/score/painter
-tests pass**; rerun them after final framing/model edits. Search avoids optimizing
+Local **36 solver/client tests pass**, plus **35 native model/score/painter
+tests after final framing/model edits**. The real compact painter image is
+`compact-strike.png`; it has been viewed. Complete native app capture review is
+still required. Search avoids optimizing
 23 unused assignments per candidate. The same bounded component run fell from
 about 60s to 13s on this runner; this is not a universal app performance claim.
 Validation workspace: `/workspace/evanscore-validation/20261019`.
 
-Full app **39312959244**, source **3a739d8713e**, is compiling an earlier source
-without the native setup fix. It is not the final AI download. Prior app
+Full app **39312959244**, source **3a739d8713e**, passed complete compilation,
+fresh startup/export/closure. It is an earlier source without the native setup
+fix, and is not the final AI download. Prior app
 **39277590013** compiled/startup/export passed; Dynamics, keypad and stems gates
 passed, but mallets **39283484034** failed its AI-toggle assertion. That test
 clicked the allocated checkbox center outside its content hit area. The checkbox

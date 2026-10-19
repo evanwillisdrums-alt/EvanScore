@@ -311,9 +311,11 @@ void MalletAssistant::cancel() {
 void MalletAssistant::stopManagedService() {
     if(!m_server)return;
     auto* server=m_server.data();m_server=nullptr;
-    if(server->state()!=QProcess::NotRunning) {server->terminate();if(!server->waitForFinished(1000))server->kill();}
 #ifdef Q_OS_WIN
     if(m_processJob)TerminateJobObject(static_cast<HANDLE>(m_processJob),0);
+    if(server->state()!=QProcess::NotRunning)server->kill();
+#else
+    if(server->state()!=QProcess::NotRunning) {server->terminate();if(!server->waitForFinished(1000))server->kill();}
 #endif
     server->deleteLater();
 }

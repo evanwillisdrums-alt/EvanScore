@@ -51,7 +51,8 @@ is MIT; the pinned runtime is v0.40.6. Model licenses are separate and must be
 checked for the exact weights; runtime licensing does not license every model.
 No third-party model or runtime is bundled in EvanScore's archive. Explicit setup
 downloads Qwen 2.5 1.5B weights and retains the actual installed license as
-`MODEL-LICENSE.txt`. This is not a
+`MODEL-LICENSE.txt`. The real Windows download reports Apache License 2.0 for
+this exact model. This is not a
 claim that every similarly named model has the same license or musical ability.
 
 A roughly 1 GB quantized 1–2B model is a reasonable starting experiment, with
@@ -71,6 +72,11 @@ sent. `keep_alive: 0` asks Ollama to release the model after each response. The
 runtime may still use temporary memory during cancellation/cleanup; EvanScore
 does not keep a model resident or schedule background inference. Other clients'
 model use is outside EvanScore's control.
+
+The managed Windows runtime and setup descendants belong to a private kernel
+job. Disabling/closing the panel stops that service and its model processes;
+even abrupt app termination closes the job. An independently installed Ollama
+service is not owned or stopped by EvanScore.
 
 ## What is checked, and what is not
 
