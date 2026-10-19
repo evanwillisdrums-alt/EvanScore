@@ -78,6 +78,9 @@ TEST(MalletAssistant, RequestHasBoundedContextOutputAndImmediateUnload) {
     EXPECT_EQ(body.value("keep_alive").toInt(),0);EXPECT_FALSE(body.value("stream").toBool());
     const auto options=body.value("options").toObject();EXPECT_EQ(options.value("num_ctx").toInt(),4096);
     EXPECT_EQ(options.value("num_predict").toInt(),384);EXPECT_EQ(options.value("temperature").toInt(),0);
+    EXPECT_EQ(options.value("num_gpu").toInt(),0);
+    const auto format=body.value("format").toObject();EXPECT_FALSE(format.value("additionalProperties").toBool(true));
+    EXPECT_EQ(format.value("properties").toObject().value("candidateId").toObject().value("enum").toArray(),(QJsonArray{"none","original"}));
     EXPECT_TRUE(body.value("messages").toArray().first().toObject().value("content").toString().contains("not independently verified"));
 }
 TEST(MalletAssistant, ResultMustIdentifyAValidatedCandidateAndAvailableSources) {

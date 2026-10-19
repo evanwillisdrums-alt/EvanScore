@@ -44,9 +44,10 @@ jobs:
             throw "Native setup/inference failed ($nativeExit)"
           }
           $root = Join-Path $env:LOCALAPPDATA 'EvanScore/local-ai'
-          Get-Content (Join-Path $root 'MODEL-LICENSE.txt') -TotalCount 8
+          $license=(Get-Content (Join-Path $root 'MODEL-LICENSE.txt') -TotalCount 8) -join ' '
+          Write-Output "::notice title=Installed model license::$license"
           $result=Get-Content ai-response.json -Raw | ConvertFrom-Json
-          $summary=($result.result | ConvertTo-Json -Compress) -replace '%','%25' -replace "`r",'%0D' -replace "`n",'%0A'
+          $summary=(@($result.responses | ForEach-Object { $_.result }) | ConvertTo-Json -Compress -Depth 6) -replace '%','%25' -replace "`r",'%0D' -replace "`n",'%0A'
           Write-Output "::notice title=Real native AI response::$summary"
           Write-Output '::notice title=Local AI memory::Actual native setup succeeded; model unloaded after the real response'
           Copy-Item (Join-Path $root 'setup-service*.log') . -ErrorAction SilentlyContinue

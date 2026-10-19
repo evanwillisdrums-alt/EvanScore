@@ -11,6 +11,12 @@ $Root = [IO.Path]::GetFullPath($Root)
 $setupLock = [IO.File]::Open((Join-Path $Root 'setup.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
 $server = $null
 function Progress([string]$Text) { Write-Output "EVAN_AI_PROGRESS|$Text" }
+function Sha256([string]$Path) {
+    $hash = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($Path)
+    try { return ([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant() }
+    finally { $stream.Dispose(); $hash.Dispose() }
+}
 try {
     $runtime = Join-Path $Root 'runtime'
     $exe = Join-Path $runtime 'ollama.exe'
@@ -43,10 +49,10 @@ try {
                     }
                 } finally { $outputStream.Dispose(); $inputStream.Dispose() }
             } finally { $response.Dispose() }
-            if ((Get-FileHash $partial -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Runtime checksum failed; nothing was installed.' }
+            if ((Sha256 $partial) -ne $expected) { throw 'Runtime checksum failed; nothing was installed.' }
             Move-Item $partial $archive -Force
         }
-        if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Cached runtime checksum failed.' }
+        if ((Sha256 $archive) -ne $expected) { throw 'Cached runtime checksum failed.' }
         Progress 'Verified official runtime. Extracting CPU components…'
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [IO.Compression.ZipFile]::OpenRead($archive)
