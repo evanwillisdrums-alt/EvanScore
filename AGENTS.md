@@ -73,3 +73,18 @@ The user clarified on 2026-10-16 that new requests are queued, not interruptions
 The next queued notation request is native tuplets spanning a barline: one continuous tuplet group shared across measures, not just moving its printed bracket or number. The user confirmed that meaning on 2026-10-16. Investigate notation ownership, editing, persistence, playback timing and system breaks before enabling it; do not present split hidden tuplets as native cross-bar support. Finish the preceding native release gates first.
 
 The current verified Windows release is build 38973698269, native source c1b8c665220596bd54e15b23743d5e38180551a7. Full/fresh startup/export and matching mallet, Dynamics, bundled keypad and global-stem native gates pass; both actual captures are reviewed. See the top checkpoint for the exact artifact/evidence and remaining limits. The next queued task is native cross-bar tuplets; research and a timing reference exist in docs/evanscore/cross-bar-tuplets.md, but implementation is pending.
+
+
+Latest mallet clarification (2026-10-19): ordinary ascending order is the starting
+assumption; revoicing with fixed source-note/mallet links precedes rare justified
+reassignment even without written sticking. Preserve score TPC spelling and keep
+physical rows separate from enharmonic naming. The E–F♯–G–B♭ same-row pairing is a
+useful exception, not a universal row-splitting rule. Inward tilt preference is
+modest/configurable. Optional local AI must never replace the sticking reader or
+geometry/score-edit code: unavailable or insufficient model RAM leaves those
+features functioning. No real model musical quality is yet verified. See
+mallet-local-ai.md and the top checkpoint for the current build/tests. Diagnostics
+shows system and process memory percentages separately. Queued after native
+cross-bar tuplets: percussion-only above-staff accent defaults with editable
+direction/voice, three-line marching snare and two-line cymbal defaults for new
+staves; preserve saved/explicit choices.

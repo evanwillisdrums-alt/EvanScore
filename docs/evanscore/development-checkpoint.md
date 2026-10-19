@@ -39,8 +39,12 @@ this is not a clean leak check. Product and Inspector sources compile locally,
 and both changed QML files parse; complete Windows interactions remain a gate.
 The old local runner required its own setup correction (duplicate configuration
 registration), not a product fix. Full Linux suite remains blocked by retained
-Qt 6.8.2 versus pinned Windows Qt 6.11.2. New Windows source/build and native gates
-are still required before a new download. Preserve the verified c1b release below
+Qt 6.8.2 versus pinned Windows Qt 6.11.2. Source **f02966c3b03e234a36c29704501078e7b4fd0d19** is pushed; Windows build
+**39277590013** is running. Persistent watcher
+`/workspace/evanscore-validation/20261019/release-watch.py` monitors this exact
+source/build and dispatches mallets, Dynamics (including live memory diagnostics),
+bundled keypad and stems only after full build success. Inspect its JSON/log and
+review actual captures before any download. A running monitor is not a pass. Preserve the verified c1b release below
 and the dirty muse submodule/root framework patch.
 
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
