@@ -62,5 +62,6 @@ private:
     QPointF m_hoverPosition { -1, -1 };
     bool m_keyboardHover = false;
     bool m_focusPlacement = true;
+    bool m_compactFraming = false;
 };
 }

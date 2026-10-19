@@ -47,7 +47,8 @@ public:
     Q_INVOKABLE void discoverAssistantModels() { m_assistant.discover(); }
     Q_INVOKABLE void setAssistantModel(const QString& name) { m_assistant.setModel(name); }
     Q_INVOKABLE void askAssistant();
-    Q_INVOKABLE void cancelAssistant() { m_assistant.invalidate(); }
+    Q_INVOKABLE void setupAssistant() { m_assistant.setup(); }
+    Q_INVOKABLE void cancelAssistant() { m_assistant.cancel(); }
     Q_INVOKABLE void previewAssistant();
 signals:
     void stateChanged();

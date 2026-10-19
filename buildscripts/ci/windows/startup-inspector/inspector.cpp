@@ -812,12 +812,15 @@ private:
         auto aiToggle=findItem(panel,"mallet-local-ai-enabled");
         if(!aiToggle || model->property("assistant").toMap().value("enabled").toBool())qFatal("Local AI must start disabled");
         reveal(aiToggle);
-        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({aiToggle->width()/2,aiToggle->height()/2}).toPoint());QTest::qWait(100);
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({10,aiToggle->height()/2}).toPoint());QTest::qWait(100);
         auto aiState=model->property("assistant").toMap();
-        if(!aiState.value("enabled").toBool() || aiState.value("busy").toBool())qFatal("Enabling optional AI must not start inference or discovery");
+        if(!aiState.value("enabled").toBool())qFatal("Pointer click on the optional AI checkbox did not enable it");
+        if(aiState.value("busy").toBool())qFatal("Enabling optional AI must not start inference or discovery");
+        auto aiSetup=findItem(panel,"mallet-local-ai-setup");
+        if(!aiSetup || !aiSetup->isEnabled())qFatal("Explicit local AI setup action is unavailable");
         auto aiAsk=findItem(panel,"mallet-local-ai-ask");
         if(!aiAsk || aiAsk->isEnabled())qFatal("Local AI must not infer without an installed selected model");
-        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({aiToggle->width()/2,aiToggle->height()/2}).toPoint());QTest::qWait(100);
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({10,aiToggle->height()/2}).toPoint());QTest::qWait(100);
         if(model->property("assistant").toMap().value("enabled").toBool())qFatal("Optional AI toggle did not turn off");
         QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"inwardPreference"),Q_ARG(QVariant,QVariant(0)));
         if(state().value("inwardPreference").toInt()!=0)qFatal("Neutral rotation preference was not retained");

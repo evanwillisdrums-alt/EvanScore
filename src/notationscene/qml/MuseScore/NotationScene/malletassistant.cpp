@@ -10,11 +10,32 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSet>
+#include <QDir>
+#include <QFile>
+#include <QProcess>
+#include <QProcessEnvironment>
+#include <QStandardPaths>
+#include <QSysInfo>
+#include <QTemporaryDir>
+
+#ifdef Q_OS_WIN
+static void initializeMalletAiResource() { Q_INIT_RESOURCE(mallet_ai_setup); }
+#endif
 
 using namespace mu::notation;
 namespace {
 constexpr qsizetype responseLimit = 256 * 1024;
 constexpr qint64 modelSizeLimit = 2LL * 1024 * 1024 * 1024;
+#ifdef Q_OS_WIN
+QString managedRoot() { return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/EvanScore/local-ai"; }
+QProcessEnvironment managedEnvironment() {
+    auto env=QProcessEnvironment::systemEnvironment();
+    env.insert("OLLAMA_HOST","127.0.0.1:11435");env.insert("OLLAMA_MODELS",managedRoot()+"/models");
+    env.insert("OLLAMA_NO_CLOUD","1");env.insert("OLLAMA_KEEP_ALIVE","0");
+    env.insert("OLLAMA_NUM_PARALLEL","1");env.insert("OLLAMA_MAX_LOADED_MODELS","1");env.insert("OLLAMA_CONTEXT_LENGTH","4096");
+    return env;
+}
+#endif
 // These are reviewed project/user rules, not quotations from inaccessible books.
 const char* grounding = R"(Reference IDs:
 USER: The user's specification preserves fixed physical mallet identities and written note-to-mallet links; prefer octave revoicing before reassignment. Ordinary ascending order is the starting assumption, not an absolute rule. E/G and F-sharp/B-flat may each share a hand to reduce mixed-row tilt. Modest inward preference is user-configurable, not a universal anatomical fact.
@@ -37,21 +58,33 @@ MalletAssistant::MalletAssistant(QObject* parent, QUrl endpoint) : QObject(paren
         invalidate();m_status=tr("Local AI timed out. Ordinary analysis is still available.");emit changed();
     });
     m_status=tr("Optional local AI is off. Ordinary mallet analysis needs no model.");
+#ifdef Q_OS_WIN
+    m_managed=m_endpoint.port()==11434 && QFile::exists(managedRoot()+"/ready.json") && QFile::exists(managedRoot()+"/runtime/ollama.exe");
+    if(m_managed)m_endpoint.setPort(11435);
+#endif
+    m_startTimer.setInterval(250);
+    connect(&m_startTimer,&QTimer::timeout,this,[this]() {
+        if(!m_starting)return;
+        if(++m_startAttempts>80) {cancel();m_status=tr("Private AI service did not start. Re-run setup or check the backend log in Diagnostics.");emit changed();return;}
+        if(!m_reply)request("/api/tags");
+    });
 }
-MalletAssistant::~MalletAssistant() { invalidate(); }
+MalletAssistant::~MalletAssistant() { cancel();stopManagedService(); }
+bool MalletAssistant::busy() const { return m_reply || m_setup || m_starting; }
 QVariantMap MalletAssistant::state() const {
-    return {{"enabled",m_enabled},{"busy",!m_reply.isNull()},{"models",m_models},{"model",m_model},
-        {"status",m_status},{"result",m_result},{"endpoint",m_endpoint.toString()}};
+    return {{"enabled",m_enabled},{"busy",busy()},{"settingUp",!m_setup.isNull()},{"managedReady",m_managed},{"models",m_models},{"model",m_model},
+        {"status",m_status},{"result",m_result},{"endpoint",m_endpoint.toString()},{"backendLog",m_backendLog}};
 }
 void MalletAssistant::invalidate() {
-    ++m_generation;m_timeout.stop();m_result.clear();m_context.clear();m_response.clear();
+    ++m_generation;m_timeout.stop();m_result.clear();m_context.clear();m_pendingContext.clear();m_response.clear();
     if(m_reply) {auto* reply=m_reply.data();m_reply=nullptr;reply->abort();reply->deleteLater();}
-    m_status=m_enabled?tr("Ready for a new request. No model is kept loaded by EvanScore."):tr("Optional local AI is off.");
+    if(!m_setup && !m_starting)m_status=m_enabled?tr("Ready for a new request. No model is kept loaded by EvanScore."):tr("Optional local AI is off.");
     emit changed();
 }
 void MalletAssistant::setEnabled(bool enabled) {
     if(enabled==m_enabled)return;
-    m_enabled=enabled;invalidate();
+    m_enabled=enabled;
+    if(!enabled) {cancel();stopManagedService();} else invalidate();
     if(enabled) m_status=tr("Check installed local models, then choose one. Inference starts only when you ask.");
     emit changed();
 }
@@ -62,11 +95,16 @@ void MalletAssistant::setModel(const QString& name) {
     }
 }
 void MalletAssistant::discover() {
-    if(!m_enabled || m_reply)return;
-    invalidate();request("/api/tags");
+    if(!m_enabled || busy())return;
+    invalidate();
+    if(m_managed && (!m_server || m_server->state()==QProcess::NotRunning)) {startManagedService();return;}
+    request("/api/tags");
 }
 void MalletAssistant::ask(const QVariantMap& context) {
-    if(!m_enabled || m_reply || m_model.isEmpty())return;
+    if(!m_enabled || busy() || m_model.isEmpty())return;
+    if(m_managed && (!m_server || m_server->state()==QProcess::NotRunning)) {
+        invalidate();m_pendingContext=context;startManagedService();return;
+    }
     bool known=false;qint64 modelBytes=0;
     for(const auto& value:m_models) if(value.toMap().value("value").toString()==m_model) {known=true;modelBytes=value.toMap().value("bytes").toLongLong();}
     if(!known)return;
@@ -100,7 +138,7 @@ QByteArray MalletAssistant::requestBody(const QString& model, const QVariantMap&
     const QJsonArray messages{QJsonObject{{"role","system"},{"content",instruction}},
         QJsonObject{{"role","user"},{"content",QString::fromUtf8(QJsonDocument::fromVariant(context).toJson(QJsonDocument::Compact))}}};
     return QJsonDocument(QJsonObject{{"model",model},{"messages",messages},{"stream",false},{"format","json"},
-        {"keep_alive",0},{"options",QJsonObject{{"num_ctx",4096},{"num_predict",384},{"temperature",0},{"seed",0},{"num_thread",4}}}}).toJson(QJsonDocument::Compact);
+        {"keep_alive",0},{"options",QJsonObject{{"num_ctx",4096},{"num_predict",384},{"temperature",0},{"seed",0},{"num_thread",4},{"num_gpu",0}}}}).toJson(QJsonDocument::Compact);
 }
 QVariantMap MalletAssistant::validateResponse(const QByteArray& response, const QVariantMap& context) {
     if(response.size()>responseLimit)return failure(tr("Local AI response exceeded its size limit."));
@@ -167,9 +205,11 @@ void MalletAssistant::finish(QNetworkReply* reply,quint64 generation,bool discov
     m_timeout.stop();m_reply=nullptr;m_response+=reply->readAll();
     const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if(reply->error()!=QNetworkReply::NoError || status!=200 || m_response.size()>responseLimit) {
+        if(discovery && m_starting) {m_response.clear();return;}
         m_status=tr("Local AI unavailable. Start Ollama with a small local model; ordinary analysis still works.");m_context.clear();emit changed();return;
     }
     if(discovery) {
+        m_starting=false;m_startTimer.stop();
         m_models.clear();const auto doc=QJsonDocument::fromJson(m_response);
         for(const auto& item:doc.object().value("models").toArray()) {
             const auto model=item.toObject();const auto name=model.value("name").toString();const double bytes=model.value("size").toDouble();
@@ -194,4 +234,78 @@ void MalletAssistant::finish(QNetworkReply* reply,quint64 generation,bool discov
         if(m_result.contains("error"))m_result.clear();
     }
     m_response.clear();m_context.clear();emit changed();
+    if(discovery && !m_pendingContext.empty()) {const auto pending=m_pendingContext;m_pendingContext.clear();ask(pending);}
+}
+
+void MalletAssistant::cancel() {
+    m_starting=false;m_startTimer.stop();
+    if(m_setup) {
+        auto* process=m_setup.data();m_setup=nullptr;
+#ifdef Q_OS_WIN
+        if(process->processId()>0)QProcess::execute("taskkill.exe",{"/PID",QString::number(process->processId()),"/T","/F"});
+#else
+        process->kill();
+#endif
+        process->deleteLater();m_setupDirectory.reset();
+    }
+    invalidate();
+}
+void MalletAssistant::stopManagedService() {
+    if(!m_server)return;
+    auto* server=m_server.data();m_server=nullptr;
+    if(server->state()!=QProcess::NotRunning) {server->terminate();if(!server->waitForFinished(1000))server->kill();}
+    server->deleteLater();
+}
+void MalletAssistant::startManagedService() {
+#ifdef Q_OS_WIN
+    stopManagedService();m_starting=true;m_startAttempts=0;
+    auto* server=new QProcess(this);m_server=server;
+    server->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args){args->flags|=0x08000000;});
+    server->setProcessEnvironment(managedEnvironment());server->setWorkingDirectory(managedRoot()+"/runtime");
+    server->setProcessChannelMode(QProcess::MergedChannels);
+    connect(server,&QProcess::readyRead,this,[this,server]() {m_backendLog=(m_backendLog+QString::fromUtf8(server->readAll())).right(4096);});
+    connect(server,&QProcess::errorOccurred,this,[this,server](QProcess::ProcessError) {
+        if(m_server!=server)return;m_starting=false;m_startTimer.stop();
+        m_status=tr("Private local AI could not start. Re-run setup; details are in feature Diagnostics.");emit changed();
+    });
+    server->start(managedRoot()+"/runtime/ollama.exe",{"serve"});m_startTimer.start();
+    m_status=tr("Starting private local AI service without loading the model…");emit changed();
+#endif
+}
+void MalletAssistant::setup() {
+    if(!m_enabled || busy())return;
+#ifdef Q_OS_WIN
+    if(QSysInfo::currentCpuArchitecture()!="x86_64") {m_status=tr("Automatic local AI setup currently supports Windows x64.");emit changed();return;}
+    invalidate();stopManagedService();initializeMalletAiResource();
+    QFile resource(":/evanscore/ai/mallet-ai-setup.ps1");
+    m_setupDirectory=std::make_unique<QTemporaryDir>();
+    if(!resource.open(QIODevice::ReadOnly) || !m_setupDirectory->isValid()) {m_status=tr("Local AI setup resources are unavailable.");emit changed();return;}
+    QFile script(m_setupDirectory->filePath("setup.ps1"));
+    const auto contents=resource.readAll();
+    if(!script.open(QIODevice::WriteOnly) || script.write(contents)!=contents.size()) {m_status=tr("Cannot prepare local AI setup.");emit changed();return;}
+    script.close();auto* process=new QProcess(this);m_setup=process;
+    process->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args){args->flags|=0x08000000;});
+    process->setProcessChannelMode(QProcess::MergedChannels);
+    connect(process,&QProcess::readyRead,this,[this,process]() {
+        const auto text=QString::fromUtf8(process->readAll());m_backendLog=(m_backendLog+text).right(4096);
+        const auto marker=text.lastIndexOf("EVAN_AI_PROGRESS|");
+        if(marker>=0)m_status=text.mid(marker+17).trimmed().left(500);
+        emit changed();
+    });
+    connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,process](int code,QProcess::ExitStatus status) {
+        process->deleteLater();if(m_setup!=process)return;m_setup=nullptr;m_setupDirectory.reset();
+        if(code!=0 || status!=QProcess::NormalExit) {m_status=tr("Local AI setup did not finish. Re-run it to resume; see backend log in Diagnostics.");emit changed();return;}
+        m_managed=QFile::exists(managedRoot()+"/ready.json");m_endpoint=QUrl("http://127.0.0.1:11435");
+        if(!m_managed) {m_status=tr("Local AI setup did not produce its completion marker.");emit changed();return;}
+        discover();
+    });
+    connect(process,&QProcess::errorOccurred,this,[this,process](QProcess::ProcessError) {
+        if(m_setup!=process)return;m_setup=nullptr;process->deleteLater();m_setupDirectory.reset();
+        m_status=tr("Windows could not launch local AI setup. Check PowerShell and feature Diagnostics.");emit changed();
+    });
+    process->start("powershell.exe",{"-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-File",script.fileName(),"-Root",QDir::toNativeSeparators(managedRoot())});
+    m_status=tr("Preparing private local AI setup…");emit changed();
+#else
+    m_status=tr("Automatic setup currently supports Windows x64. Install Ollama and a small local model to use the local connection here.");emit changed();
+#endif
 }

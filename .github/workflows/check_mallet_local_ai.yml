@@ -1,0 +1,69 @@
+name: EvanScore real local mallet AI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-ai:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.2'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build the actual native assistant client
+        shell: pwsh
+        run: |
+          cmake -S tools/mallet_ai_contract -B ai-contract-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          if ($LASTEXITCODE -ne 0) { throw 'AI contract configuration failed' }
+          cmake --build ai-contract-build --parallel 3
+          if ($LASTEXITCODE -ne 0) { throw 'AI contract compilation failed' }
+      - name: Install verified private runtime and real local model
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'EvanScore-local-ai'
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File src/notationscene/qml/MuseScore/NotationScene/mallet-ai-setup.ps1 -Root $root *> ai-setup.log
+          if ($LASTEXITCODE -ne 0) { Get-Content ai-setup.log -Tail 24; throw 'Private AI setup failed' }
+          Get-Content (Join-Path $root 'MODEL-LICENSE.txt') -TotalCount 8
+          Write-Output '::notice title=Local AI setup::Verified official runtime and local model installed successfully'
+      - name: Run real inference through MalletAssistant and verify unloading
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'EvanScore-local-ai'
+          $env:OLLAMA_HOST = '127.0.0.1:11435'
+          $env:OLLAMA_MODELS = Join-Path $root 'models'
+          $env:OLLAMA_NO_CLOUD = '1'
+          $env:OLLAMA_KEEP_ALIVE = '0'
+          $server = Start-Process (Join-Path $root 'runtime/ollama.exe') -ArgumentList 'serve' -PassThru -WindowStyle Hidden -RedirectStandardOutput ai-server.log -RedirectStandardError ai-server-errors.log
+          try {
+            for ($n=0; $n -lt 80; $n++) {
+              try { $null=Invoke-RestMethod http://127.0.0.1:11435/api/version -TimeoutSec 2; break } catch { Start-Sleep -Milliseconds 250 }
+            }
+            & ./ai-contract-build/mallet-ai-contract.exe ai-response.json
+            if ($LASTEXITCODE -ne 0) { throw 'Real native AI inference failed' }
+            $resident = @()
+            for ($n=0; $n -lt 40; $n++) {
+              $resident = @((Invoke-RestMethod http://127.0.0.1:11435/api/ps -TimeoutSec 3).models)
+              if ($resident.Count -eq 0) { break }
+              Start-Sleep -Milliseconds 250
+            }
+            if ($resident.Count -ne 0) { throw 'Model remained loaded after keep_alive 0' }
+            $result=Get-Content ai-response.json -Raw | ConvertFrom-Json
+            $summary=($result.result | ConvertTo-Json -Compress) -replace '%','%25' -replace "`r",'%0D' -replace "`n",'%0A'
+            Write-Output "::notice title=Real native AI response::$summary"
+            Write-Output '::notice title=Local AI memory::Model unloaded after the real response'
+          } finally { Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: real-local-mallet-ai
+          path: |
+            ai-*.log
+            ai-response.json
+          retention-days: 7

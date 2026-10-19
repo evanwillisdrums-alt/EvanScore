@@ -47,6 +47,8 @@ void MalletSceneView::paint(QPainter* p) {
     // player. The overview preserves the complete range. All physical points
     // use the same uniform scale/inverse transform as hit testing.
     const auto active=pose.value("pitches").toList();
+    const bool compact=m_focusPlacement && height()<190 && !active.empty();
+    if(compact!=m_compactFraming) {m_compactFraming=compact;m_pickBounds={};}
     double left=-5,right=keyboardWidth+5,top=0,bottom=std::max(front+55,body.y()+24);
     if(m_focusPlacement && !active.empty()) {
         left=body.x()-30;right=body.x()+30;top=front;bottom=body.y()+24;
@@ -55,6 +57,15 @@ void MalletSceneView::paint(QPainter* p) {
             top=std::min(top,bar.value("y").toDouble()-6);
         }
         for(const auto& value:pose.value("wrists").toList()) {const auto w=location(value.toMap());left=std::min(left,w.x()-10);right=std::max(right,w.x()+10);bottom=std::max(bottom,w.y()+10);}
+        if(compact) {
+            // Detail uses the strike/holding area; the complete actor remains
+            // in a separate context inset. Preserve one uniform physical scale.
+            left=1e9;right=-1e9;top=1e9;bottom=-1e9;
+            for(const auto& value:pose.value("heads").toList()) {const auto h=value.toMap();if(!h.value("active").toBool())continue;
+                const auto t=location(h);left=std::min(left,t.x()-10);right=std::max(right,t.x()+10);top=std::min(top,t.y()-8);bottom=std::max(bottom,t.y()+8);}
+            for(const auto& value:pose.value("wrists").toList()) {const auto w=location(value.toMap());left=std::min(left,w.x()-8);right=std::max(right,w.x()+8);top=std::min(top,w.y()-8);bottom=std::max(bottom,w.y()+8);}
+            if(left>right) {left=body.x()-30;right=body.x()+30;top=front-30;bottom=body.y()+24;}
+        }
     }
     // Keep the picking surface still while notes are added/removed. Fit/Focus
     // explicitly reframes it; selecting a new note must not move the next key.
@@ -63,9 +74,11 @@ void MalletSceneView::paint(QPainter* p) {
         left=m_pickBounds.left();right=m_pickBounds.right();top=m_pickBounds.top();bottom=m_pickBounds.bottom();
     }
     const double overview=20;
-    const double scale=std::max(.01,std::min((width()-20)/std::max(1.0,right-left),(height()-overview-10)/std::max(1.0,bottom-top)))*m_zoom;
+    const double insetWidth=compact?std::min(90.0,width()*.18):0;
+    const double detailWidth=width()-insetWidth;
+    const double scale=std::max(.01,std::min((detailWidth-20)/std::max(1.0,right-left),(height()-overview-10)/std::max(1.0,bottom-top)))*m_zoom;
     const double center=m_zoom>1 && !m_scene.value("pickMode").toBool()?body.x():(left+right)/2;
-    m_transform=QTransform();m_transform.translate(width()/2-center*scale,overview+(height()-overview)/2-(top+bottom)*scale/2);m_transform.scale(scale,scale);
+    m_transform=QTransform();m_transform.translate(detailWidth/2-center*scale,overview+(height()-overview)/2-(top+bottom)*scale/2);m_transform.scale(scale,scale);
     // Range overview is deliberately a compact navigator, not a second
     // physical scene. The detailed scene below retains true proportions.
     const double overviewScale=(width()-24)/std::max(1.0,keyboardWidth);
@@ -76,7 +89,7 @@ void MalletSceneView::paint(QPainter* p) {
             std::max(1.0,bar.value("width").toDouble()*overviewScale),6),1,1);
     }
     if(m_focusPlacement && !active.empty()) {p->setPen(QPen(QColor("#b9cbd9"),1));p->setBrush(Qt::NoBrush);p->drawRoundedRect(QRectF(12+std::max(0.0,left)*overviewScale,1,(std::min(keyboardWidth,right)-std::max(0.0,left))*overviewScale,17),2,2);}
-    p->save();p->setClipRect(QRectF(0,overview,width(),height()-overview));
+    p->save();p->setClipRect(QRectF(0,overview,detailWidth,height()-overview));
     p->setTransform(m_transform);
     p->setPen(Qt::NoPen);
     p->setBrush(QColor(0, 0, 0, 35)); p->drawRoundedRect(QRectF(-4, 58, keyboardWidth+10, front-52), 3, 3);
@@ -155,16 +168,39 @@ void MalletSceneView::paint(QPainter* p) {
     }
     for(int m=0;m<heads.size() && m<4;++m) {
         const auto head=heads[m].toMap();if(!head.value("active").toBool())continue;const auto target=location(head);
-        const double radius=std::max(2.2,4.5/scale);
+        const double radius=m_scene.value("headDiameter",3).toDouble()/2;
         p->setPen(QPen(QColor("#3a4458"),.5));p->setBrush(colors[m]);p->drawEllipse(target,radius,radius);
         p->setPen(QColor("#ffffff"));QFont font;font.setPixelSize(std::max(4,int(9/scale)));font.setBold(true);p->setFont(font);
         const int label=m_scene.value("reverseNumbering").toBool()?4-m:m+1;
         p->drawText(QRectF(target.x()-radius*1.5,target.y()-radius*1.5,radius*3,radius*3),Qt::AlignCenter,QString::number(label));
     }
     p->restore();
+    if(compact) {
+        const QRectF inset(detailWidth+3,overview+3,insetWidth-6,height()-overview-6);
+        p->save();p->setClipRect(inset);p->fillRect(inset,m_background.lighter(108));
+        const double contextTop=std::min(top,body.y()-65),contextBottom=body.y()+24;
+        const double contextScale=std::min(inset.width()/90,inset.height()/std::max(1.0,contextBottom-contextTop));
+        p->translate(inset.center().x()-body.x()*contextScale,inset.top()-contextTop*contextScale);p->scale(contextScale,contextScale);
+        p->setPen(Qt::NoPen);p->setBrush(skin);p->drawEllipse(QPointF(body.x(),body.y()),19,17);
+        p->setBrush(QColor("#556d93"));p->drawRoundedRect(QRectF(body.x()-23,body.y()-5,46,25),10,10);
+        p->setBrush(hair);p->drawEllipse(QPointF(body.x(),body.y()-5),10,12);
+        for(int hand=0;hand<wrists.size() && hand<2;++hand) {
+            const auto wrist=location(wrists[hand].toMap());
+            const auto shoulder=location(pose.value("shoulders").toList().value(hand).toMap());
+            p->setPen(QPen(skin,6,Qt::SolidLine,Qt::RoundCap));p->drawLine(shoulder,wrist);
+            p->setBrush(skin);p->setPen(Qt::NoPen);p->drawEllipse(wrist,3,4);
+        }
+        for(int m=0;m<heads.size() && m<4;++m) {const auto head=heads[m].toMap();if(!head.value("active").toBool())continue;
+            const auto target=location(head);const auto anchor=location(anchors.value(m).toMap());
+            p->setPen(QPen(QColor("#c7a47b"),.8));p->drawLine(anchor,target);p->setPen(Qt::NoPen);p->setBrush(colors[m]);
+            const double radius=m_scene.value("headDiameter",3).toDouble()/2;p->drawEllipse(target,radius,radius);
+        }
+        p->restore();
+    }
 
 }
 int MalletSceneView::pitchAt(QPointF point) const {
+    if(m_compactFraming && point.y()>=20 && point.x()>=width()-std::min(90.0,width()*.18))return -1;
     const auto bars = m_scene.value("bars").toList();
     if(point.y()<20) {
         const double scale=(width()-24)/std::max(1.0,m_scene.value("keyboardWidth").toDouble());

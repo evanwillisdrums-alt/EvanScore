@@ -107,9 +107,9 @@ MalletPanelModel::MalletPanelModel(QObject* parent) : QObject(parent), Contextab
     m_player.reverseNumbering=prefs.value("evanscore/mallet/reverseNumbering",false).toBool();
     m_player.optimizeStrikes=prefs.value("evanscore/mallet/optimizeStrikes",true).toBool();
     m_search.allowOctaves=prefs.value("evanscore/mallet/allowOctaves",true).toBool();
-    m_search.keepBass=prefs.value("evanscore/mallet/keepBass",true).toBool();
-    m_search.keepMelody=prefs.value("evanscore/mallet/keepMelody",true).toBool();
-    m_search.allowInversion=prefs.value("evanscore/mallet/allowInversion",false).toBool();
+    m_search.keepBass=prefs.value("evanscore/mallet/keepBass",false).toBool();
+    m_search.keepMelody=prefs.value("evanscore/mallet/keepMelody",false).toBool();
+    m_search.allowInversion=prefs.value("evanscore/mallet/allowInversion",true).toBool();
     m_keyboard = keyboard(36, 96); publish();
 }
 void MalletPanelModel::setActive(bool value) {
@@ -326,7 +326,7 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         const auto description=fixedLinks ? (same?tr("Keep sticking • adjust strike placement"):tr("Keep sticking • revoice")) : same?tr("Secondary • change sticking"):tr("Secondary • revoice and change sticking");
         m_alternativeRows << QVariantMap {{"index", int(i)}, {"pitches", pitchesText(candidate)},
             {"description", description}, {"pros",pros}, {"cons",cons}, {"changes",changes}, {"mallets",integers(candidate.mallets)}, {"status",statusText(candidate)}, {"keepsSticking",written?links:fixedLinks},
-            {"severity", candidate.severity}, {"uncertain",candidate.uncertain}, {"leftOpening", candidate.openings[0]}, {"rightOpening", candidate.openings[1]}, {"valid", candidate.valid}};
+            {"severity", candidate.severity}, {"uncertain",candidate.uncertain}, {"leftOpening", candidate.openings[0]}, {"rightOpening", candidate.openings[1]}, {"musicalPreferenceCost",candidate.musicalCost}, {"valid", candidate.valid}};
     }
     const bool hasNotes = !m_pitches.empty();
     QString selectionHelp = m_pick
@@ -368,7 +368,7 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         {"pose", poseData(pose)}, {"originalPose",poseData(m_original)}, {"recommendKeep",!m_pitches.empty() && m_original.valid && !m_original.uncertain && m_original.severity==0}, {"heldPitches", integers(m_held)}, {"status", status}, {"notice", m_notice}, {"sticking", m_sticking},
         {"previousPitches", pitchesText(m_previous.pitches)}, {"nextPitches",pitchesText(m_next.pitches)}, {"contextNotes",m_contextNotes}, {"timingSource",tr("Native tempo timeline, without repeat expansion")}, {"previousSeconds",m_previousSeconds}, {"nextSeconds",m_nextSeconds}, {"analysisMs",m_analysisMs}, {"searchOrder",tr("Keep physical mallet links; revoice before justified reassignment")},
         {"skin", m_skin}, {"hair", m_hair}, {"malletCount", m_player.malletCount}, {"grip", m_player.grip},
-        {"opening", m_player.opening}, {"reach", m_player.reach}, {"shaft", m_player.shaft}, {"head", m_player.head},
+        {"opening", m_player.opening}, {"reach", m_player.reach}, {"shaft", m_player.shaft}, {"head", m_player.head}, {"headDiameter",m_player.head},
         {"accidentalHeight",m_player.accidentalHeight},{"rotation",m_player.rotation},{"inwardPreference",m_player.inwardPreference*100},{"bodyDistance",m_player.bodyDistance},{"handWidth",m_player.handWidth},{"travelSpeed",m_player.travelSpeed},
         {"reverseNumbering",m_player.reverseNumbering},{"optimizeStrikes",m_player.optimizeStrikes},{"allowOctaves",m_search.allowOctaves},{"keepBass",m_search.keepBass},{"keepMelody",m_search.keepMelody},{"allowInversion",m_search.allowInversion},
         {"bodyOffset", m_player.bodyOffset}, {"respectSticking", m_player.respectSticking}, {"selectedAlternative", m_selected},

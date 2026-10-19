@@ -352,6 +352,11 @@ target_link_libraries(notationscene_qml PRIVATE
     muse::uicomponents_qml
 )
 
+qt_add_resources(notationscene_qml mallet_ai_setup
+    PREFIX "/evanscore/ai"
+    FILES mallet-ai-setup.ps1
+)
+
 if(MUE_BUILD_NOTATIONSCENE_TESTS)
     add_subdirectory(tests)
 endif()

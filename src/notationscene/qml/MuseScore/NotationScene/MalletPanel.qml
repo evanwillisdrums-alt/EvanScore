@@ -573,16 +573,16 @@ Item {
                                         {key:"reverseNumbering", text:qsTrc("notation", "Reverse numbered convention (4–3 | 2–1)")},
                                         {key:"optimizeStrikes", text:qsTrc("notation", "Suggest edge access when substantially helpful")},
                                         {key:"allowOctaves", text:qsTrc("notation", "Allow octave revoicing alternatives")},
-                                        {key:"keepBass", text:qsTrc("notation", "Protect the original bass pitch")},
-                                        {key:"keepMelody", text:qsTrc("notation", "Protect the original top melody pitch")},
+                                        {key:"keepBass", text:qsTrc("notation", "Allow bass-note changes"), inverse:true},
+                                        {key:"keepMelody", text:qsTrc("notation", "Allow top-note changes"), inverse:true},
                                         {key:"allowInversion", text:qsTrc("notation", "Allow a different bass pitch class")}
                                     ]
                                     UiComponents.CheckBox {
                                         required property var modelData
                                         Layout.fillWidth: true
                                         text: modelData.text
-                                        checked: root.panelState[modelData.key] === true
-                                        onClicked: root.model.setOption(modelData.key, !checked)
+                                        checked: modelData.inverse ? root.panelState[modelData.key] === false : root.panelState[modelData.key] === true
+                                        onClicked: root.model.setOption(modelData.key, modelData.inverse ? checked : !checked)
                                         navigation.panel: panelNavigation
                                     }
                                 }
@@ -717,7 +717,8 @@ Item {
                                 }
                                 UiComponents.CheckBox {
                                     objectName: "mallet-local-ai-enabled"
-                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignLeft
+                                    Layout.maximumWidth: parent.width
                                     text: qsTrc("notation", "Optional local AI guidance")
                                     checked: root.assistantState.enabled === true
                                     onClicked: root.model.setAssistantEnabled(!checked)
@@ -729,7 +730,13 @@ Item {
                                     spacing: 8
                                     Label {
                                         Layout.fillWidth: true
-                                        text: qsTrc("notation", "Runs through Ollama on this computer; no API key. Install Ollama once and download a small local model, for example: ollama pull qwen2.5:1.5b. Check the model's license. A model around 1 GB can need several GB of free RAM while answering.")
+                                        text: qsTrc("notation", "No API key or account. Set up downloads a verified private CPU runtime and a small local model (about 2.5 GB total; 6 GB free disk space needed). After setup, the model loads only when you ask. Ordinary analysis still works without it.")
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-setup"
+                                        text: root.assistantState.managedReady ? qsTrc("notation", "Repair local AI setup") : qsTrc("notation", "Set up local AI (~2.5 GB)")
+                                        enabled: !root.assistantState.busy
+                                        onClicked: root.model.setupAssistant()
                                     }
                                     Button {
                                         objectName: "mallet-local-ai-discover"

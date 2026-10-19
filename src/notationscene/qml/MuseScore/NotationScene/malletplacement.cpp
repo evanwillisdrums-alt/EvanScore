@@ -225,7 +225,9 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
     pose.shaftClearance=std::numeric_limits<double>::max();
     for (int a=0;a<4;++a) for (int b=a+1;b<4;++b) if (pose.active[a]&&pose.active[b]) {
         const double separation=distance(pose.targets[a],pose.targets[b]);
-        if (separation<player.head) issue(pose,"heads","Mallets "+std::to_string(a+1)+" and "+std::to_string(b+1)+" overlap at the modeled strike points; adjust the points or attack.",2);
+        if (separation+1e-6<player.head) issue(pose,"heads","Mallets "+std::to_string(a+1)+" and "+std::to_string(b+1)
+            +": modeled center separation "+number(separation,2)+" cm is below the configured "+number(player.head,2)
+            +" cm head diameter. Check Head diameter in Player or move a strike point; this is a geometry estimate.",2);
         if (a/2!=b/2) pose.shaftClearance=std::min(pose.shaftClearance,shaftDistance(pose.anchors[a],pose.targets[a],pose.anchors[b],pose.targets[b]));
     }
     if (pose.shaftClearance==std::numeric_limits<double>::max()) pose.shaftClearance=-1;
@@ -339,13 +341,14 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
     const auto adjusted=solve(k,pitches,p,fixed,previous,previousSeconds,next,nextSeconds);
     if(!adjusted.empty()) append(kept,adjusted.front());
     std::vector<std::vector<int>> voicings;
+    const auto bassVoice=std::distance(pitches.begin(),std::min_element(pitches.begin(),pitches.end()));
+    const auto melodyVoice=std::distance(pitches.begin(),std::max_element(pitches.begin(),pitches.end()));
+    const int bass=pitches[bassVoice],melody=pitches[melodyVoice];
     auto generate=[&](std::vector<int> v) {
         if (v==pitches) return;
-        if (options.keepBass && v.front()!=pitches.front()) return;
-        if (options.keepMelody && v.back()!=pitches.back()) return;
-        if (options.keepBass && *std::min_element(v.begin(),v.end())!=pitches.front()) return;
-        if (options.keepMelody && *std::max_element(v.begin(),v.end())!=pitches.back()) return;
-        if (!options.allowInversion && *std::min_element(v.begin(),v.end())%12!=pitches.front()%12) return;
+        if (options.keepBass && (v[bassVoice]!=bass || *std::min_element(v.begin(),v.end())!=bass)) return;
+        if (options.keepMelody && (v[melodyVoice]!=melody || *std::max_element(v.begin(),v.end())!=melody)) return;
+        if (!options.allowInversion && *std::min_element(v.begin(),v.end())%12!=bass%12) return;
         for (int pitch:v) if (!k.bar(pitch)) return;
         auto sorted=v;std::sort(sorted.begin(),sorted.end());
         if (std::adjacent_find(sorted.begin(),sorted.end())!=sorted.end()) return;
@@ -373,10 +376,17 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
         if(pose.mallets!=fixed && useful(pose)) append(same,pose);
     kept.erase(std::remove_if(kept.begin(),kept.end(),[&](const Pose& pose){return !useful(pose);}),kept.end());
     changed.erase(std::remove_if(changed.begin(),changed.end(),[&](const Pose& pose){return !useful(pose);}),changed.end());
-    auto fidelity=[&](const Pose& pose) {int difference=0;for(size_t i=0;i<pitches.size();++i)difference+=std::abs(pose.pitches[i]-pitches[i]);return difference;};
+    auto musicalPreference=[&](Pose& pose) {
+        int octaves=0;for(size_t i=0;i<pitches.size();++i)octaves+=std::abs(pose.pitches[i]-pitches[i])/12;
+        pose.musicalCost=octaves*.5+(pose.pitches!=pitches?1:0)
+            +(*std::min_element(pose.pitches.begin(),pose.pitches.end())!=bass?2:0)
+            +(*std::max_element(pose.pitches.begin(),pose.pitches.end())!=melody?2:0);
+    };
+    for(auto* group:{&same,&kept,&changed})for(auto& pose:*group)musicalPreference(pose);
     auto rank=[&](const Pose& a,const Pose& b) {
         if (a.severity!=b.severity) return a.severity<b.severity;
-        const auto fa=fidelity(a),fb=fidelity(b);if(fa!=fb)return fa<fb;
+        const auto ca=a.cost+a.musicalCost,cb=b.cost+b.musicalCost;
+        if(std::abs(ca-cb)>1e-7)return ca<cb;
         return better(a,b);
     };
     std::stable_sort(same.begin(),same.end(),better);std::stable_sort(kept.begin(),kept.end(),rank);std::stable_sort(changed.begin(),changed.end(),rank);

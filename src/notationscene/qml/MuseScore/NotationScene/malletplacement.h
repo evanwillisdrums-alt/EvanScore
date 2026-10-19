@@ -48,12 +48,13 @@ struct Pose {
     Point body;
     double cost = 0, outerSpread = 0, handClearance = 0, shaftClearance = 0;
     double movement = 0, preparation = 0;
+    double musicalCost = 0; // Recommendation preference only; never physical difficulty.
     int severity = 0;
     bool valid = true, uncertain = false;
     std::vector<Issue> issues;
 };
 struct SearchOptions {
-    bool allowOctaves = true, keepBass = true, keepMelody = true, allowInversion = false;
+    bool allowOctaves = true, keepBass = false, keepMelody = false, allowInversion = true;
 };
 struct WrittenSticking { std::vector<int> required; bool unknown = false; std::string reason; };
 WrittenSticking parseWrittenSticking(const std::string& text, std::size_t notes, bool reverseNumbering = false);
