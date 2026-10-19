@@ -36,6 +36,7 @@ private:
     void finish(QNetworkReply*, quint64 generation, bool discovery);
     void startManagedService();
     void stopManagedService();
+    bool ownChildProcess(QProcess* process);
     bool busy() const;
     QNetworkAccessManager* m_network = nullptr;
     QPointer<QNetworkReply> m_reply;
@@ -54,5 +55,6 @@ private:
     int m_startAttempts = 0;
     bool m_managed = false, m_starting = false;
     QString m_backendLog;
+    void* m_processJob = nullptr; // Windows job: private children die with this app.
 };
 }

@@ -21,6 +21,10 @@
 #include <QTemporaryDir>
 
 #ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 static void initializeMalletAiResource() { Q_INIT_RESOURCE(mallet_ai_setup); }
 #endif
 
@@ -100,11 +104,17 @@ MalletAssistant::MalletAssistant(QObject* parent, QUrl endpoint) : QObject(paren
         cancel();m_status=tr("Local AI setup timed out. Retry to resume the model download; ordinary analysis still works.");emit changed();
     });
 }
-MalletAssistant::~MalletAssistant() { cancel();stopManagedService(); }
+MalletAssistant::~MalletAssistant() {
+    cancel();stopManagedService();
+#ifdef Q_OS_WIN
+    if(m_processJob)CloseHandle(static_cast<HANDLE>(m_processJob));
+#endif
+}
 bool MalletAssistant::busy() const { return m_reply || m_setup || m_starting; }
 QVariantMap MalletAssistant::state() const {
     return {{"enabled",m_enabled},{"busy",busy()},{"settingUp",!m_setup.isNull()},{"managedReady",m_managed},{"models",m_models},{"model",m_model},
-        {"status",m_status},{"result",m_result},{"endpoint",m_endpoint.toString()},{"backendLog",m_backendLog}};
+        {"status",m_status},{"result",m_result},{"endpoint",m_endpoint.toString()},{"backendLog",m_backendLog},
+        {"privateServicePid",m_server?m_server->processId():0},{"setupPid",m_setup?m_setup->processId():0}};
 }
 void MalletAssistant::invalidate() {
     ++m_generation;m_timeout.stop();m_result.clear();m_context.clear();m_pendingContext.clear();m_response.clear();
@@ -290,19 +300,42 @@ void MalletAssistant::cancel() {
     if(m_setup) {
         auto* process=m_setup.data();m_setup=nullptr;
 #ifdef Q_OS_WIN
-        if(process->processId()>0)QProcess::execute("taskkill.exe",{"/PID",QString::number(process->processId()),"/T","/F"});
-#else
-        process->kill();
+        if(m_processJob)TerminateJobObject(static_cast<HANDLE>(m_processJob),1);
 #endif
+        process->kill();process->waitForFinished(1000);
         process->deleteLater();m_setupDirectory.reset();
     }
     invalidate();
+    if(m_managed)stopManagedService();
 }
 void MalletAssistant::stopManagedService() {
     if(!m_server)return;
     auto* server=m_server.data();m_server=nullptr;
     if(server->state()!=QProcess::NotRunning) {server->terminate();if(!server->waitForFinished(1000))server->kill();}
+#ifdef Q_OS_WIN
+    if(m_processJob)TerminateJobObject(static_cast<HANDLE>(m_processJob),0);
+#endif
     server->deleteLater();
+}
+bool MalletAssistant::ownChildProcess(QProcess* process) {
+#ifdef Q_OS_WIN
+    if(!m_processJob) {
+        const auto job=CreateJobObjectW(nullptr,nullptr);
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+        limits.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if(!job || !SetInformationJobObject(job,JobObjectExtendedLimitInformation,&limits,sizeof(limits))) {
+            if(job)CloseHandle(job);return false;
+        }
+        m_processJob=job;
+    }
+    const auto child=OpenProcess(PROCESS_SET_QUOTA|PROCESS_TERMINATE,FALSE,DWORD(process->processId()));
+    const bool assigned=child && AssignProcessToJobObject(static_cast<HANDLE>(m_processJob),child);
+    if(child)CloseHandle(child);
+    return assigned;
+#else
+    Q_UNUSED(process);
+    return false;
+#endif
 }
 void MalletAssistant::startManagedService() {
 #ifdef Q_OS_WIN
@@ -311,6 +344,12 @@ void MalletAssistant::startManagedService() {
     server->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args){args->flags|=0x08000000;});
     server->setProcessEnvironment(managedEnvironment());server->setWorkingDirectory(managedRoot()+"/runtime");
     server->setProcessChannelMode(QProcess::MergedChannels);
+    connect(server,&QProcess::started,this,[this,server]() {
+        if(m_server==server && !ownChildProcess(server)) {
+            stopManagedService();m_starting=false;m_startTimer.stop();invalidate();
+            m_status=tr("Windows could not safely contain the private AI service. Ordinary analysis still works.");emit changed();
+        }
+    });
     connect(server,&QProcess::readyRead,this,[this,server]() {m_backendLog=(m_backendLog+QString::fromUtf8(server->readAll())).right(4096);});
     connect(server,&QProcess::errorOccurred,this,[this,server](QProcess::ProcessError) {
         if(m_server!=server)return;m_starting=false;m_startTimer.stop();
@@ -343,7 +382,13 @@ void MalletAssistant::setup() {
     process->setProcessEnvironment(setupEnvironment);
     process->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args){args->flags|=0x08000000;});
     process->setProcessChannelMode(QProcess::MergedChannels);
+    connect(process,&QProcess::started,this,[this,process]() {
+        if(m_setup==process && !ownChildProcess(process)) {
+            cancel();m_status=tr("Windows could not safely contain local AI setup. Ordinary analysis still works.");emit changed();
+        }
+    });
     connect(process,&QProcess::readyRead,this,[this,process]() {
+        if(m_setup!=process)return;
         const auto text=QString::fromUtf8(process->readAll());m_backendLog=(m_backendLog+text).right(4096);
         const auto marker=text.lastIndexOf("EVAN_AI_PROGRESS|");
         if(marker>=0)m_status=text.mid(marker+17).trimmed().left(500);

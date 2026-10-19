@@ -12,6 +12,9 @@
 #include <cstdio>
 #include "malletassistant.h"
 #include "malletplacement.h"
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 using namespace mu::notation;
 using namespace mu::notation::mallet;
 static QVariantMap facts(const Pose& pose,const QString& id,bool fixed=true) {
@@ -53,7 +56,8 @@ static bool unloaded() {
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     const bool setup=app.arguments().contains("--setup");
-    MalletAssistant client(nullptr,QUrl(setup?"http://127.0.0.1:11434":"http://127.0.0.1:11435"));
+    const bool abrupt=app.arguments().contains("--abrupt-exit");
+    MalletAssistant client(nullptr,QUrl(setup || abrupt?"http://127.0.0.1:11434":"http://127.0.0.1:11435"));
     QObject::connect(&client,&MalletAssistant::changed,&app,[&]() {
         std::printf("AI_STATUS %s\n",qPrintable(client.state().value("status").toString()));std::fflush(stdout);
     });
@@ -65,6 +69,15 @@ int main(int argc,char** argv) {
         }
     } else client.discover();
     if(!wait(client,10000) || client.state().value("models").toList().empty()) {std::fprintf(stderr,"Local models unavailable\n");return 1;}
+    if(abrupt) {
+        if(client.state().value("privateServicePid").toLongLong()<=0)return 12;
+#ifdef Q_OS_WIN
+        // Bypass all destructors. The kernel job must still close the private
+        // runtime and descendants when this client exits unexpectedly.
+        TerminateProcess(GetCurrentProcess(),73);
+#endif
+        return 13;
+    }
     client.setModel("qwen2.5:1.5b");
     const auto keys=keyboard(36,96);const Player player;
     const auto comfortable=solve(keys,{60,64,67,72},player).front();

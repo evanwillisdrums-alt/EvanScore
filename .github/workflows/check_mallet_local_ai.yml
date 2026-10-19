@@ -51,6 +51,17 @@ jobs:
           Write-Output "::notice title=Real native AI response::$summary"
           Write-Output '::notice title=Local AI memory::Actual native setup succeeded; model unloaded after the real response'
           Copy-Item (Join-Path $root 'setup-service*.log') . -ErrorAction SilentlyContinue
+          $PSNativeCommandUseErrorActionPreference=$false
+          & ./ai-contract-build/mallet-ai-contract.exe --abrupt-exit *> ai-abrupt.log
+          if ($LASTEXITCODE -ne 73) { Get-Content ai-abrupt.log -Tail 12; throw 'Abrupt-exit fixture did not reach its owned-service checkpoint' }
+          $alive=$true
+          for ($n=0; $n -lt 40; $n++) {
+            try { $null=Invoke-RestMethod http://127.0.0.1:11435/api/version -TimeoutSec 1 } catch { $alive=$false; break }
+            Start-Sleep -Milliseconds 250
+          }
+          if ($alive) { throw 'Private AI service survived abrupt application exit' }
+          $global:LASTEXITCODE=0
+          Write-Output '::notice title=Private runtime ownership::Kernel cleanup stopped the private service after abrupt application exit'
       - uses: actions/upload-artifact@v7
         if: always()
         with:
