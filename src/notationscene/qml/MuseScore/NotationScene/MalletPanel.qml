@@ -556,6 +556,89 @@ Item {
                                 Layout.fillWidth: true
                                 spacing: 8
                                 UiComponents.CheckBox {
+                                    objectName: "mallet-local-ai-enabled"
+                                    Layout.alignment: Qt.AlignLeft
+                                    Layout.maximumWidth: parent.width
+                                    text: qsTrc("notation", "Optional local AI guidance")
+                                    checked: root.assistantState.enabled === true
+                                    onClicked: root.model.setAssistantEnabled(!checked)
+                                    navigation.panel: panelNavigation
+                                }
+                                ColumnLayout {
+                                    visible: root.assistantState.enabled === true
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "No API key or account. Set up downloads a verified private CPU runtime and a small local model (about 2.5 GB total; 6 GB free disk space needed). After setup, the model loads only when you ask. Ordinary analysis still works without it.")
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-setup"
+                                        text: root.assistantState.managedReady ? qsTrc("notation", "Repair local AI setup") : qsTrc("notation", "Set up local AI (~2.5 GB)")
+                                        enabled: !root.assistantState.busy
+                                        onClicked: root.model.setupAssistant()
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-discover"
+                                        text: qsTrc("notation", "Check local models")
+                                        enabled: !root.assistantState.busy
+                                        onClicked: root.model.discoverAssistantModels()
+                                    }
+                                    StyledDropdown {
+                                        objectName: "mallet-local-ai-model"
+                                        Layout.fillWidth: true
+                                        enabled: !root.assistantState.busy
+                                        model: root.assistantState.models || []
+                                        currentIndex: (root.assistantState.models || []).findIndex(item => item.value === root.assistantState.model)
+                                        onActivated: function(index, value) { root.model.setAssistantModel(value); }
+                                    }
+                                    RowLayout {
+                                        Button {
+                                            objectName: "mallet-local-ai-ask"
+                                            text: qsTrc("notation", "Explain this chord")
+                                            enabled: !!root.panelState.hasNotes && !!root.assistantState.model && !root.assistantState.busy
+                                            onClicked: root.model.askAssistant()
+                                        }
+                                        Button {
+                                            objectName: "mallet-local-ai-cancel"
+                                            text: qsTrc("notation", "Cancel")
+                                            visible: root.assistantState.busy === true
+                                            onClicked: root.model.cancelAssistant()
+                                        }
+                                    }
+                                    Label {
+                                        objectName: "mallet-local-ai-status"
+                                        Layout.fillWidth: true
+                                        text: root.assistantState.status || ""
+                                    }
+                                    Repeater {
+                                        model: root.assistantState.result?.benefits || []
+                                        Label { required property string modelData; Layout.fillWidth: true; text: "+ " + modelData; textFormat: Text.PlainText }
+                                    }
+                                    Repeater {
+                                        model: root.assistantState.result?.tradeoffs || []
+                                        Label { required property string modelData; Layout.fillWidth: true; text: "• " + modelData; textFormat: Text.PlainText }
+                                    }
+                                    Label {
+                                        visible: !!root.assistantState.result?.candidateId
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "Reference IDs: ") + (root.assistantState.result?.sourceIds || []).join(", ")
+                                        textFormat: Text.PlainText
+                                        opacity: .8
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-preview"
+                                        text: qsTrc("notation", "Preview checked candidate")
+                                        visible: !!root.assistantState.result?.candidateId && root.assistantState.result.candidateId !== "none"
+                                        onClicked: root.model.previewAssistant()
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "AI selects checked candidates and highlights supplied facts. Displayed measurements and tradeoffs come from native analysis. Preview first, then use Apply to score; AI cannot edit it. Geometry is estimated. Sources: USER = your specification; SYNTHESIS = supplied summaries; MODEL = geometry, not verified biomechanics. The model unloads after each answer.")
+                                        opacity: .8
+                                    }
+                                }
+                                UiComponents.CheckBox {
                                     Layout.fillWidth: true
                                     text: qsTrc("notation", "Respect written sticking")
                                     checked: root.panelState.respectSticking === true
@@ -720,89 +803,7 @@ Item {
                                     text: qsTrc("notation", "Inward tilt gets a modest cost preference, default 15%; set it to 0 for neutral ranking. This is your preference applied to estimated pair geometry, not a universal wrist limit.")
                                     opacity: .8
                                 }
-                                UiComponents.CheckBox {
-                                    objectName: "mallet-local-ai-enabled"
-                                    Layout.alignment: Qt.AlignLeft
-                                    Layout.maximumWidth: parent.width
-                                    text: qsTrc("notation", "Optional local AI guidance")
-                                    checked: root.assistantState.enabled === true
-                                    onClicked: root.model.setAssistantEnabled(!checked)
-                                    navigation.panel: panelNavigation
-                                }
-                                ColumnLayout {
-                                    visible: root.assistantState.enabled === true
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: qsTrc("notation", "No API key or account. Set up downloads a verified private CPU runtime and a small local model (about 2.5 GB total; 6 GB free disk space needed). After setup, the model loads only when you ask. Ordinary analysis still works without it.")
-                                    }
-                                    Button {
-                                        objectName: "mallet-local-ai-setup"
-                                        text: root.assistantState.managedReady ? qsTrc("notation", "Repair local AI setup") : qsTrc("notation", "Set up local AI (~2.5 GB)")
-                                        enabled: !root.assistantState.busy
-                                        onClicked: root.model.setupAssistant()
-                                    }
-                                    Button {
-                                        objectName: "mallet-local-ai-discover"
-                                        text: qsTrc("notation", "Check local models")
-                                        enabled: !root.assistantState.busy
-                                        onClicked: root.model.discoverAssistantModels()
-                                    }
-                                    StyledDropdown {
-                                        objectName: "mallet-local-ai-model"
-                                        Layout.fillWidth: true
-                                        enabled: !root.assistantState.busy
-                                        model: root.assistantState.models || []
-                                        currentIndex: (root.assistantState.models || []).findIndex(item => item.value === root.assistantState.model)
-                                        onActivated: function(index, value) { root.model.setAssistantModel(value); }
-                                    }
-                                    RowLayout {
-                                        Button {
-                                            objectName: "mallet-local-ai-ask"
-                                            text: qsTrc("notation", "Explain this chord")
-                                            enabled: !!root.panelState.hasNotes && !!root.assistantState.model && !root.assistantState.busy
-                                            onClicked: root.model.askAssistant()
-                                        }
-                                        Button {
-                                            objectName: "mallet-local-ai-cancel"
-                                            text: qsTrc("notation", "Cancel")
-                                            visible: root.assistantState.busy === true
-                                            onClicked: root.model.cancelAssistant()
-                                        }
-                                    }
-                                    Label {
-                                        objectName: "mallet-local-ai-status"
-                                        Layout.fillWidth: true
-                                        text: root.assistantState.status || ""
-                                    }
-                                    Repeater {
-                                        model: root.assistantState.result?.benefits || []
-                                        Label { required property string modelData; Layout.fillWidth: true; text: "+ " + modelData; textFormat: Text.PlainText }
-                                    }
-                                    Repeater {
-                                        model: root.assistantState.result?.tradeoffs || []
-                                        Label { required property string modelData; Layout.fillWidth: true; text: "• " + modelData; textFormat: Text.PlainText }
-                                    }
-                                    Label {
-                                        visible: !!root.assistantState.result?.candidateId
-                                        Layout.fillWidth: true
-                                        text: qsTrc("notation", "Reference IDs: ") + (root.assistantState.result?.sourceIds || []).join(", ")
-                                        textFormat: Text.PlainText
-                                        opacity: .8
-                                    }
-                                    Button {
-                                        objectName: "mallet-local-ai-preview"
-                                        text: qsTrc("notation", "Preview checked candidate")
-                                        visible: !!root.assistantState.result?.candidateId && root.assistantState.result.candidateId !== "none"
-                                        onClicked: root.model.previewAssistant()
-                                    }
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: qsTrc("notation", "AI selects checked candidates and highlights supplied facts. Displayed measurements and tradeoffs come from native analysis. Preview first, then use Apply to score; AI cannot edit it. Geometry is estimated. Sources: USER = your specification; SYNTHESIS = supplied summaries; MODEL = geometry, not verified biomechanics. The model unloads after each answer.")
-                                        opacity: .8
-                                    }
-                                }
+
                             }
                             Label {
                                 Layout.fillWidth: true

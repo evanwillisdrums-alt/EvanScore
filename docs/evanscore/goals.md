@@ -50,6 +50,9 @@ Final Dynamics/Mixer run 38035605557 passed repeated mixed edits, real Set all t
   preference. Keep code analysis independent of AI. The native setup test caught
   and corrected a shell dependency; harder inference tests are a separate gate.
   See the top checkpoint for passing/failing/running evidence and release status.
+  Real-model factual review required restricting explanations to checked fact
+  references; numerical prose is no longer generated. Setup, inference, unloading
+  and abrupt-exit cleanup pass on Windows; the complete app rebuild remains a gate.
 - **Active, 2026-10-19:** correct mallet identity/order, true revoicing priority and score pitch spelling; add a modest adjustable inward preference, optional lazy local AI guidance and live memory percentages in Diagnostics. Code remains authoritative and works without AI or sufficient model RAM. Native Windows validation and real-model musical assessment are separate gates; see [local AI](mallet-local-ai.md).
 - **Queued, 2026-10-19:** limit the automatic above-staff accent default to percussion; allow manual accent direction and voice assignment. Newly created marching-snare staves default to three lines and cymbal staves to two. Preserve saved scores and explicit staff/placement choices. Native cross-bar tuplets remain ahead of these new notation requests after the current mallet work.
 - **Queue, 2026-10-16:** complete the in-depth first-time-writer mallet audit first, prioritizing real clicks on suggestion cards, selection consistency, useful explanations and safe Apply/Undo. Next fix/test keypad buzzes and all tremolo counts on existing notes and selected ranges (the user's confirmed failing workflow). Then add a score-wide stem-length style control that affects notes skipped by the existing Shorten stems option, with persistent style defaults. Treat new user requests as queued work unless they explicitly change priority.

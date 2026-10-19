@@ -82,7 +82,9 @@ physical rows separate from enharmonic naming. The E–F♯–G–B♭ same-row 
 useful exception, not a universal row-splitting rule. Inward tilt preference is
 modest/configurable. Optional local AI must never replace the sticking reader or
 geometry/score-edit code: unavailable or insufficient model RAM leaves those
-features functioning. Real Windows inference and unloading passed a small
+features functioning. AI output now selects checked candidate/fact IDs; render
+native candidate measurements/tradeoffs rather than generated numerical prose.
+Real Windows setup, inference, unloading and abrupt-exit cleanup pass small
 integration fixture; model musical expertise is not established. The native
 setup/lifecycle gate and full app checks remain required. See
 mallet-local-ai.md and the top checkpoint for the current build/tests. Diagnostics
@@ -90,3 +92,8 @@ shows system and process memory percentages separately. Queued after native
 cross-bar tuplets: percussion-only above-staff accent defaults with editable
 direction/voice, three-line marching snare and two-line cymbal defaults for new
 staves; preserve saved/explicit choices.
+
+Windows platform sources (currently processmemory.cpp and malletassistant.cpp)
+must stay outside notationscene unity files: windows.h defines ABSOLUTE, which
+collides with engraving PropertyValue types. The standalone AI check alone does
+not catch that full-app integration error; retain the full Windows compile gate.

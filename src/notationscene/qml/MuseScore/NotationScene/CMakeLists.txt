@@ -331,8 +331,8 @@ qt_add_qml_module(notationscene_qml
 )
 
 # Windows headers define names such as ABSOLUTE used by engraving enums.
-# Keep platform memory queries out of unity files and public model headers.
-set_source_files_properties(processmemory.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+# Keep platform memory/process APIs out of unity files and public model headers.
+set_source_files_properties(processmemory.cpp malletassistant.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 
 fixup_qml_module_dependencies(notationscene_qml)
 

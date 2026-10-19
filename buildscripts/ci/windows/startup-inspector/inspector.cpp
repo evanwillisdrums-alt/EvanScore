@@ -818,6 +818,9 @@ private:
         if(aiState.value("busy").toBool())qFatal("Enabling optional AI must not start inference or discovery");
         auto aiSetup=findItem(panel,"mallet-local-ai-setup");
         if(!aiSetup || !aiSetup->isEnabled())qFatal("Explicit local AI setup action is unavailable");
+        QFile setupData(":/evanscore/ai/mallet-ai-setup.ps1");
+        if(!setupData.open(QIODevice::ReadOnly) || !setupData.readAll().contains("e359637575302f288d76c0007c408a4be9c7376d59c4f28684d63b232a44b427"))
+            qFatal("The complete app does not expose its verified embedded local AI setup script");
         auto aiAsk=findItem(panel,"mallet-local-ai-ask");
         if(!aiAsk || aiAsk->isEnabled())qFatal("Local AI must not infer without an installed selected model");
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({10,aiToggle->height()/2}).toPoint());QTest::qWait(100);

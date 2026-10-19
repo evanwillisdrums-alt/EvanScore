@@ -6,6 +6,25 @@ User is away and explicitly requests no questions. Prioritize working AI,
 compact readability/overlap/default permissions, then queued notation work.
 No extra user permission setting is needed to edit this repository.
 
+**Latest correction:** source **af6eddef48d** replaces generated explanatory prose
+with AI-selected checked fact IDs. Native validation rejects invented/other-
+candidate IDs and added free text, then renders exact candidate measurements and
+tradeoffs. **Windows 39316734774/check 118280050565 passes** native private setup,
+real requests on actual solver chords, service restart/unloading, and abrupt-exit
+kernel cleanup. Actual reviewed output correctly reports 12.3/17.2 cm for the
+comfortable original, 13.5/11.6 cm for the checked revoicing, and Voice 3 G3→G4 as
+the register/balance tradeoff. This supersedes the bad free-prose results below.
+Local regression counts are now **37 core/client + 35 model/score/painter**, all
+passing. QML parses. AI controls are moved to the top of Player for discoverability.
+
+Full app **39315772503/source 356c427dbfe** failed compiling unity_2_cxx.cxx,
+propertyvalue.h:57 ABSOLUTE macro collision from the new private Windows job API.
+Diagnostic **39317013240/check 118281010350** retains the exact compiler cascade.
+Current CMake excludes malletassistant.cpp from unity, matching the existing
+processmemory.cpp isolation. Rebuild this correction before any download. Its
+old watcher/capture helper were stopped and evidence copied with a 356c- prefix;
+release-watch.json is marked superseded, not ready. Start new final-source gates.
+
 Explicit Windows x64 private CPU setup installs under LOCALAPPDATA/EvanScore/
 local-ai, verifies the official pinned Ollama v0.40.6 archive SHA256, downloads
 Qwen 2.5 1.5B and retains its license. The owned loopback service uses 11435.

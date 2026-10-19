@@ -17,6 +17,16 @@ The requested result is one continuous tuplet group across a barline, retaining 
 
 ## Concrete timing reference
 
+Native probe on 2026-10-19 confirms the rational duration model can represent the
+four fragments below as exactly 1/2 whole note, with one logical Tuplet pointer
+and 1/6 + 1/12 + 1/12 + 1/6 actual durations. It also reproduces an additional
+editing defect: `Tuplet::add()` sorts by each member's measure-relative tick, so
+the resulting absolute order is 1, 13/12, 3/4, 11/12 rather than chronological.
+This is not a released cross-bar implementation. The isolated ASan-linked probe
+and output are under `/workspace/evanscore-validation/20261019/crossbar`; it uses
+real engraving objects and does not change production source. Sorting, missing-
+element repair, ownership/Undo, persistence and system segments still need work.
+
 [Reference MusicXML](research/cross-bar-tuplet-reference.musicxml) describes a quarter-note 3:2 C–D–E group beginning on beat 4 of 4/4 and ending after beat 1 of the next measure. D splits into tied triplet eighths over the barline; there are three attacks and four printed note fragments. Both measures contain exactly four beats, and the one group lasts two beats. XML structure/rational durations have been checked; import/rendering in the current app is **not** claimed to preserve the group. Use this as an implementation acceptance input, not a released workaround.
 
 ## Implementation direction to prove

@@ -96,8 +96,16 @@ recommendation. The model cannot override this policy; it may still return none.
 This guard was added after a real small-model test incorrectly kept a 54.7 cm
 opening despite a checked 11.6 cm revoicing.
 
-Generated prose can still be wrong. Candidate validity means the deterministic
-model's checks passed, not that human biomechanics or musical judgment is proven.
+The model selects explanation **fact IDs**, not free-form numerical prose. The
+native validator rejects invented IDs, another candidate's facts, and added text
+fields, then renders the selected candidate's native measurements and tradeoffs.
+Its primary measured benefit and tradeoff are always included. A real-model test
+caught fabricated arithmetic in otherwise valid prose; the current protocol
+prevents that text from reaching the viewer. This is AI-assisted selection and
+fact emphasis, not unrestricted generated coaching.
+
+Candidate validity means the deterministic model's checks passed, not that human
+biomechanics or musical judgment is proven.
 The assistant currently cannot invent additional voicings outside the bounded
 search, demonstrate full passage motion, or replace a performer's review.
 
