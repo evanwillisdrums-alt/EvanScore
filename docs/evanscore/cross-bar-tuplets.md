@@ -27,6 +27,16 @@ and output are under `/workspace/evanscore-validation/20261019/crossbar`; it use
 real engraving objects and does not change production source. Sorting, missing-
 element repair, ownership/Undo, persistence and system segments still need work.
 
+After manually sorting that investigation object, the real native writer/current
+reader still loses second-measure membership: the note fragment's intended actual
+duration is 1/12, but it reopens as an ordinary 1/8. The same harness retains all
+three 1/6 attacks of an ordinary one-measure triplet. This is differential evidence
+for the boundary limitation, not successful cross-bar persistence. The probe does
+not exercise full layout/audio or tie playback; retained mock services also report
+missing chord resources/EID warnings. Do not offer its investigative MSCX as a
+workaround. Its missing application-service harness error was fixed before the
+read/write results were recorded.
+
 [Reference MusicXML](research/cross-bar-tuplet-reference.musicxml) describes a quarter-note 3:2 C–D–E group beginning on beat 4 of 4/4 and ending after beat 1 of the next measure. D splits into tied triplet eighths over the barline; there are three attacks and four printed note fragments. Both measures contain exactly four beats, and the one group lasts two beats. XML structure/rational durations have been checked; import/rendering in the current app is **not** claimed to preserve the group. Use this as an implementation acceptance input, not a released workaround.
 
 ## Implementation direction to prove

@@ -1,5 +1,28 @@
 # Development checkpoint
 
+## Frozen AI release candidate — 2026-10-19 20:32 UTC
+
+Source **041f9fe067b40675642e45578fbd80c96bd9a97c** is frozen. Deferred queue
+dispatched final Windows build **39319891960** after **39317474765/fc350a24e93**
+passed full compile, startup/export/closure and fresh-machine checks, confirming
+the Windows unity isolation fix. Only the verified hidden-head/inset click guard
+differs in the new binary. Keep product source frozen through native release
+gates and actual capture review.
+
+Monitor state: `/workspace/evanscore-validation/20261019/final-build-queue.json`
+and `release-watch.json/log`; monitor PID 233598, capture helper 233599. The helper
+retrieves complete-app images; view both before marking ready or sharing a
+download. Real AI proof: **39316734774/check 118280050565**, with backend/script/
+contract source identical to the frozen commit. No newer download is yet verified.
+
+Isolated queue probes (not production changes) show ordinary triplets round-trip,
+but a manually assembled cross-bar group's second-bar membership is lost: its
+1/12 D fragment reopens as 1/8. Initial add order uses relative ticks. Native DOM
+also reproduces above accents on pitched staves and despite explicit Bottom/DOWN.
+These diagnostic probes have mock-service/resource warnings; they are not full
+app rendering/playback acceptance. See validation `ACTIVE-CHECKPOINT.md` and
+`crossbar/roundtrip-probes.log`. Current priority remains final AI release gates.
+
 ## Active follow-up — managed local AI and compact view, 2026-10-19
 
 User is away and explicitly requests no questions. Prioritize working AI,
