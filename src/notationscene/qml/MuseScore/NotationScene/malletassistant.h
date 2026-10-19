@@ -50,7 +50,7 @@ private:
     quint64 m_generation = 0;
     QPointer<QProcess> m_setup, m_server;
     std::unique_ptr<QTemporaryDir> m_setupDirectory;
-    QTimer m_startTimer;
+    QTimer m_startTimer, m_setupTimer;
     int m_startAttempts = 0;
     bool m_managed = false, m_starting = false;
     QString m_backendLog;

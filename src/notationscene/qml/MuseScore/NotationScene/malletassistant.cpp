@@ -68,6 +68,10 @@ MalletAssistant::MalletAssistant(QObject* parent, QUrl endpoint) : QObject(paren
         if(++m_startAttempts>80) {cancel();m_status=tr("Private AI service did not start. Re-run setup or check the backend log in Diagnostics.");emit changed();return;}
         if(!m_reply)request("/api/tags");
     });
+    m_setupTimer.setSingleShot(true);
+    connect(&m_setupTimer,&QTimer::timeout,this,[this]() {
+        cancel();m_status=tr("Local AI setup timed out. Retry to resume the model download; ordinary analysis still works.");emit changed();
+    });
 }
 MalletAssistant::~MalletAssistant() { cancel();stopManagedService(); }
 bool MalletAssistant::busy() const { return m_reply || m_setup || m_starting; }
@@ -238,7 +242,7 @@ void MalletAssistant::finish(QNetworkReply* reply,quint64 generation,bool discov
 }
 
 void MalletAssistant::cancel() {
-    m_starting=false;m_startTimer.stop();
+    m_starting=false;m_startTimer.stop();m_setupTimer.stop();
     if(m_setup) {
         auto* process=m_setup.data();m_setup=nullptr;
 #ifdef Q_OS_WIN
@@ -268,6 +272,11 @@ void MalletAssistant::startManagedService() {
         if(m_server!=server)return;m_starting=false;m_startTimer.stop();
         m_status=tr("Private local AI could not start. Re-run setup; details are in feature Diagnostics.");emit changed();
     });
+    connect(server,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,server](int,QProcess::ExitStatus) {
+        if(m_server!=server)return;m_server=nullptr;server->deleteLater();
+        m_starting=false;m_startTimer.stop();invalidate();
+        m_status=tr("Private AI service stopped. Check the backend log in Diagnostics or retry setup.");emit changed();
+    });
     server->start(managedRoot()+"/runtime/ollama.exe",{"serve"});m_startTimer.start();
     m_status=tr("Starting private local AI service without loading the model…");emit changed();
 #endif
@@ -293,17 +302,18 @@ void MalletAssistant::setup() {
         emit changed();
     });
     connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,process](int code,QProcess::ExitStatus status) {
-        process->deleteLater();if(m_setup!=process)return;m_setup=nullptr;m_setupDirectory.reset();
+        process->deleteLater();if(m_setup!=process)return;m_setup=nullptr;m_setupTimer.stop();m_setupDirectory.reset();
         if(code!=0 || status!=QProcess::NormalExit) {m_status=tr("Local AI setup did not finish. Re-run it to resume; see backend log in Diagnostics.");emit changed();return;}
         m_managed=QFile::exists(managedRoot()+"/ready.json");m_endpoint=QUrl("http://127.0.0.1:11435");
         if(!m_managed) {m_status=tr("Local AI setup did not produce its completion marker.");emit changed();return;}
         discover();
     });
     connect(process,&QProcess::errorOccurred,this,[this,process](QProcess::ProcessError) {
-        if(m_setup!=process)return;m_setup=nullptr;process->deleteLater();m_setupDirectory.reset();
+        if(m_setup!=process)return;m_setup=nullptr;m_setupTimer.stop();process->deleteLater();m_setupDirectory.reset();
         m_status=tr("Windows could not launch local AI setup. Check PowerShell and feature Diagnostics.");emit changed();
     });
     process->start("powershell.exe",{"-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-File",script.fileName(),"-Root",QDir::toNativeSeparators(managedRoot())});
+    m_setupTimer.start(30*60*1000);
     m_status=tr("Preparing private local AI setup…");emit changed();
 #else
     m_status=tr("Automatic setup currently supports Windows x64. Install Ollama and a small local model to use the local connection here.");emit changed();

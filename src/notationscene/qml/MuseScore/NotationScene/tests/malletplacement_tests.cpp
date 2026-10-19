@@ -122,12 +122,56 @@ TEST(MalletPlacement, WrittenRevoicingComesBeforeReassignmentAndRetainsVoiceIden
     }
 }
 TEST(MalletPlacement, PartialWrittenLinksAndProtectedVoicesSurviveSearch) {
-    SearchOptions options;const std::vector<int> pitches{48,52,55,71};
+    SearchOptions options;options.keepBass=true;options.keepMelody=true;options.allowInversion=false;
+    const std::vector<int> pitches{48,52,55,71};
     const auto results=alternatives(keyboard(36,96),pitches,Player{},nullptr,{1,0,3,4},options);
     ASSERT_FALSE(results.empty());EXPECT_EQ(results.front().mallets[0],1);EXPECT_EQ(results.front().mallets[2],3);EXPECT_EQ(results.front().mallets[3],4);
     for(const auto& pose:results) {EXPECT_EQ(*std::min_element(pose.pitches.begin(),pose.pitches.end()),48);EXPECT_EQ(*std::max_element(pose.pitches.begin(),pose.pitches.end()),71);}
     options.allowOctaves=false;
     for(const auto& pose:alternatives(keyboard(36,96),pitches,Player{},nullptr,{},options)) EXPECT_EQ(pose.pitches,pitches);
+}
+TEST(MalletPlacement, DefaultVoicingPermissionsAllowOutsideVoicesWithoutChangingPhysicalDifficulty) {
+    const SearchOptions open;
+    EXPECT_TRUE(open.allowOctaves);EXPECT_TRUE(open.allowInversion);
+    EXPECT_FALSE(open.keepBass);EXPECT_FALSE(open.keepMelody);
+    const auto k=keyboard(36,96);const Player player;
+    const std::vector<int> pitches{36,39,44,55};
+    const auto original=solve(k,pitches,player).front();
+    bool changedTop=false;
+    for(const auto& candidate:alternatives(k,pitches,player)) {
+        changedTop|=*std::max_element(candidate.pitches.begin(),candidate.pitches.end())!=55;
+        const auto physical=solve(k,candidate.pitches,player,candidate.mallets).front();
+        EXPECT_DOUBLE_EQ(candidate.cost,physical.cost);
+        EXPECT_EQ(candidate.severity,physical.severity);
+        EXPECT_GE(candidate.musicalCost,0);
+        if(candidate.mallets==original.mallets)for(size_t i=0;i<pitches.size();++i)
+            EXPECT_EQ(candidate.pitches[i]%12,pitches[i]%12);
+    }
+    EXPECT_TRUE(changedTop);
+    SearchOptions protectedVoices;protectedVoices.keepBass=true;protectedVoices.keepMelody=true;
+    // Protect the actual outside voices even if source notes are not sorted.
+    const std::vector<int> shuffled{55,36,44,39};
+    for(const auto& candidate:alternatives(k,shuffled,player,nullptr,{},protectedVoices)) {
+        EXPECT_EQ(candidate.pitches[0],55);EXPECT_EQ(candidate.pitches[1],36);
+        EXPECT_EQ(*std::min_element(candidate.pitches.begin(),candidate.pitches.end()),36);
+        EXPECT_EQ(*std::max_element(candidate.pitches.begin(),candidate.pitches.end()),55);
+    }
+}
+TEST(MalletPlacement, HeadOverlapUsesConfiguredDiameterAndReportsMeasuredSeparation) {
+    const auto k=keyboard(36,96);Player player;player.optimizeStrikes=false;
+    const auto ordinary=solve(k,{60,64,67,72},player,{1,2,3,4}).front();
+    const double separation=std::hypot(ordinary.targets[2].x-ordinary.targets[3].x,
+        ordinary.targets[2].y-ordinary.targets[3].y);
+    player.head=separation;
+    const auto touching=solve(k,{60,64,67,72},player,{1,2,3,4}).front();
+    const auto rightOverlap=[](const Issue& issue){return issue.key=="heads" && issue.message.find("3 and 4")!=std::string::npos;};
+    EXPECT_FALSE(std::any_of(touching.issues.begin(),touching.issues.end(),rightOverlap));
+    player.head=separation+.25;
+    const auto overlapping=solve(k,{60,64,67,72},player,{1,2,3,4}).front();
+    const auto issue=std::find_if(overlapping.issues.begin(),overlapping.issues.end(),rightOverlap);
+    ASSERT_NE(issue,overlapping.issues.end());
+    EXPECT_NE(issue->message.find(number(separation,2)),std::string::npos);
+    EXPECT_NE(issue->message.find(number(player.head,2)),std::string::npos);
 }
 TEST(MalletPlacement, EndAccessIsSelectiveAndManualPointsAreNeverOverridden) {
     const auto k=keyboard(36,96);Player p;

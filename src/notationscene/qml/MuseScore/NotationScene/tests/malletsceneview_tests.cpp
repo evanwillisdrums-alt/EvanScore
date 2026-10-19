@@ -44,6 +44,20 @@ TEST_F(MalletSceneInteraction, NearbyMalletHeadsDoNotStealTheNextBarClickInAComp
     QSignalSpy clicks(&view,&MalletSceneView::pitchClicked);click(62);
     ASSERT_EQ(clicks.count(),1);EXPECT_EQ(clicks.front().front().toInt(),62);
 }
+TEST_F(MalletSceneInteraction, CompactFocusEnlargesActiveBarsAndKeepsClicksAndOverviewAccurate) {
+    view.setSize({700,124});QTest::qWait(50);
+    const double full=QLineF(view.barPoint(60),view.barPoint(64)).length();
+    view.setFocusPlacement(true);view.fit();QTest::qWait(50);
+    EXPECT_GT(QLineF(view.barPoint(60),view.barPoint(64)).length(),full*1.4);
+    QSignalSpy clicks(&view,&MalletSceneView::pitchClicked);
+    click(60);ASSERT_EQ(clicks.count(),1);EXPECT_EQ(clicks.back().front().toInt(),60);
+    QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,QPoint(680,100));
+    EXPECT_EQ(clicks.count(),1); // The player context inset is not a bar.
+    for(int pitch=36;pitch<=96;++pitch) {click(pitch,true);ASSERT_EQ(clicks.count(),pitch-34);EXPECT_EQ(clicks.back().front().toInt(),pitch);}
+    const auto stable=view.barPoint(64);
+    view.setScene(sceneData({60,64},true));QTest::qWait(50);
+    EXPECT_NEAR(view.barPoint(64).x(),stable.x(),.01);EXPECT_NEAR(view.barPoint(64).y(),stable.y(),.01);
+}
 TEST_F(MalletSceneInteraction, DraggingAnOccupiedBarDoesNotRemoveItsNote) {
     QSignalSpy clicks(&view,&MalletSceneView::pitchClicked),drags(&view,&MalletSceneView::strikePointDragged);
     const auto start=view.barPoint(60).toPoint();

@@ -322,6 +322,21 @@ std::vector<Pose> solve(const Keyboard& k,const std::vector<int>& pitches,const 
     }
     return out;
 }
+static Pose preferredPose(const Keyboard& k,const std::vector<int>& pitches,const Player& player,
+                          const std::vector<int>& required,const Pose* previous,double previousSeconds,
+                          const Pose* next,double nextSeconds) {
+    // Assignment order is chosen before strike optimization. A search only
+    // consumes this first pose, so optimizing the other 23 assignments cannot
+    // affect its result. Keep the public solve() list behavior unchanged.
+    Player centered=player;centered.optimizeStrikes=false;
+    auto pose=solve(k,pitches,centered,required,previous,previousSeconds,next,nextSeconds).front();
+    if(player.optimizeStrikes && pose.mallets.size()==pitches.size()) {
+        auto adjusted=optimized(k,pitches,pose.mallets,player,previous,previousSeconds,next,nextSeconds);
+        for(const auto& i:pose.issues)if(i.key=="assignment")adjusted.issues.push_back(i);
+        pose=std::move(adjusted);
+    }
+    return pose;
+}
 std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches,const Player& p,const Pose* previous,
                               const std::vector<int>& required,const SearchOptions& options,double previousSeconds,
                               const Pose* next,double nextSeconds) {
@@ -338,8 +353,7 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
     // permutation of these same notes is not a new voicing.
     if(original.mallets.size()!=pitches.size()) return {};
     const auto fixed=original.mallets;
-    const auto adjusted=solve(k,pitches,p,fixed,previous,previousSeconds,next,nextSeconds);
-    if(!adjusted.empty()) append(kept,adjusted.front());
+    append(kept,preferredPose(k,pitches,p,fixed,previous,previousSeconds,next,nextSeconds));
     std::vector<std::vector<int>> voicings;
     const auto bassVoice=std::distance(pitches.begin(),std::min_element(pitches.begin(),pitches.end()));
     const auto melodyVoice=std::distance(pitches.begin(),std::max_element(pitches.begin(),pitches.end()));
@@ -360,10 +374,9 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
             for (int x:{-12,12}) for(int y:{-12,12}) {auto v=pitches;v[a]+=x;v[b]+=y;generate(v);}
     }
     for (const auto& v:voicings) {
-        auto preserved=solve(k,v,p,fixed,previous,previousSeconds,next,nextSeconds);
-        if(!preserved.empty()) append(kept,preserved.front());
-        auto solutions=solve(k,v,p,{},previous,previousSeconds,next,nextSeconds);
-        if (!solutions.empty() && solutions.front().mallets!=fixed) append(changed,solutions.front());
+        append(kept,preferredPose(k,v,p,fixed,previous,previousSeconds,next,nextSeconds));
+        const auto preferred=preferredPose(k,v,p,{},previous,previousSeconds,next,nextSeconds);
+        if(preferred.mallets!=fixed) append(changed,preferred);
     }
     // Reassignment is a secondary escape hatch, with a specific improvement.
     // Suppress crossed-hand/uncertain poses and worse alternatives entirely.
