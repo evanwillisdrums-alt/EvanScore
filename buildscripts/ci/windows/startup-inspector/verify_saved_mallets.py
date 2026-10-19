@@ -12,17 +12,19 @@ for folder in ('score', 'mallet-unwritten'):
     source = []
     for entry in expected['sourceKey'].split(';'):
         values = entry.split(':')
-        if len(values) == 4 and all(v.lstrip('-').isdigit() for v in values):
+        # Source identity also includes both TPC spellings. Otherwise the
+        # spelling-preservation change silently leaves this list empty.
+        if len(values) == 6 and all(v.lstrip('-').isdigit() for v in values):
             source.append([int(v) for v in values])
-    assert len(source) == len(expected['pitches']) == len(expected['mallets']) == 4
+    assert len(source) == len(expected['pitches']) == len(expected['mallets']) == 4, f'Incomplete native preview identity: {folder}'
     per_staff = {}
     changes = []
-    for (track, tick, written, sounding), pitch, mallet in zip(source, expected['pitches'], expected['mallets']):
+    for (track, tick, written, sounding, tpc1, tpc2), pitch, mallet in zip(source, expected['pitches'], expected['mallets']):
         delta = pitch - sounding
         assert delta % 12 == 0, 'Preview changed pitch class'
         changes.append(delta)
         number = 5 - mallet if expected['reverseNumbering'] else mallet
-        per_staff.setdefault(track // 4 + 1, []).append((written + delta, number))
+        per_staff.setdefault(track // 4 + 1, []).append((written + delta, tpc1, number))
     assert any(changes), 'Expected a deliberately selected octave revoicing'
     with ZipFile(paths[0]) as archive:
         name = next(name for name in archive.namelist() if name.endswith('.mscx'))
@@ -36,13 +38,13 @@ for folder in ('score', 'mallet-unwritten'):
     for staff in staves:
         chords = staff.findall('.//Chord')
         assert len(chords) == 1 and chords[0].findtext('durationType') == 'quarter', 'Commit changed rhythm'
-        actual = sorted(int(note.findtext('pitch')) for note in chords[0].findall('Note'))
+        actual = sorted((int(note.findtext('pitch')), int(note.findtext('tpc'))) for note in chords[0].findall('Note'))
         wanted = sorted(per_staff[int(staff.attrib['id'])])
-        assert actual == [pitch for pitch, _ in wanted], f'Committed notes differ from preview: {folder}'
+        assert actual == [(pitch, tpc) for pitch, tpc, _ in wanted], f'Committed notes or spelling differ from preview: {folder}'
         text = staff.findall('.//Sticking/text')
         assert len(text) == 1, 'Commit duplicated or lost sticking'
         numbers = [int(value) for value in ''.join(text[0].itertext()).split()]
-        assert numbers == [mallet for _, mallet in wanted], 'Written sticking lost source-note identity'
+        assert numbers == [mallet for _, _, mallet in wanted], 'Written sticking lost source-note identity'
         ids.extend(numbers)
     assert sorted(ids) == [1, 2, 3, 4], 'Commit lost physical mallet identities'
     print(f'{folder}: native saved notes and sticking exactly match preview; staves, rhythm and voice identity retained')
