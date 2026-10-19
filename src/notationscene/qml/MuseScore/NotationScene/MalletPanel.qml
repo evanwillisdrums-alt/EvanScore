@@ -799,7 +799,7 @@ Item {
                                     }
                                     Label {
                                         Layout.fillWidth: true
-                                        text: qsTrc("notation", "AI cannot edit the score. Preview first, then use Apply to score. Explanations can be wrong; compare ordinary Diagnostics. Sources: USER = your specification; SYNTHESIS = supplied research summaries; MODEL = estimated geometry, not verified biomechanics. Models are requested to unload after each answer; no background inference runs.")
+                                        text: qsTrc("notation", "AI selects checked candidates and highlights supplied facts. Displayed measurements and tradeoffs come from native analysis. Preview first, then use Apply to score; AI cannot edit it. Geometry is estimated. Sources: USER = your specification; SYNTHESIS = supplied summaries; MODEL = geometry, not verified biomechanics. The model unloads after each answer.")
                                         opacity: .8
                                     }
                                 }

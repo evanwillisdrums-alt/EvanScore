@@ -97,13 +97,21 @@ int main(int argc,char** argv) {
     const std::vector<int> wide{48,52,55,71};const auto wideOriginal=solve(keys,wide,player).front();
     const auto suggestions=alternatives(keys,wide,player);
     if(suggestions.empty() || suggestions.front().mallets!=wideOriginal.mallets || suggestions.front().severity>=2)return 9;
-    const auto revised=facts(suggestions.front(),"alternative-0");
+    auto revised=facts(suggestions.front(),"alternative-0");
+    QStringList registerChanges;
+    for(size_t i=0;i<wide.size();++i)if(wide[i]!=suggestions.front().pitches[i])
+        registerChanges<<QString("Voice %1 moves %2 to %3; check register, balance and voice leading.")
+            .arg(i+1).arg(QString::fromStdString(wideOriginal.names[i]),QString::fromStdString(suggestions.front().names[i]));
+    revised.insert("tradeoffs",registerChanges);
     client.ask({{"candidates",QVariantList{facts(wideOriginal,"original"),revised}},{"originalComfortable",false},
         {"openingLimitCm",24},{"tiltLimitDegrees",40},{"contextLimits","Static estimated geometry; continuous motion and human calibration are unproven"},
         {"searchOrder","Prefer the checked, comfortable octave revoicing with fixed links over the original difficult opening"}});
     if(!wait(client,170000) || client.state().value("result").toMap().value("candidateId").toString()!="alternative-0") {
         std::fprintf(stderr,"Actual difficult-chord inference failed: %s\n",QJsonDocument::fromVariant(client.state()).toJson().constData());return 10;
     }
+    const auto checked=client.state().value("result").toMap();
+    if(!checked.value("benefits").toStringList().join(" ").contains("11.6")
+        || !checked.value("tradeoffs").toStringList().join(" ").contains("G3 to G4"))return 14;
     if(!unloaded())return 11;
     responses<<client.state();
     auto report=client.state();report.insert("responses",responses);

@@ -16,9 +16,9 @@ QVariantMap context() {
     return {{"candidates",QVariantList{QVariantMap{{"candidateId","original"},{"valid",true},{"uncertain",false},{"severity",0}},
         QVariantMap{{"candidateId","alternative-0"},{"valid",false},{"uncertain",false},{"severity",2}}}}};
 }
-QJsonObject guidance() {
-    return {{"candidateId","original"},{"benefits",QJsonArray{"Keeps the original notes and physical links."}},
-        {"tradeoffs",QJsonArray{"Static geometry is uncalibrated."}},{"sourceIds",QJsonArray{"USER","MODEL"}}};
+QJsonObject guidance(const QString& candidate="original") {
+    return {{"candidateId",candidate},{"benefitIds",QJsonArray{candidate+"/b0"}},
+        {"tradeoffIds",QJsonArray{candidate+"/t0"}},{"sourceIds",QJsonArray{"USER","MODEL"}}};
 }
 QByteArray envelope(const QJsonObject& value) {
     return QJsonDocument(QJsonObject{{"done",true},{"message",QJsonObject{{"role","assistant"},
@@ -88,8 +88,8 @@ TEST(MalletAssistant, ResultMustIdentifyAValidatedCandidateAndAvailableSources) 
     for(const QString id:{"invented","alternative-0",""}) {auto value=guidance();value["candidateId"]=id;EXPECT_TRUE(MalletAssistant::validateResponse(envelope(value),context()).contains("error"));}
     auto value=guidance();value["notes"]=QJsonArray{60,64,67,72};EXPECT_TRUE(MalletAssistant::validateResponse(envelope(value),context()).contains("error"));
     value=guidance();value["sourceIds"]=QJsonArray{"Unread book, page 27"};EXPECT_TRUE(MalletAssistant::validateResponse(envelope(value),context()).contains("error"));
-    value=guidance();value["tradeoffs"]=QJsonArray{};EXPECT_TRUE(MalletAssistant::validateResponse(envelope(value),context()).contains("error"));
-    value=guidance();value["candidateId"]="none";EXPECT_EQ(MalletAssistant::validateResponse(envelope(value),context()).value("candidateId").toString(),"none");
+    value=guidance();value["tradeoffIds"]=QJsonArray{};EXPECT_TRUE(MalletAssistant::validateResponse(envelope(value),context()).contains("error"));
+    EXPECT_EQ(MalletAssistant::validateResponse(envelope(guidance("none")),context()).value("candidateId").toString(),"none");
     EXPECT_TRUE(MalletAssistant::validateResponse("{}",context()).contains("error"));
     EXPECT_TRUE(MalletAssistant::validateResponse(QByteArray(300000,'x'),context()).contains("error"));
 }
@@ -104,7 +104,7 @@ TEST(MalletAssistant, AiCannotOverruleComfortAndFixedLinkRecommendationChecks) {
     const auto supplied=QJsonDocument::fromJson(body.value("messages").toArray().last().toObject().value("content").toString().toUtf8()).object();
     EXPECT_EQ(supplied.value("candidates").toArray().size(),1);EXPECT_TRUE(supplied.contains("originalForComparisonOnly"));
     EXPECT_TRUE(MalletAssistant::validateResponse(envelope(guidance()),facts).contains("error"));
-    auto answer=guidance();answer.insert("candidateId","alternative-0");
+    auto answer=guidance("alternative-0");
     EXPECT_FALSE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
     // Even equal warning levels cannot select a materially worse score.
     original.insert("severity",0);facts.insert("candidates",QVariantList{original,kept});
@@ -112,6 +112,22 @@ TEST(MalletAssistant, AiCannotOverruleComfortAndFixedLinkRecommendationChecks) {
     // A comfortable original stays the recommendation despite a lower cost.
     facts.insert("originalComfortable",true);
     EXPECT_FALSE(MalletAssistant::validateResponse(envelope(guidance()),facts).contains("error"));
+    EXPECT_TRUE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
+}
+TEST(MalletAssistant, ExplanationsRenderNativeMeasurementsAndRejectInventedOrCrossedFacts) {
+    auto original=context().value("candidates").toList().front().toMap();
+    original.insert("leftOpeningCm",13.49);original.insert("rightOpeningCm",11.56);
+    auto alternative=original;alternative.insert("candidateId","alternative-0");
+    const QVariantMap facts{{"candidates",QVariantList{original,alternative}},{"openingLimitCm",24}};
+    const auto result=MalletAssistant::validateResponse(envelope(guidance()),facts);
+    ASSERT_FALSE(result.contains("error"));
+    const auto measured=result.value("benefits").toStringList().front();
+    EXPECT_TRUE(measured.contains("13.5"));EXPECT_TRUE(measured.contains("11.6"));EXPECT_TRUE(measured.contains("24.0"));
+    for(const auto& invalid:{QString("original/b999"),QString("alternative-0/b0"),QString("original/t0"),QString("13.15 cm less comfortable")}) {
+        auto answer=guidance();answer.insert("benefitIds",QJsonArray{invalid});
+        EXPECT_TRUE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
+    }
+    auto answer=guidance();answer.insert("benefits",QJsonArray{"The alternative is 13.15 cm less comfortable."});
     EXPECT_TRUE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
 }
 TEST(MalletAssistant, RealLocalHttpRoundTripAcceptsOnlyStructuredCheckedGuidance) {
