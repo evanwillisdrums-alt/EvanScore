@@ -19,6 +19,8 @@ jobs:
           target: desktop
           arch: win64_msvc2022_64
           cache: true
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git
+          py7zrversion: '@git+https://github.com/miurahr/py7zr.git'
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build the actual native assistant client
         shell: pwsh
