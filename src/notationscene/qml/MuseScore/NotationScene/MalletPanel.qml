@@ -15,6 +15,7 @@ Item {
     property int contentNavigationPanelOrderStart: 0
     property alias model: malletModel
     readonly property var panelState: model.state
+    readonly property var assistantState: model.assistant || ({})
     property int currentTab: 0
     property int lastAlternative: 0
     property int selectedMallet: 1
@@ -651,6 +652,7 @@ Item {
                                             max: 8
                                         },
                                         {key:"rotation", title:qsTrc("notation", "Comfortable pair tilt (degrees)"), min:5, max:90},
+                                        {key:"inwardPreference", title:qsTrc("notation", "Inward tilt preference (%)"), min:0, max:30},
                                         {key:"bodyDistance", title:qsTrc("notation", "Body distance from bar front (cm)"), min:15, max:60},
                                         {key:"accidentalHeight", title:qsTrc("notation", "Accidental elevation above naturals (cm)"), min:0, max:15},
                                         {key:"handWidth", title:qsTrc("notation", "Hand width (cm)"), min:4, max:15},
@@ -669,7 +671,7 @@ Item {
                                             from: modelData.min
                                             to: modelData.max
                                             editable: true
-                                            value: root.panelState[modelData.key] || modelData.min
+                                            value: root.panelState[modelData.key] === undefined ? modelData.min : root.panelState[modelData.key]
                                             onValueModified: root.model.setOption(modelData.key, value)
                                             Keys.onShortcutOverride: function (event) {
                                                 if (!activeFocus && !contentItem.activeFocus)
@@ -707,6 +709,87 @@ Item {
                                     text: qsTrc("notation", "Grip and comfort limits save automatically. Appearance changes only when this panel opens.")
                                     Layout.fillWidth: true
                                     opacity: .8
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTrc("notation", "Inward tilt gets a modest cost preference, default 15%; set it to 0 for neutral ranking. This is your preference applied to estimated pair geometry, not a universal wrist limit.")
+                                    opacity: .8
+                                }
+                                UiComponents.CheckBox {
+                                    objectName: "mallet-local-ai-enabled"
+                                    Layout.fillWidth: true
+                                    text: qsTrc("notation", "Optional local AI guidance")
+                                    checked: root.assistantState.enabled === true
+                                    onClicked: root.model.setAssistantEnabled(!checked)
+                                    navigation.panel: panelNavigation
+                                }
+                                ColumnLayout {
+                                    visible: root.assistantState.enabled === true
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "Runs through Ollama on this computer; no API key. Install Ollama once and download a small local model, for example: ollama pull qwen2.5:1.5b. Check the model's license. A model around 1 GB can need several GB of free RAM while answering.")
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-discover"
+                                        text: qsTrc("notation", "Check local models")
+                                        enabled: !root.assistantState.busy
+                                        onClicked: root.model.discoverAssistantModels()
+                                    }
+                                    StyledDropdown {
+                                        objectName: "mallet-local-ai-model"
+                                        Layout.fillWidth: true
+                                        enabled: !root.assistantState.busy
+                                        model: root.assistantState.models || []
+                                        currentIndex: (root.assistantState.models || []).findIndex(item => item.value === root.assistantState.model)
+                                        onActivated: function(index, value) { root.model.setAssistantModel(value); }
+                                    }
+                                    RowLayout {
+                                        Button {
+                                            objectName: "mallet-local-ai-ask"
+                                            text: qsTrc("notation", "Explain this chord")
+                                            enabled: !!root.panelState.hasNotes && !!root.assistantState.model && !root.assistantState.busy
+                                            onClicked: root.model.askAssistant()
+                                        }
+                                        Button {
+                                            objectName: "mallet-local-ai-cancel"
+                                            text: qsTrc("notation", "Cancel")
+                                            visible: root.assistantState.busy === true
+                                            onClicked: root.model.cancelAssistant()
+                                        }
+                                    }
+                                    Label {
+                                        objectName: "mallet-local-ai-status"
+                                        Layout.fillWidth: true
+                                        text: root.assistantState.status || ""
+                                    }
+                                    Repeater {
+                                        model: root.assistantState.result?.benefits || []
+                                        Label { required property string modelData; Layout.fillWidth: true; text: "+ " + modelData; textFormat: Text.PlainText }
+                                    }
+                                    Repeater {
+                                        model: root.assistantState.result?.tradeoffs || []
+                                        Label { required property string modelData; Layout.fillWidth: true; text: "• " + modelData; textFormat: Text.PlainText }
+                                    }
+                                    Label {
+                                        visible: !!root.assistantState.result?.candidateId
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "Reference IDs: ") + (root.assistantState.result?.sourceIds || []).join(", ")
+                                        textFormat: Text.PlainText
+                                        opacity: .8
+                                    }
+                                    Button {
+                                        objectName: "mallet-local-ai-preview"
+                                        text: qsTrc("notation", "Preview checked candidate")
+                                        visible: !!root.assistantState.result?.candidateId && root.assistantState.result.candidateId !== "none"
+                                        onClicked: root.model.previewAssistant()
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: qsTrc("notation", "AI cannot edit the score. Preview first, then use Apply to score. Explanations can be wrong; compare ordinary Diagnostics. Sources: USER = your specification; SYNTHESIS = supplied research summaries; MODEL = estimated geometry, not verified biomechanics. Models are requested to unload after each answer; no background inference runs.")
+                                        opacity: .8
+                                    }
                                 }
                             }
                             Label {

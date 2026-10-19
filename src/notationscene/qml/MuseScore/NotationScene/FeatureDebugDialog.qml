@@ -16,6 +16,12 @@ StyledDialogView {
     margins: 16
 
     FeatureDebugModel { id: debugModel; Component.onCompleted: load() }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: root.visible
+        onTriggered: debugModel.refreshMemory()
+    }
     NavigationPanel {
         id: controlsNavigation
         name: "Feature diagnostics controls"
@@ -30,6 +36,14 @@ StyledDialogView {
             horizontalAlignment: Text.AlignLeft
             wrapMode: Text.WordWrap
             text: qsTrc("notation", "Select notes to inspect their sticking. This report distinguishes recognized markings from features still awaiting playback integration.")
+        }
+        StyledTextLabel {
+            objectName: "feature-debug-memory"
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignLeft
+            wrapMode: Text.WordWrap
+            text: debugModel.memorySummary
+            font: ui.theme.bodyBoldFont
         }
         RowLayout {
             Layout.fillWidth: true

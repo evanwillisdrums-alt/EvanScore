@@ -24,18 +24,22 @@ struct Player {
     int grip = 0; // Stevens, Burton, traditional cross grip.
     double opening = 24, reach = 65, shaft = 40, head = 3;
     double rotation = 40, handWidth = 7, bodyDistance = 28;
+    double inwardPreference = .15; // User preference, 0..0.3; not an anatomical limit.
     double accidentalHeight = 4; // Estimated cm above naturals; performer/instrument editable.
     double bodyOffset = 0, travelSpeed = 200; // cm/s: editable heuristic, not a human limit.
     bool respectSticking = true, optimizeStrikes = true, calibrated = false;
     bool reverseNumbering = false;
     std::array<double, 4> strikeFractions { .5, .5, .5, .5 };
     std::array<bool, 4> manualStrikes {};
+    std::array<char, 4> spellingSteps {};
+    std::array<int, 4> spellingAlterations {};
 };
 struct Issue { std::string key, message; int severity = 0; };
 struct Pose {
     // These vectors remain in SOURCE VOICE order after revoicing. Never sort
     // pitches without carrying their voice identity and assigned mallet.
     std::vector<int> pitches, mallets;
+    std::vector<std::string> names;
     std::array<Point, 4> targets {}, anchors {};
     std::array<bool, 4> active {};
     std::array<double, 4> fractions { .5, .5, .5, .5 };
@@ -55,6 +59,7 @@ struct WrittenSticking { std::vector<int> required; bool unknown = false; std::s
 WrittenSticking parseWrittenSticking(const std::string& text, std::size_t notes, bool reverseNumbering = false);
 Keyboard keyboard(int low, int high, bool metal = false);
 std::string pitchName(int pitch);
+std::string spelledPitchName(int pitch, char step, int alteration);
 std::string number(double value, int decimals = 1);
 // 0 is unknown; 1..4 fixes a PHYSICAL mallet; -1/-2 fixes left/right hand.
 std::vector<Pose> solve(const Keyboard&, const std::vector<int>& pitches, const Player&,

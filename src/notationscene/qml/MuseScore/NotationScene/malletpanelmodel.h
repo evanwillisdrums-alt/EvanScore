@@ -11,6 +11,7 @@
 #include "notation/inotation.h"
 #include "playback/iplaybackcontroller.h"
 #include "malletplacement.h"
+#include "malletassistant.h"
 namespace mu::engraving { class Chord; class Note; }
 namespace mu::notation {
 class MalletPanelModel : public QObject, public muse::Contextable, public muse::async::Asyncable {
@@ -19,6 +20,7 @@ class MalletPanelModel : public QObject, public muse::Contextable, public muse::
     Q_PROPERTY(QVariantMap state READ state NOTIFY stateChanged)
     Q_PROPERTY(QVariantList alternatives READ alternativeRows NOTIFY alternativesChanged)
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
+    Q_PROPERTY(QVariantMap assistant READ assistantState NOTIFY assistantChanged)
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::ContextInject<playback::IPlaybackController> playbackController = { this };
 public:
@@ -40,10 +42,18 @@ public:
     Q_INVOKABLE void compare();
     Q_INVOKABLE void commit();
     Q_INVOKABLE QVariantMap diagnostics() const;
+    QVariantMap assistantState() const { return m_assistant.state(); }
+    Q_INVOKABLE void setAssistantEnabled(bool enabled) { m_assistant.setEnabled(enabled); }
+    Q_INVOKABLE void discoverAssistantModels() { m_assistant.discover(); }
+    Q_INVOKABLE void setAssistantModel(const QString& name) { m_assistant.setModel(name); }
+    Q_INVOKABLE void askAssistant();
+    Q_INVOKABLE void cancelAssistant() { m_assistant.invalidate(); }
+    Q_INVOKABLE void previewAssistant();
 signals:
     void stateChanged();
     void alternativesChanged();
     void activeChanged();
+    void assistantChanged();
 private:
     void onNotationChanged();
     std::vector<mu::engraving::Chord*> selectedOnset() const;
@@ -73,5 +83,7 @@ private:
     QString m_skin = "#d99d78", m_hair = "#382b27";
     bool m_active = false, m_pick = false, m_supported = false, m_editing = false, m_metal = false, m_side = false;
     int m_selected = -1;
+    int m_key = 0;
+    MalletAssistant m_assistant;
 };
 }

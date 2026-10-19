@@ -52,6 +52,11 @@ protected:
     QVariantMap oldSettings;
     Chord* first = nullptr;
     Chord* second = nullptr;
+    void useWideChord() {
+        const std::vector<int> pitches{48,52,55,71};
+        for(size_t i=0;i<pitches.size();++i) {first->notes()[i]->setPitch(pitches[i]);first->notes()[i]->setTpcFromPitch();}
+        model->refresh();
+    }
 
     Chord* addChord(Measure* measure, Fraction tick, std::vector<int> pitches) {
         auto* segment = measure->getSegment(SegmentType::ChordRest, tick);
@@ -107,6 +112,32 @@ TEST_F(MalletPanelWorkflow, OneSelectedNoteReadsTheWholeChordWithoutChangingIt) 
     EXPECT_TRUE(first->segment()->annotations().empty());
 }
 
+TEST_F(MalletPanelWorkflow, ComfortableOriginalDoesNotNeedAPermutationSuggestion) {
+    EXPECT_EQ(state().value("pose").toMap().value("mallets").toList(),(QVariantList{1,2,3,4}));
+    EXPECT_TRUE(model->alternativeRows().empty());EXPECT_TRUE(state().value("recommendKeep").toBool());
+}
+TEST_F(MalletPanelWorkflow, GenuineRevoicingKeepsPhysicalLinksAndAppliesInOneUndo) {
+    useWideChord();ASSERT_FALSE(model->alternativeRows().empty());model->selectAlternative(0);
+    EXPECT_EQ(pitches(),(QVariantList{48,52,67,71}));
+    EXPECT_EQ(state().value("pose").toMap().value("mallets").toList(),(QVariantList{1,2,3,4}));
+    model->commit();EXPECT_EQ(first->notes()[2]->pitch(),67);
+    undo->undo(nullptr);model->refresh();EXPECT_EQ(pitches(),(QVariantList{48,52,55,71}));
+}
+TEST_F(MalletPanelWorkflow, ViewerUsesWrittenEnharmonicSpellingAndDetectsSpellingEdits) {
+    first->notes().back()->setPitch(70);first->notes().back()->setTpc1(12);first->notes().back()->setTpc2(12);model->refresh();
+    const auto before=state().value("sourceKey");
+    auto voices=state().value("pose").toMap().value("voices").toList();EXPECT_EQ(voices.back().toMap().value("name").toString(),QString::fromUtf8("B♭4"));
+    first->notes().back()->setTpc1(24);first->notes().back()->setTpc2(24);model->refresh();
+    voices=state().value("pose").toMap().value("voices").toList();EXPECT_EQ(voices.back().toMap().value("name").toString(),QString::fromUtf8("A♯4"));
+    EXPECT_NE(state().value("sourceKey"),before);
+}
+TEST_F(MalletPanelWorkflow, LocalAiIsOptionalAndClosingThePanelDisablesIt) {
+    EXPECT_FALSE(model->assistantState().value("enabled").toBool());model->setAssistantEnabled(true);
+    EXPECT_FALSE(model->assistantState().value("busy").toBool());model->askAssistant();
+    EXPECT_TRUE(first->segment()->annotations().empty());model->setActive(false);
+    EXPECT_FALSE(model->assistantState().value("enabled").toBool());
+}
+
 TEST_F(MalletPanelWorkflow, SuggestedOriginalStickingCanBeAppliedWithoutChangingTheChord) {
     EXPECT_TRUE(state().value("canCommit").toBool());
     EXPECT_EQ(state().value("selectedAlternative").toInt(), -1);
@@ -122,6 +153,7 @@ TEST_F(MalletPanelWorkflow, SuggestedOriginalStickingCanBeAppliedWithoutChanging
 }
 
 TEST_F(MalletPanelWorkflow, ChoosingSuggestionsDoesNotRebuildTheSuggestionList) {
+    useWideChord();
     const auto before = model->alternativeRows(); ASSERT_GE(before.size(), 2);
     const auto property = model->metaObject()->property(model->metaObject()->indexOfProperty("alternatives"));
     EXPECT_NE(property.notifySignal().name(), QByteArray("stateChanged"));
@@ -135,7 +167,7 @@ TEST_F(MalletPanelWorkflow, ChoosingSuggestionsDoesNotRebuildTheSuggestionList) 
     }
     EXPECT_EQ(listChanged.count(), 0);
     model->showOriginal(); EXPECT_EQ(state().value("selectedAlternative").toInt(), -1);
-    EXPECT_EQ(pitches(), (QVariantList{60,64,67,72}));
+    EXPECT_EQ(pitches(), (QVariantList{48,52,55,71}));
 }
 
 TEST_F(MalletPanelWorkflow, SwitchingToPickingDoesNotClaimTheScoreStickingAppliesToPickedNotes) {
@@ -200,6 +232,7 @@ TEST_F(MalletPanelWorkflow, MixedPreviewPickingSettingsAndReselectionRemainBound
 }
 
 TEST_F(MalletPanelWorkflow, EditingAPickedPreviewStartsFromTheChordTheWriterIsActuallySeeing) {
+    useWideChord();
     model->setPickMode(true); model->setOption("keepBass",false); model->setOption("keepMelody",false);
     int index=-1;
     for(const auto& row:model->alternativeRows()) if(row.toMap().value("pitches")!=state().value("displayedChord")) {index=row.toMap().value("index").toInt();break;}
@@ -222,6 +255,7 @@ TEST_F(MalletPanelWorkflow, ManualStrikePointsRemainAttachedToTheirPitchWhenPick
 }
 
 TEST_F(MalletPanelWorkflow, AuditionUsesTheDisplayedSuggestionAndStaleSelectionCannotPlayTheOldChord) {
+    useWideChord();
     model->selectAlternative(0);const auto displayed=pitches();
     EXPECT_CALL(*playback,playNotes(_,0,first->segment(),_)).WillOnce([&](const NoteValList& values,auto,auto,const auto&) {
         ASSERT_EQ(values.size(),displayed.size());for(size_t i=0;i<values.size();++i)EXPECT_EQ(values[i].pitch,displayed[int(i)].toInt());
@@ -233,6 +267,7 @@ TEST_F(MalletPanelWorkflow, AuditionUsesTheDisplayedSuggestionAndStaleSelectionC
 }
 
 TEST_F(MalletPanelWorkflow, ClosingDuringCompareCancelsTheSecondAudition) {
+    useWideChord();
     model->selectAlternative(0);
     EXPECT_CALL(*playback,playNotes(_,_,_,_)).Times(1);
     model->compare();model->setActive(false);QTest::qWait(700);

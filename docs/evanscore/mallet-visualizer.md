@@ -24,6 +24,20 @@ In **Pick on bars**, click a selected bar again to remove that note; dragging it
 
 ## Evaluate a suggestion
 
+Ordinary ascending chords start with physical order 1–2–3–4. A substantially
+better row pairing can be an explicit exception, such as E/G in one hand and
+F♯/B♭ in the other. Changing register or source-note storage order does not
+renumber physical mallets. Written constraints remain authoritative.
+
+Revoicings retain the original note-to-mallet links even when no sticking was
+written. They come before secondary reassignment options. A permutation of the
+same pitches is labeled as a sticking change, never a new voicing. Worse,
+uncertain and modeled crossing-clearance suggestions are suppressed; the panel
+can offer no useful alternative instead of filling the list. Protected bass/top
+notes can restrict the available revoicings. Score-derived names use written
+pitch spelling; octave changes retain it, and unused bar labels follow the staff
+key. Physical upper/lower rows are determined by sounding pitch, not spelling.
+
 Diagnostics shows pitch names and each mallet's central/end-access zone, left/right openings, pair tilt, arm reach, estimated hand/shaft clearance, outer 1–4 spread, and nearby attack travel/preparation. Original and preview statuses stay separate.
 
 - Green: within this model's configured comfort limits.
@@ -42,6 +56,15 @@ Click **anywhere on a suggestion card** to preview it. The chosen card keeps its
 Diagnostics begins with the current chord, what to do next, concrete benefits and problems, and each mallet's pitch/inner/outer hand position. **Measurements and limits** expands individual opening, row-tilt and reach estimates, the configured limit and possible adjustments. Empty and unsupported selections show instructions rather than zero-valued measurements. The toolbar wraps into two rows in a narrow dock instead of overlapping its controls.
 
 ## Configure and inspect
+
+**Inward tilt preference** defaults to 15% and can be set from 0–30%; 0 is
+neutral. It modestly discounts the estimated inward pair tilt in ranking and
+does not change hard feasibility or comfort limits. It expresses the user's
+preference rather than a universal anatomical rule.
+
+**Optional local AI guidance**, under Player, explains/selects checked candidates
+on explicit request. It is off by default and requires no API key. See
+[setup, resources, references and limitations](mallet-local-ai.md).
 
 **Player** stores the grip, mallet count/convention, comfortable opening/tilt/reach, shaft length, head diameter, hand width, body distance, accidental-row elevation and estimated travel speed. Two-mallet mode uses physical outer left/right; three-mallet mode explicitly deploys two left and one right. The body follows the selected register and tapered front automatically; its horizontal slider adds an offset. Suggestions can protect bass and top melody, disable octave changes, or permit inversion. Preference changes persist across restarts.
 

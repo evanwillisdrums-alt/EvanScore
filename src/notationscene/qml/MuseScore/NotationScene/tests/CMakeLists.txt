@@ -30,6 +30,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/environment.cpp
     ${CMAKE_CURRENT_LIST_DIR}/notationviewinputcontroller_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletplacement_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/malletassistant_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletscoreedit_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletpanelmodel_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/malletsceneview_tests.cpp
@@ -37,6 +38,7 @@ set(MODULE_TEST_SRC
 
 set(MODULE_TEST_LINK
     Qt::Quick
+    Qt::Network
     Qt6::Test
     engraving
     notation

@@ -14,18 +14,22 @@ class FeatureDebugModel : public QObject, public muse::Contextable, public muse:
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QString report READ report NOTIFY reportChanged)
+    Q_PROPERTY(QString memorySummary READ memorySummary NOTIFY memoryChanged)
     Q_PROPERTY(bool fullScore READ fullScore WRITE setFullScore NOTIFY fullScoreChanged)
     muse::ContextInject<context::IGlobalContext> context = { this };
 public:
     explicit FeatureDebugModel(QObject* parent = nullptr);
     Q_INVOKABLE void load();
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void refreshMemory();
     Q_INVOKABLE void copyReport();
     QString report() const { return m_report; }
+    QString memorySummary() const { return m_memorySummary; }
     bool fullScore() const { return m_fullScore; }
     void setFullScore(bool value);
 signals:
     void reportChanged();
+    void memoryChanged();
     void fullScoreChanged();
 private:
     void onNotationChanged();
@@ -33,6 +37,7 @@ private:
     muse::async::Asyncable m_receiver;
     QTimer m_refreshTimer;
     QString m_report;
+    QString m_memorySummary;
     bool m_fullScore = false;
     bool m_loaded = false;
 };

@@ -101,17 +101,17 @@ TEST(MalletPlacement, OrdinaryChordKeepsPhysicalOrderAndCentralStrikes) {
 }
 TEST(MalletPlacement, RowSeparationIsUsefulButNotAnOctaveRule) {
     const auto k=keyboard(36,96);Player p;
-    EXPECT_EQ(solve(k,{60,66,67,70},p).front().mallets,(std::vector<int>{1,3,2,4}));
+    EXPECT_EQ(solve(k,{64,66,67,70},p).front().mallets,(std::vector<int>{1,3,2,4}));
     EXPECT_NE(solve(k,{48,54,60,66},p).front().mallets,(std::vector<int>{1,3,2,4}));
 }
 TEST(MalletPlacement, WrittenRevoicingComesBeforeReassignmentAndRetainsVoiceIdentity) {
-    const std::vector<int> pitches{48,60,64,67},ids{1,2,3,4};
+    const std::vector<int> pitches{48,52,55,71},ids{1,2,3,4};
     const auto results=alternatives(keyboard(36,96),pitches,Player{},nullptr,ids);
     ASSERT_FALSE(results.empty());
     EXPECT_EQ(results.front().mallets,ids);EXPECT_NE(results.front().pitches,pitches);
-    // Voice 3 moved below voice 2, retaining mallet 3. Sorting the pitches
-    // independently would silently assign these two musical voices wrongly.
-    EXPECT_LT(results.front().pitches[2],results.front().pitches[1]);
+    // Bring the right-hand interval together by raising G3 to G4, keeping
+    // its original physical mallet and both protected outside voices.
+    EXPECT_EQ(results.front().pitches[2],67);
     EXPECT_EQ(results.front().pitches.front(),pitches.front());
     EXPECT_EQ(results.front().pitches.back(),pitches.back());
     bool reassigned=false;
@@ -122,10 +122,10 @@ TEST(MalletPlacement, WrittenRevoicingComesBeforeReassignmentAndRetainsVoiceIden
     }
 }
 TEST(MalletPlacement, PartialWrittenLinksAndProtectedVoicesSurviveSearch) {
-    SearchOptions options;const std::vector<int> pitches{48,60,64,67};
+    SearchOptions options;const std::vector<int> pitches{48,52,55,71};
     const auto results=alternatives(keyboard(36,96),pitches,Player{},nullptr,{1,0,3,4},options);
     ASSERT_FALSE(results.empty());EXPECT_EQ(results.front().mallets[0],1);EXPECT_EQ(results.front().mallets[2],3);EXPECT_EQ(results.front().mallets[3],4);
-    for(const auto& pose:results) {EXPECT_EQ(*std::min_element(pose.pitches.begin(),pose.pitches.end()),48);EXPECT_EQ(*std::max_element(pose.pitches.begin(),pose.pitches.end()),67);}
+    for(const auto& pose:results) {EXPECT_EQ(*std::min_element(pose.pitches.begin(),pose.pitches.end()),48);EXPECT_EQ(*std::max_element(pose.pitches.begin(),pose.pitches.end()),71);}
     options.allowOctaves=false;
     for(const auto& pose:alternatives(keyboard(36,96),pitches,Player{},nullptr,{},options)) EXPECT_EQ(pose.pitches,pitches);
 }
@@ -177,4 +177,60 @@ TEST(MalletPlacement, RaisedAccidentalsDoNotBecomeFalseHeadCollisionsInPlanView)
     EXPECT_FALSE(std::any_of(raised.issues.begin(),raised.issues.end(),[](const Issue&i){return i.key=="heads";}));
     EXPECT_EQ(raised.mallets,flat.mallets);EXPECT_EQ(raised.pitches,flat.pitches);
     EXPECT_DOUBLE_EQ(raised.targets[3].z,4);EXPECT_DOUBLE_EQ(raised.targets[0].z,0);
+}
+
+TEST(MalletPlacement, OrdinaryChordsKeepAscendingPhysicalOrderAcrossRegisterAndSourceOrder) {
+    const auto k=keyboard(36,96);
+    for(int root=36;root<=84;root+=12) {
+        const auto chord=solve(k,{root,root+4,root+7,root+12},Player{}).front();
+        EXPECT_EQ(chord.mallets,(std::vector<int>{1,2,3,4}));
+        const auto shuffled=solve(k,{root+7,root,root+12,root+4},Player{}).front();
+        EXPECT_EQ(shuffled.mallets,(std::vector<int>{3,1,4,2}));
+    }
+    EXPECT_EQ(solve(k,{60,64,67,71},Player{}).front().mallets,(std::vector<int>{1,2,3,4}));
+}
+TEST(MalletPlacement, ComfortableChordDoesNotOfferWorseStickingPermutationsAsVoicings) {
+    EXPECT_TRUE(alternatives(keyboard(36,96),{60,64,67,72},Player{}).empty());
+}
+TEST(MalletPlacement, NaturalAccidentalPairingIsAnExplainedPhysicalException) {
+    Player p;p.optimizeStrikes=false;
+    const auto k=keyboard(36,96);const std::vector<int> chord{64,66,67,70};
+    const auto standard=solve(k,chord,p,{1,2,3,4}).front();
+    const auto sameRows=solve(k,chord,p).front();
+    EXPECT_EQ(sameRows.mallets,(std::vector<int>{1,3,2,4}));
+    EXPECT_LT(std::abs(sameRows.rotations[0])+std::abs(sameRows.rotations[1]),std::abs(standard.rotations[0])+std::abs(standard.rotations[1]));
+    EXPECT_LT(sameRows.cost,standard.cost);
+}
+TEST(MalletPlacement, InwardPreferenceIsModestAndCanBeDisabled) {
+    Player neutral;neutral.optimizeStrikes=false;neutral.inwardPreference=0;auto preferred=neutral;preferred.inwardPreference=.15;
+    const auto k=keyboard(36,96);
+    const auto a=solve(k,{60,66,67,72},neutral,{1,2,3,4}).front();
+    const auto b=solve(k,{60,66,67,72},preferred,{1,2,3,4}).front();
+    EXPECT_EQ(a.mallets,b.mallets);EXPECT_EQ(a.severity,b.severity);EXPECT_LT(b.cost,a.cost);
+    EXPECT_GE(b.cost,a.cost*.85);
+}
+TEST(MalletPlacement, PitchSpellingSurvivesOctavesAndEnharmonicBoundaries) {
+    EXPECT_EQ(spelledPitchName(70,'B',-1),"B♭4");EXPECT_EQ(spelledPitchName(70,'A',1),"A♯4");
+    EXPECT_EQ(spelledPitchName(60,'B',1),"B♯3");EXPECT_EQ(spelledPitchName(59,'C',-1),"C♭4");
+    Player p;p.spellingSteps={'E','F','G','B'};p.spellingAlterations={0,1,0,-1};
+    EXPECT_EQ(solve(keyboard(36,96),{64,66,67,70},p).front().names,(std::vector<std::string>{"E4","F♯4","G4","B♭4"}));
+    EXPECT_EQ(solve(keyboard(36,96),{64,66,67,82},p,{1,2,3,4}).front().names.back(),"B♭5");
+}
+TEST(MalletPlacement, VariedChordSuggestionsKeepPhysicalInvariantsAndRevoicingPriority) {
+    const auto k=keyboard(36,96);
+    for(int root:{36,48,60,72}) for(int third:{3,4,7,12}) for(int fifth:{8,11,16}) for(int top:{19,23}) {
+        const std::vector<int> pitches{root,root+third,root+fifth,root+top};
+        const auto original=solve(k,pitches,Player{}).front();
+        bool reassigned=false;
+        for(const auto& candidate:alternatives(k,pitches,Player{})) {
+            ASSERT_TRUE(candidate.valid);ASSERT_FALSE(candidate.uncertain);EXPECT_LE(candidate.severity,original.severity);
+            ASSERT_EQ(candidate.pitches.size(),pitches.size());ASSERT_EQ(candidate.mallets.size(),pitches.size());
+            EXPECT_EQ(std::set<int>(candidate.mallets.begin(),candidate.mallets.end()),(std::set<int>{1,2,3,4}));
+            if(candidate.mallets!=original.mallets)reassigned=true;
+            if(reassigned) {EXPECT_NE(candidate.mallets,original.mallets);}
+            for(size_t voice=0;voice<pitches.size();++voice)EXPECT_EQ((candidate.pitches[voice]-pitches[voice])%12,0);
+            EXPECT_LE(candidate.targets[0].x,candidate.targets[1].x+.5);EXPECT_LE(candidate.targets[2].x,candidate.targets[3].x+.5);
+            EXPECT_FALSE(std::any_of(candidate.issues.begin(),candidate.issues.end(),[](const Issue& issue){return issue.key=="arms" || issue.key=="clearance" || issue.key=="heads";}));
+        }
+    }
 }

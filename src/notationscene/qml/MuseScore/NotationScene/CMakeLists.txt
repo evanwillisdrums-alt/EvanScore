@@ -80,6 +80,8 @@ qt_add_qml_module(notationscene_qml
         dynamicspanelmodel.h
         malletplacement.cpp
         malletplacement.h
+        malletassistant.cpp
+        malletassistant.h
         malletscoreedit.cpp
         malletscoreedit.h
         malletpanelmodel.cpp
@@ -346,6 +348,7 @@ target_include_directories(notationscene_qml PRIVATE
 
 target_link_libraries(notationscene_qml PRIVATE
     Qt::Widgets # for QApplication
+    Qt::Network # optional local-only mallet AI; no runtime/model bundled
     muse::uicomponents_qml
 )
 

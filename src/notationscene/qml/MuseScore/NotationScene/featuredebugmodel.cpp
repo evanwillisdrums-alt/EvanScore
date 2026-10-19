@@ -92,6 +92,7 @@ void FeatureDebugModel::setFullScore(bool value)
 
 void FeatureDebugModel::refresh()
 {
+    refreshMemory();
     m_refreshTimer.stop();
     constexpr size_t limit = 500;
     const Score* score = m_notation ? m_notation->elements()->msScore() : nullptr;
@@ -195,6 +196,17 @@ void FeatureDebugModel::refresh()
     if (next == m_report) return;
     m_report = next;
     emit reportChanged();
+}
+
+void FeatureDebugModel::refreshMemory()
+{
+    const auto memory=processMemoryDiagnostics();
+    const auto unavailable=tr("Unavailable");
+    const auto system=memory.contains("systemUsedPercent") ? QString::number(memory.value("systemUsedPercent").toDouble(),'f',1)+"%" : unavailable;
+    const auto process=memory.contains("workingSetBytes") ? QString::number(memory.value("workingSetBytes").toDouble()/1048576,'f',0)+tr(" MiB") : unavailable;
+    const auto portion=memory.contains("processPhysicalMemoryPercent") ? QString::number(memory.value("processPhysicalMemoryPercent").toDouble(),'f',1)+"%" : unavailable;
+    const auto next=tr("System memory used: %1 · EvanScore: %2 (%3 of physical RAM)").arg(system,process,portion);
+    if(next!=m_memorySummary) {m_memorySummary=next;emit memoryChanged();}
 }
 
 void FeatureDebugModel::copyReport()

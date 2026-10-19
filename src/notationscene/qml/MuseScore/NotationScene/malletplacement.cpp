@@ -18,8 +18,17 @@ const Bar* Keyboard::bar(int pitch) const {
     return nullptr;
 }
 std::string pitchName(int pitch) {
-    static const char* names[] { "C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B" };
+    static const char* names[] { "C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B" };
     return names[std::clamp(pitch, 0, 127) % 12] + std::to_string(pitch / 12 - 1);
+}
+std::string spelledPitchName(int pitch, char step, int alteration) {
+    static const std::string steps = "CDEFGAB";
+    static const int semitones[] {0, 2, 4, 5, 7, 9, 11};
+    const auto index = steps.find(step);
+    if (index == std::string::npos || alteration < -2 || alteration > 2
+        || (pitch - semitones[index] - alteration) % 12 != 0) return pitchName(pitch);
+    const std::string accidental = alteration == -2 ? "♭♭" : alteration == -1 ? "♭" : alteration == 1 ? "♯" : alteration == 2 ? "♯♯" : "";
+    return std::string(1, step) + accidental + std::to_string((pitch - semitones[index] - alteration) / 12 - 1);
 }
 Keyboard keyboard(int low, int high, bool metal) {
     Keyboard k;
@@ -123,18 +132,19 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
     Pose pose; pose.pitches=pitches; pose.mallets=ids; pose.fractions=fractions;
     std::vector<double> centers;
     for (size_t i=0;i<pitches.size();++i) {
+        pose.names.push_back(spelledPitchName(pitches[i],player.spellingSteps[i],player.spellingAlterations[i]));
         const auto* bar=keyboard.bar(pitches[i]);
-        if (!bar) { issue(pose,"range",pitchName(pitches[i])+" is outside this instrument's range.",2); continue; }
+        if (!bar) { issue(pose,"range",pose.names.back()+" is outside this instrument's range.",2); continue; }
         const double margin=std::clamp((player.head*.5+.3)/bar->length,.02,.25);
         pose.fractions[i]=std::clamp(fractions[i],margin,1-margin);
         Point target=bar->strike(); target.z=bar->accidental?player.accidentalHeight:0; target.y=bar->y+bar->length*pose.fractions[i];
         pose.targets[ids[i]-1]=target; pose.active[ids[i]-1]=true; centers.push_back(target.x);
         const double f=pose.fractions[i];
         if (std::abs(f-.224)<.055 || std::abs(f-.776)<.055) {
-            issue(pose,"node","Mallet "+std::to_string(ids[i])+" on "+pitchName(pitches[i])+" is near an estimated vibration node; move the strike point for fuller tone.",1);
+            issue(pose,"node","Mallet "+std::to_string(ids[i])+" on "+pose.names.back()+" is near an estimated vibration node; move the strike point for fuller tone.",1);
             pose.cost+=10;
         } else if (f < .30 || f > .70) {
-            issue(pose,"edge","Mallet "+std::to_string(ids[i])+" on "+pitchName(pitches[i])+" uses an end access zone. Easier reach can trade away central-strike tone.",0);
+            issue(pose,"edge","Mallet "+std::to_string(ids[i])+" on "+pose.names.back()+" uses an end access zone. Easier reach can trade away central-strike tone.",0);
             pose.cost+=4;
         } else pose.cost+=std::abs(f-.5)*5;
     }
@@ -183,7 +193,12 @@ static Pose evaluate(const Keyboard& keyboard, const std::vector<int>& pitches, 
         const double anchorSign=player.grip==0 ? 1 : -1;
         pose.anchors[a]={pose.wrists[hand].x-anchorSign*2*std::cos(angle),pose.wrists[hand].y-2*std::sin(angle)+(hand? -1:1),pose.wrists[hand].z};
         pose.anchors[b]={pose.wrists[hand].x+anchorSign*2*std::cos(angle),pose.wrists[hand].y+2*std::sin(angle)+(hand? 1:-1),pose.wrists[hand].z};
-        pose.cost+=pose.openings[hand]*.15+std::abs(pose.rotations[hand])*.65+pose.reaches[hand]*.05;
+        // In this overhead model y grows toward the player. An inner head
+        // farther toward the instrument is inward: negative tilt on the left,
+        // positive on the right. This is pair-plane geometry, not wrist anatomy.
+        const bool inward = hand ? pose.rotations[hand] > 0 : pose.rotations[hand] < 0;
+        const double preference = std::clamp(player.inwardPreference, 0.0, .3);
+        pose.cost+=pose.openings[hand]*.15+std::abs(pose.rotations[hand])*.65*(inward ? 1-preference : 1)+pose.reaches[hand]*.05;
         if (half >= player.shaft) issue(pose,"shaft",name+" hand's "+number(pose.openings[hand])+" cm span exceeds the configured shaft geometry.",2);
         if (pose.openings[hand]>player.opening) {
             issue(pose,hand?"right-opening":"left-opening",name+" opening "+number(pose.openings[hand])+" cm exceeds your "+number(player.opening)+" cm comfortable setting.",1);
@@ -257,17 +272,58 @@ std::vector<Pose> solve(const Keyboard& k,const std::vector<int>& pitches,const 
             if ((p.malletCount==2 && id!=1 && id!=4) || (p.malletCount==3 && id==3)
                 || (r>0 && r!=id) || (r==-1 && id>2) || (r==-2 && id<3)) accepted=false;
         }
-        if (accepted&&seen.insert(assignment).second) out.push_back(optimized(k,pitches,assignment,p,previous,previousSeconds,next,nextSeconds));
+        if (accepted&&seen.insert(assignment).second) out.push_back(evaluate(k,pitches,assignment,p,p.strikeFractions,previous,previousSeconds,next,nextSeconds));
     } while(std::next_permutation(ids.begin(),ids.end()));
     std::stable_sort(out.begin(),out.end(),better);
+    // Start from ordinary physical order. Input vectors retain SOURCE identity;
+    // sort indices, never pitches separately from their mallets.
+    std::vector<size_t> order(pitches.size());std::iota(order.begin(),order.end(),0);
+    std::stable_sort(order.begin(),order.end(),[&](size_t a,size_t b){return pitches[a]<pitches[b];});
+    std::vector<int> deployed = pitches.size()==1 ? std::vector<int>{p.malletCount==4?2:1}
+        : pitches.size()==2 ? (p.malletCount==4?std::vector<int>{2,3}:std::vector<int>{1,4})
+        : pitches.size()==3 ? std::vector<int>{1,2,4} : std::vector<int>{1,2,3,4};
+    std::vector<int> ordinary(pitches.size());
+    for(size_t i=0;i<order.size();++i) ordinary[order[i]]=deployed[i];
+    auto standard=std::find_if(out.begin(),out.end(),[&](const Pose& pose){return pose.mallets==ordinary;});
+    if(standard!=out.end()) {
+        const auto& best=out.front();
+        const double tiltGain=std::abs(standard->rotations[0])+std::abs(standard->rotations[1])
+            -std::abs(best.rotations[0])-std::abs(best.rotations[1]);
+        // A different assignment needs a meaningful modeled benefit, rather
+        // than a fractional cost tie. Never infer crossed arms as the default.
+        const bool crosses=std::any_of(best.issues.begin(),best.issues.end(),[](const Issue& i){return i.key=="arms" || i.key=="clearance";});
+        const bool justified=best.valid && !best.uncertain && !crosses && standard->severity>0
+            && best.openings[0]<=p.opening && best.openings[1]<=p.opening
+            && (best.severity<standard->severity || (standard->cost-best.cost>=20 && tiltGain>=25));
+        const auto baseline=*standard;
+        if(!justified) std::rotate(out.begin(),standard,std::next(standard));
+        if(out.front().mallets==ordinary) {
+            issue(out.front(),"assignment","Ordinary low-to-high physical mallet order is retained. No different pairing has a sufficient modeled benefit to justify changing it.",0);
+        } else {
+            auto& chosen=out.front();
+            issue(chosen,"assignment","A different hand pairing reduces total estimated row tilt from "
+                +number(std::abs(baseline.rotations[0])+std::abs(baseline.rotations[1]),0)+"° to "
+                +number(std::abs(chosen.rotations[0])+std::abs(chosen.rotations[1]),0)
+                +"°; comfort warning level "+std::to_string(baseline.severity)+" → "+std::to_string(chosen.severity)
+                +". This is an explicit geometry exception, not a new chord voicing.",0);
+        }
+    } else if(!out.empty()) {
+        issue(out.front(),"assignment","Fixed mallet/hand constraints were evaluated without replacing known links. Unknown slots are completed within the deployed mallets.",0);
+    }
     if (out.empty()) {Pose pose;pose.pitches=pitches;issue(pose,"sticking","Written sticking conflicts with simultaneous attacks or the deployed mallets. The known assignments have not been replaced.",2);out.push_back(pose);}
+    // Choose physical identities before optional strike optimization. Switching
+    // center/edge assistance must not independently rerank the mallet identities.
+    if(p.optimizeStrikes)for(auto& pose:out) if(pose.mallets.size()==pitches.size()) {
+        auto adjusted=optimized(k,pitches,pose.mallets,p,previous,previousSeconds,next,nextSeconds);
+        for(const auto& i:pose.issues)if(i.key=="assignment")adjusted.issues.push_back(i);
+        pose=std::move(adjusted);
+    }
     return out;
 }
 std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches,const Player& p,const Pose* previous,
                               const std::vector<int>& required,const SearchOptions& options,double previousSeconds,
                               const Pose* next,double nextSeconds) {
     if (pitches.empty()||pitches.size()>size_t(p.malletCount)||pitches.size()>4) return {};
-    const bool written=std::any_of(required.begin(),required.end(),[](int v){return v!=0;});
     Player baseline=p; baseline.optimizeStrikes=false;
     const auto original=solve(k,pitches,baseline,required,previous,previousSeconds,next,nextSeconds).front();
     std::vector<Pose> same,kept,changed;
@@ -276,14 +332,12 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
     auto append=[&](std::vector<Pose>& group,const Pose& pose) {
         if (pose.valid && seen.insert({pose.pitches,pose.mallets,pose.fractions}).second) group.push_back(pose);
     };
-    if (written) {
-        for (const auto& pose:solve(k,pitches,p,required,previous,previousSeconds,next,nextSeconds)) append(kept,pose);
-    }
-    for (const auto& pose:solve(k,pitches,p,{},previous,previousSeconds,next,nextSeconds)) {
-        // With partial sticking, completions of the known constraints come
-        // before reassignment; the original already is the best completion.
-        append(same,pose);
-    }
+    // Freeze the chosen physical links even without written sticking. A
+    // permutation of these same notes is not a new voicing.
+    if(original.mallets.size()!=pitches.size()) return {};
+    const auto fixed=original.mallets;
+    const auto adjusted=solve(k,pitches,p,fixed,previous,previousSeconds,next,nextSeconds);
+    if(!adjusted.empty()) append(kept,adjusted.front());
     std::vector<std::vector<int>> voicings;
     auto generate=[&](std::vector<int> v) {
         if (v==pitches) return;
@@ -303,13 +357,22 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
             for (int x:{-12,12}) for(int y:{-12,12}) {auto v=pitches;v[a]+=x;v[b]+=y;generate(v);}
     }
     for (const auto& v:voicings) {
-        if (written) {
-            auto solutions=solve(k,v,p,required,previous,previousSeconds,next,nextSeconds);
-            if (!solutions.empty()) append(kept,solutions.front());
-        }
+        auto preserved=solve(k,v,p,fixed,previous,previousSeconds,next,nextSeconds);
+        if(!preserved.empty()) append(kept,preserved.front());
         auto solutions=solve(k,v,p,{},previous,previousSeconds,next,nextSeconds);
-        if (!solutions.empty()) append(changed,solutions.front());
+        if (!solutions.empty() && solutions.front().mallets!=fixed) append(changed,solutions.front());
     }
+    // Reassignment is a secondary escape hatch, with a specific improvement.
+    // Suppress crossed-hand/uncertain poses and worse alternatives entirely.
+    auto useful=[&](const Pose& pose) {
+        if(!pose.valid || pose.uncertain || pose.severity>original.severity) return false;
+        if(std::any_of(pose.issues.begin(),pose.issues.end(),[](const Issue& i){return i.key=="arms" || i.key=="clearance";})) return false;
+        return pose.severity<original.severity || original.cost-pose.cost>=8;
+    };
+    for(const auto& pose:solve(k,pitches,p,{},previous,previousSeconds,next,nextSeconds))
+        if(pose.mallets!=fixed && useful(pose)) append(same,pose);
+    kept.erase(std::remove_if(kept.begin(),kept.end(),[&](const Pose& pose){return !useful(pose);}),kept.end());
+    changed.erase(std::remove_if(changed.begin(),changed.end(),[&](const Pose& pose){return !useful(pose);}),changed.end());
     auto fidelity=[&](const Pose& pose) {int difference=0;for(size_t i=0;i<pitches.size();++i)difference+=std::abs(pose.pitches[i]-pitches[i]);return difference;};
     auto rank=[&](const Pose& a,const Pose& b) {
         if (a.severity!=b.severity) return a.severity<b.severity;
@@ -319,9 +382,8 @@ std::vector<Pose> alternatives(const Keyboard& k,const std::vector<int>& pitches
     std::stable_sort(same.begin(),same.end(),better);std::stable_sort(kept.begin(),kept.end(),rank);std::stable_sort(changed.begin(),changed.end(),rank);
     std::vector<Pose> out;
     auto take=[&](const std::vector<Pose>& group,size_t max) {for(size_t i=0;i<std::min(max,group.size()) && out.size()<8;++i)out.push_back(group[i]);};
-    // User's explicit update supersedes the earlier same-notes-first rule:
-    // preserve written voice→mallet links before offering reassignment.
-    if(written) {take(kept,3);take(same,3);take(changed,2);}else {take(same,3);take(changed,5);}
+    // Revoicing with fixed physical identities precedes justified reassignment.
+    take(kept,6);take(changed,1);take(same,1);
     return out;
 }
 }

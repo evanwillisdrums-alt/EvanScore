@@ -3,5 +3,6 @@
 #include <QJsonObject>
 
 namespace mu::notation {
+QJsonObject systemMemoryDiagnostics();
 QJsonObject processMemoryDiagnostics();
 }

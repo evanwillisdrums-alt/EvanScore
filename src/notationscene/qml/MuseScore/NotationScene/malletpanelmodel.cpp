@@ -19,6 +19,7 @@
 #include "engraving/dom/measure.h"
 #include "engraving/dom/tempotimeline.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/pitchspelling.h"
 #include "engraving/dom/part.h"
 #include "engraving/dom/instrument.h"
 #include "engraving/dom/segment.h"
@@ -32,6 +33,15 @@ using namespace mu::notation::mallet;
 static QVariantMap point(mallet::Point p) { return {{"x", p.x}, {"y", p.y}, {"z",p.z}}; }
 static QVariantList integers(const std::vector<int>& values) { QVariantList out; for (int v : values) out << v; return out; }
 static QString pitchesText(const std::vector<int>& pitches) { QStringList out; for (int p : pitches) out << QString::fromStdString(pitchName(p)); return out.join("  "); }
+static QString pitchesText(const Pose& pose) {
+    QStringList out;
+    for(size_t i=0;i<pose.pitches.size();++i) out << QString::fromStdString(i<pose.names.size()?pose.names[i]:pitchName(pose.pitches[i]));
+    return out.join("  ");
+}
+static QString keyPitchName(int pitch, int key) {
+    const auto tpc=pitch2tpc(pitch,static_cast<Key>(key),Prefer::NEAREST);
+    return QString::fromStdString(spelledPitchName(pitch,tpc2stepName(tpc).toAscii(),int(tpc2alter(tpc))));
+}
 static QString statusText(const Pose& pose) {
     return pose.uncertain ? QObject::tr("Unknown — needs clarification") : !pose.valid ? QObject::tr("Conflict in this setup") : pose.severity ? QObject::tr("Difficult — review placement") : QObject::tr("Comfortable in this model");
 }
@@ -44,7 +54,7 @@ static QVariantMap poseData(const Pose& pose) {
     }
     for (int h = 0; h < 2; ++h) { wrists << point(pose.wrists[h]); shoulders << point(pose.shoulders[h]); }
     for (size_t i=0;i<pose.pitches.size() && i<pose.mallets.size();++i) voices << QVariantMap {
-        {"voice", int(i+1)}, {"mallet", pose.mallets[i]}, {"pitch", pose.pitches[i]}, {"name", QString::fromStdString(pitchName(pose.pitches[i]))},
+        {"voice", int(i+1)}, {"mallet", pose.mallets[i]}, {"pitch", pose.pitches[i]}, {"name", QString::fromStdString(i<pose.names.size()?pose.names[i]:pitchName(pose.pitches[i]))},
         {"fraction", pose.fractions[i]}, {"position",QStringList{QObject::tr("Outer left"),QObject::tr("Inner left"),QObject::tr("Inner right"),QObject::tr("Outer right")}.at(std::clamp(pose.mallets[i]-1,0,3))},
         {"zone", pose.fractions[i]>.70 || pose.fractions[i]<.30 ? QObject::tr("End access") : QObject::tr("Central")}};
     for (const auto& issue : pose.issues) {
@@ -54,7 +64,7 @@ static QVariantMap poseData(const Pose& pose) {
     if(pose.valid) pros << QObject::tr("Every new attack has a distinct physical mallet; pitch classes and rhythm are retained.");
     if(cons.empty()) cons << QObject::tr("Estimated static geometry; articulation, tone and continuous motion require a performer check.");
     return {{"heads", heads}, {"wrists", wrists}, {"shoulders", shoulders}, {"anchors", anchors}, {"voices", voices}, {"body", point(pose.body)}, {"pitches", integers(pose.pitches)},
-        {"mallets", integers(pose.mallets)}, {"pitchText", pitchesText(pose.pitches)}, {"severity", pose.severity}, {"uncertain",pose.uncertain}, {"status", statusText(pose)},
+        {"mallets", integers(pose.mallets)}, {"pitchText", pitchesText(pose)}, {"severity", pose.severity}, {"uncertain",pose.uncertain}, {"status", statusText(pose)},
         {"issues", issues}, {"pros",pros}, {"cons",cons}, {"leftOpening", pose.openings[0]}, {"rightOpening", pose.openings[1]},
         {"leftRotation", pose.rotations[0]}, {"rightRotation", pose.rotations[1]}, {"leftReach",pose.reaches[0]}, {"rightReach",pose.reaches[1]},
         {"handClearance",pose.handClearance}, {"shaftClearance",pose.shaftClearance}, {"outerSpread",pose.outerSpread},
@@ -74,6 +84,7 @@ static std::vector<int> requiredForChord(const Chord* chord, bool reverse, bool&
     ambiguous=parsed.unknown;return parsed.required;
 }
 MalletPanelModel::MalletPanelModel(QObject* parent) : QObject(parent), Contextable(muse::iocCtxForQmlObject(this)) {
+    connect(&m_assistant,&MalletAssistant::changed,this,&MalletPanelModel::assistantChanged);
     setObjectName("mallet-panel-model");
     m_refreshTimer.setSingleShot(true); m_refreshTimer.setInterval(35);
     connect(&m_refreshTimer, &QTimer::timeout, this, &MalletPanelModel::refresh);
@@ -89,6 +100,7 @@ MalletPanelModel::MalletPanelModel(QObject* parent) : QObject(parent), Contextab
     m_player.respectSticking = prefs.value("evanscore/mallet/respectSticking", true).toBool();
     m_player.accidentalHeight=std::clamp(prefs.value("evanscore/mallet/accidentalHeight",4).toDouble(),0.0,15.0);
     m_player.rotation=std::clamp(prefs.value("evanscore/mallet/rotation",40).toDouble(),5.0,90.0);
+    m_player.inwardPreference=std::clamp(prefs.value("evanscore/mallet/inwardPreference",15).toDouble()/100,0.0,.3);
     m_player.bodyDistance=std::clamp(prefs.value("evanscore/mallet/bodyDistance",28).toDouble(),15.0,60.0);
     m_player.handWidth=std::clamp(prefs.value("evanscore/mallet/handWidth",7).toDouble(),4.0,15.0);
     m_player.travelSpeed=std::clamp(prefs.value("evanscore/mallet/travelSpeed",200).toDouble(),30.0,600.0);
@@ -110,6 +122,7 @@ void MalletPanelModel::setActive(bool value) {
         m_hair = hair.at(QRandomGenerator::global()->bounded(hair.size()));
         context()->currentNotationChanged().onNotify(this, [this]() { onNotationChanged(); }); onNotationChanged();
     } else {
+        m_assistant.setEnabled(false);
         async_disconnectAll(); m_receiver.async_disconnectAll(); m_refreshTimer.stop(); m_compareTimer.stop();
         m_notation.reset(); m_candidates.clear(); m_alternativeRows.clear(); m_pitches.clear(); m_sourceKey.clear();
         publish();
@@ -117,11 +130,12 @@ void MalletPanelModel::setActive(bool value) {
     emit activeChanged();
 }
 void MalletPanelModel::onNotationChanged() {
+    m_assistant.invalidate();
     m_receiver.async_disconnectAll(); m_compareTimer.stop(); m_notation = context()->currentNotation();
     m_pick = false; m_selected = -1; m_sourceKey.clear(); m_notice.clear();
     if (m_notation) {
-        m_notation->interaction()->selectionChanged().onNotify(&m_receiver, [this]() { if (!m_editing) { m_compareTimer.stop(); m_refreshTimer.start(); } });
-        m_notation->notationChanged().onReceive(&m_receiver, [this](const muse::RectF&) { if (!m_editing) { m_compareTimer.stop(); m_refreshTimer.start(); } });
+        m_notation->interaction()->selectionChanged().onNotify(&m_receiver, [this]() { if (!m_editing) { m_assistant.invalidate();m_compareTimer.stop(); m_refreshTimer.start(); } });
+        m_notation->notationChanged().onReceive(&m_receiver, [this](const muse::RectF&) { if (!m_editing) { m_assistant.invalidate();m_compareTimer.stop(); m_refreshTimer.start(); } });
     }
     playbackController()->playbackInitedChanged().onReceive(&m_receiver,[this](bool ready) {if(!ready)m_compareTimer.stop();publish(false);});
     refresh();
@@ -148,7 +162,7 @@ std::vector<Note*> MalletPanelModel::sourceNotes() const {
 }
 QString MalletPanelModel::sourceKey() const {
     QStringList out;
-    for (const auto* note : sourceNotes()) out << QString("%1:%2:%3:%4").arg(note->track()).arg(note->tick().ticks()).arg(note->pitch()).arg(note->ppitch());
+    for (const auto* note : sourceNotes()) out << QString("%1:%2:%3:%4:%5:%6").arg(note->track()).arg(note->tick().ticks()).arg(note->pitch()).arg(note->ppitch()).arg(note->tpc1()).arg(note->tpc2());
     for (const auto* chord:selectedOnset()) {
         bool ambiguous=false;QString raw;requiredForChord(chord,m_player.reverseNumbering,ambiguous,raw);
         out << raw;
@@ -160,6 +174,8 @@ void MalletPanelModel::refresh() {
     if (m_pick) { analyze(); return; }
     m_pitches.clear(); m_required.clear(); m_held.clear(); m_sticking.clear(); m_ambiguous=false; m_supported = false; m_notice.clear();
     auto chords = selectedOnset(); auto notes = sourceNotes();
+    m_key=chords.empty()?0:int(chords.front()->staff()->key(chords.front()->tick()));
+    m_player.spellingSteps={};m_player.spellingAlterations={};
     m_keyboard = keyboard(36, 96); m_metal = false; m_instrumentId.clear();m_instrument = tr("Marimba");
     if (!chords.empty()) {
         const auto* instrument = chords.front()->staff()->part()->instrument(chords.front()->tick());
@@ -187,6 +203,11 @@ void MalletPanelModel::refresh() {
     m_sticking = raw.join(" / ");
     if(m_ambiguous) m_notice=tr("Cannot infer this attack reliably. Use one numbered or R/L assignment per note (lowest to highest), with ? for unknown slots. Rolls/arpeggiation need a separate motion model. Written text has not been replaced.");
     if (m_supported) for (auto* note : notes) {
+        const auto voice=m_pitches.size();
+        if(voice<4 && tpcIsValid(note->tpc1())) {
+            m_player.spellingSteps[voice]=tpc2stepName(note->tpc1()).toAscii();
+            m_player.spellingAlterations[voice]=int(tpc2alter(note->tpc1()));
+        }
         m_pitches.push_back(note->ppitch()); int required = 0;
         const auto& assignment=assignments[note->chord()];
         if(m_player.respectSticking && assignment.size()==note->chord()->notes().size()) {
@@ -201,8 +222,13 @@ void MalletPanelModel::refresh() {
     m_sourceKey = key; analyze();
 }
 void MalletPanelModel::analyze() {
+    m_assistant.invalidate();
     m_compareTimer.stop(); QElapsedTimer timer;timer.start();
     m_original = {}; m_original.body = { m_keyboard.width / 2, m_keyboard.front + m_player.bodyDistance };
+    if(m_pick) for(size_t i=0;i<m_pitches.size() && i<4;++i) {
+        const int tpc=pitch2tpc(m_pitches[i],static_cast<Key>(m_key),Prefer::NEAREST);
+        m_player.spellingSteps[i]=tpc2stepName(tpc).toAscii();m_player.spellingAlterations[i]=int(tpc2alter(tpc));
+    }
     m_previous = {}; m_next={};m_previousSeconds=m_nextSeconds=0;m_contextNotes.clear();
     auto chords = selectedOnset();
     if (!m_pick && m_supported && !chords.empty()) {
@@ -249,8 +275,12 @@ void MalletPanelModel::analyze() {
 void MalletPanelModel::publish(bool rebuildAlternatives) {
     const auto& pose = m_selected >= 0 && m_selected < int(m_candidates.size()) ? m_candidates[m_selected] : m_original;
     QVariantList bars;
-    for (const auto& bar : m_keyboard.bars) bars << QVariantMap {{"pitch", bar.pitch}, {"label", QString::fromStdString(pitchName(bar.pitch))},
+    for (const auto& bar : m_keyboard.bars) {
+        QString label=keyPitchName(bar.pitch,m_key);
+        for(size_t v=0;v<pose.pitches.size() && v<pose.names.size();++v) if(pose.pitches[v]==bar.pitch) {label=QString::fromStdString(pose.names[v]);break;}
+        bars << QVariantMap {{"pitch", bar.pitch}, {"label", label},
         {"accidental", bar.accidental}, {"x", bar.x}, {"y", bar.y}, {"width", bar.width}, {"length", bar.length}, {"height",bar.accidental?m_player.accidentalHeight:0}};
+    }
     const auto notes = sourceNotes();
     const auto chords = selectedOnset();
     const bool hasAudioContext=!chords.empty() && chords.front()->part()->instrument(chords.front()->tick())->id().toQString()==m_instrumentId;
@@ -277,9 +307,11 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         if(candidate.severity==0) pros << tr("Within the configured comfort settings.");
         for(size_t v=0;v<candidate.pitches.size();++v) {
             const int from=m_pitches[v],to=candidate.pitches[v];
-            if(from!=to) changes << tr("Voice %1: %2 → %3 (mallet %4)").arg(v+1).arg(QString::fromStdString(pitchName(from)),QString::fromStdString(pitchName(to))).arg(m_player.reverseNumbering?5-candidate.mallets[v]:candidate.mallets[v]);
+            const auto fromName=QString::fromStdString(v<m_original.names.size()?m_original.names[v]:pitchName(from));
+            const auto toName=QString::fromStdString(v<candidate.names.size()?candidate.names[v]:pitchName(to));
+            if(from!=to) changes << tr("Voice %1: %2 → %3 (mallet %4)").arg(v+1).arg(fromName,toName).arg(m_player.reverseNumbering?5-candidate.mallets[v]:candidate.mallets[v]);
             if(v<m_original.mallets.size() && candidate.mallets[v]!=m_original.mallets[v]) changes << tr("Voice %1: mallet %2 → %3").arg(v+1).arg(m_player.reverseNumbering?5-m_original.mallets[v]:m_original.mallets[v]).arg(m_player.reverseNumbering?5-candidate.mallets[v]:candidate.mallets[v]);
-            if(std::abs(candidate.fractions[v]-m_original.fractions[v])>.1) changes << tr("%1: strike %2% → %3% along the bar").arg(QString::fromStdString(pitchName(to))).arg(m_original.fractions[v]*100,0,'f',0).arg(candidate.fractions[v]*100,0,'f',0);
+            if(std::abs(candidate.fractions[v]-m_original.fractions[v])>.1) changes << tr("%1: strike %2% → %3% along the bar").arg(toName).arg(m_original.fractions[v]*100,0,'f',0).arg(candidate.fractions[v]*100,0,'f',0);
         }
         if(!same) {
             cons << tr("Register/spacing changes: listen for voice-leading and balance.");
@@ -289,9 +321,11 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         }
         for(const auto& issue:candidate.issues) if(issue.severity>0 || issue.key=="edge") cons << QString::fromStdString(issue.message);
         if(cons.empty()) cons << tr("Static geometry is an estimate; motion and tone still need a player check.");
-        const auto description=written && links ? (same?tr("Keep sticking • adjust strike placement"):tr("Keep sticking • revoice")) : same?tr("Keep notes • change sticking"):tr("Change voicing and sticking");
-        m_alternativeRows << QVariantMap {{"index", int(i)}, {"pitches", pitchesText(candidate.pitches)},
-            {"description", description}, {"pros",pros}, {"cons",cons}, {"changes",changes}, {"mallets",integers(candidate.mallets)}, {"status",statusText(candidate)}, {"keepsSticking",links},
+        const bool fixedLinks=candidate.mallets==m_original.mallets;
+        if(!fixedLinks) cons << tr("Secondary option: reassigns mallets. Consider fixed-sticking revoicings first.");
+        const auto description=fixedLinks ? (same?tr("Keep sticking • adjust strike placement"):tr("Keep sticking • revoice")) : same?tr("Secondary • change sticking"):tr("Secondary • revoice and change sticking");
+        m_alternativeRows << QVariantMap {{"index", int(i)}, {"pitches", pitchesText(candidate)},
+            {"description", description}, {"pros",pros}, {"cons",cons}, {"changes",changes}, {"mallets",integers(candidate.mallets)}, {"status",statusText(candidate)}, {"keepsSticking",written?links:fixedLinks},
             {"severity", candidate.severity}, {"uncertain",candidate.uncertain}, {"leftOpening", candidate.openings[0]}, {"rightOpening", candidate.openings[1]}, {"valid", candidate.valid}};
     }
     const bool hasNotes = !m_pitches.empty();
@@ -332,14 +366,14 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         {"instrument", m_instrument}, {"bars", bars}, {"keyboardWidth", m_keyboard.width}, {"keyboardFront", m_keyboard.front},
         {"low", m_keyboard.low}, {"high", m_keyboard.high}, {"rangeLabel", pitchesText({m_keyboard.low, m_keyboard.high})}, {"metal", m_metal},
         {"pose", poseData(pose)}, {"originalPose",poseData(m_original)}, {"recommendKeep",!m_pitches.empty() && m_original.valid && !m_original.uncertain && m_original.severity==0}, {"heldPitches", integers(m_held)}, {"status", status}, {"notice", m_notice}, {"sticking", m_sticking},
-        {"previousPitches", pitchesText(m_previous.pitches)}, {"nextPitches",pitchesText(m_next.pitches)}, {"contextNotes",m_contextNotes}, {"timingSource",tr("Native tempo timeline, without repeat expansion")}, {"previousSeconds",m_previousSeconds}, {"nextSeconds",m_nextSeconds}, {"analysisMs",m_analysisMs}, {"searchOrder",!m_player.respectSticking || m_sticking.isEmpty()?tr("Exact notes and sticking first; revoicing if needed"):tr("Written links first; revoicing before reassignment")},
+        {"previousPitches", pitchesText(m_previous.pitches)}, {"nextPitches",pitchesText(m_next.pitches)}, {"contextNotes",m_contextNotes}, {"timingSource",tr("Native tempo timeline, without repeat expansion")}, {"previousSeconds",m_previousSeconds}, {"nextSeconds",m_nextSeconds}, {"analysisMs",m_analysisMs}, {"searchOrder",tr("Keep physical mallet links; revoice before justified reassignment")},
         {"skin", m_skin}, {"hair", m_hair}, {"malletCount", m_player.malletCount}, {"grip", m_player.grip},
         {"opening", m_player.opening}, {"reach", m_player.reach}, {"shaft", m_player.shaft}, {"head", m_player.head},
-        {"accidentalHeight",m_player.accidentalHeight},{"rotation",m_player.rotation},{"bodyDistance",m_player.bodyDistance},{"handWidth",m_player.handWidth},{"travelSpeed",m_player.travelSpeed},
+        {"accidentalHeight",m_player.accidentalHeight},{"rotation",m_player.rotation},{"inwardPreference",m_player.inwardPreference*100},{"bodyDistance",m_player.bodyDistance},{"handWidth",m_player.handWidth},{"travelSpeed",m_player.travelSpeed},
         {"reverseNumbering",m_player.reverseNumbering},{"optimizeStrikes",m_player.optimizeStrikes},{"allowOctaves",m_search.allowOctaves},{"keepBass",m_search.keepBass},{"keepMelody",m_search.keepMelody},{"allowInversion",m_search.allowInversion},
         {"bodyOffset", m_player.bodyOffset}, {"respectSticking", m_player.respectSticking}, {"selectedAlternative", m_selected},
         {"canCommit", canCommit}, {"commitReason",commitReason}, {"selectionHelp",selectionHelp}, {"nextStep",nextStep}, {"checks",checks}, {"hasNotes",hasNotes},
-        {"displayedChord",pitchesText(pose.pitches)},
+        {"displayedChord",pitchesText(pose)},
         {"canAudition", m_supported && hasNotes && hasAudioContext && audioReady},
         {"audioStatus",!hasAudioContext ? tr("Select a chord in the displayed keyboard-percussion instrument to audition with its sound.") : !audioReady ? tr("Audio is not ready. Check the sound in Mixer and the audio output device; placement analysis still works.") : tr("Audition uses this staff's selected sound; the score is unchanged.")},
         {"sourceKey", m_sourceKey},
@@ -404,6 +438,7 @@ void MalletPanelModel::setOption(const QString& key, const QVariant& value) {
         else if (key == "head") { m_player.head = std::clamp(number, 1.0, 8.0); saved = m_player.head; }
         else if (key == "accidentalHeight") {m_player.accidentalHeight=std::clamp(number,0.0,15.0);saved=m_player.accidentalHeight;}
         else if (key == "rotation") {m_player.rotation=std::clamp(number,5.0,90.0);saved=m_player.rotation;}
+        else if (key == "inwardPreference") {m_player.inwardPreference=std::clamp(number,0.0,30.0)/100;saved=m_player.inwardPreference*100;}
         else if (key == "bodyDistance") {m_player.bodyDistance=std::clamp(number,15.0,60.0);saved=m_player.bodyDistance;}
         else if (key == "handWidth") {m_player.handWidth=std::clamp(number,4.0,15.0);saved=m_player.handWidth;}
         else if (key == "travelSpeed") {m_player.travelSpeed=std::clamp(number,30.0,600.0);saved=m_player.travelSpeed;}
@@ -414,6 +449,7 @@ void MalletPanelModel::setOption(const QString& key, const QVariant& value) {
 }
 void MalletPanelModel::setStrikePoint(int id, double fraction) {
     if (!std::isfinite(fraction)) return;
+    m_assistant.invalidate();
     m_compareTimer.stop();
     const auto pose = m_selected >= 0 && m_selected < int(m_candidates.size()) ? m_candidates[m_selected] : m_original;
     const auto found = std::find(pose.mallets.begin(), pose.mallets.end(), id);
@@ -468,4 +504,46 @@ void MalletPanelModel::commit() {
     undo->commitChanges(); m_editing = false; m_selected = -1; refresh();
     m_notice = tr("Placement committed in one Undo step. Durations, voices, articulations and playback mappings are preserved."); publish();
 }
-QVariantMap MalletPanelModel::diagnostics() const { auto out = m_state; out.remove("bars"); out.insert("alternativesCount", int(m_candidates.size())); out.insert("analysis", "Estimated shared static geometry; source-voice identity retained; written-sticking-first search; bounded previous/next attacks; no calibrated biomechanics or full passage simulation"); return out; }
+void MalletPanelModel::askAssistant() {
+    if(!m_active || refreshStaleSource() || m_refreshTimer.isActive())return;
+    QVariantList candidates;
+    auto add=[&](const Pose& pose,const QString& id,int index) {
+        if(!pose.valid || pose.uncertain || pose.severity>=2)return;
+        const auto data=poseData(pose);
+        QVariantMap facts{{"candidateId",id},{"valid",pose.valid},{"uncertain",pose.uncertain},{"severity",pose.severity},
+            {"notesInSourceVoiceOrder",data.value("voices")},{"leftOpeningCm",pose.openings[0]},{"rightOpeningCm",pose.openings[1]},
+            {"leftPairTiltDegrees",pose.rotations[0]},{"rightPairTiltDegrees",pose.rotations[1]},
+            {"handClearanceCm",pose.handClearance},{"shaftClearanceCm",pose.shaftClearance},
+            {"preparationSeconds",pose.preparation},{"warnings",data.value("issues")},{"keepsPhysicalLinks",pose.mallets==m_original.mallets}};
+        QVariantList rows;
+        for(const auto pitch:pose.pitches) {const auto* bar=m_keyboard.bar(pitch);rows << (bar && bar->accidental?"upper":"lower");}
+        facts.insert("physicalRowsInSourceVoiceOrder",rows);
+        if(index>=0 && index<m_alternativeRows.size()) {
+            const auto row=m_alternativeRows[index].toMap();facts.insert("changes",row.value("changes"));
+            facts.insert("benefits",row.value("pros"));facts.insert("tradeoffs",row.value("cons"));
+        }
+        candidates << facts;
+    };
+    add(m_original,"original",-1);
+    for(size_t i=0;i<m_candidates.size() && candidates.size()<5;++i)add(m_candidates[i],QString("alternative-%1").arg(i),int(i));
+    m_assistant.ask({{"candidates",candidates},{"originalComfortable",m_state.value("recommendKeep")},
+        {"numbering","Fixed physical 1 outer-left, 2 inner-left, 3 inner-right, 4 outer-right; source voice order is NOT necessarily pitch order after revoicing"},
+        {"grip",m_player.grip},{"openingLimitCm",m_player.opening},{"tiltLimitDegrees",m_player.rotation},
+        {"inwardPreferencePercent",m_player.inwardPreference*100},{"previousAttack",pitchesText(m_previous)},
+        {"nextAttack",pitchesText(m_next)},{"previousSeconds",m_previousSeconds},{"nextSeconds",m_nextSeconds},
+        {"contextLimits",m_contextNotes},{"searchOrder",m_state.value("searchOrder")}});
+}
+void MalletPanelModel::previewAssistant() {
+    if(!m_active || refreshStaleSource() || m_refreshTimer.isActive())return;
+    const auto id=m_assistant.state().value("result").toMap().value("candidateId").toString();
+    if(id=="original") {showOriginal();return;}
+    if(!id.startsWith("alternative-"))return;
+    bool ok=false;const auto index=id.mid(12).toInt(&ok);
+    if(ok && index>=0 && index<int(m_candidates.size()) && m_candidates[index].valid && !m_candidates[index].uncertain)selectAlternative(index);
+}
+QVariantMap MalletPanelModel::diagnostics() const {
+    auto out = m_state;out.remove("bars");out.insert("alternativesCount",int(m_candidates.size()));
+    out.insert("localAssistant",m_assistant.state());
+    out.insert("analysis","Estimated static geometry; ordinary physical order; fixed-link revoicings before justified reassignment; bounded neighbor timing; no calibrated biomechanics or full passage simulation");
+    return out;
+}

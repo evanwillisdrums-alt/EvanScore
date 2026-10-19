@@ -1,5 +1,48 @@
 # Development checkpoint
 
+## Current work — mallet identity, optional local AI and memory diagnostics, 2026-10-19
+
+User clarified that ordinary chords must not arbitrarily permute mallets, real
+revoicings should precede rare justified reassignment even without written
+sticking, spelling should match the score, and inward rotation gets only a modest
+configurable preference. This supersedes the old unwritten-mode reassignment-first
+research summary. Native cross-bar tuplets remain queued; new percussion-only
+accent defaults/manual direction/voice and three-line marching-snare/two-line
+cymbal defaults follow them. Do not silently change saved scores.
+
+Source now chooses ordinary physical order before optional strike optimization,
+freezes source-note/mallet links for revoicing, suppresses worse/crossing/uncertain
+suggestions, retains the E–F♯–G–B♭ same-row exception, and carries score TPC spelling
+through labels/octave moves. Inward preference is adjustable 0–30%, default 15%.
+A normal comfortable C chord may correctly have no useful alternatives.
+
+Optional local AI under Player uses an explicitly requested Ollama loopback call,
+no key, no bundled model or automatic download, lazy discovery/inference,
+conservative free-RAM guard, context/output/response/time bounds and unload-after-
+response request. It can only explain/select checked candidates or return none;
+Preview and Apply remain separate. Ordinary sticking/placement/score editing
+remain code and work without model memory. See mallet-local-ai.md for setup,
+licensing, grounding and limitations. A real local model is not installed in this
+cloud environment; controlled HTTP checks do not establish model musical quality.
+
+Diagnostics now includes system memory used %, EvanScore working set in MiB and
+its percentage of physical RAM, plus structured JSON fields. The visible window
+updates only those small measurements every two seconds, without rescanning the
+score. Separate Ollama memory is reflected in system load, not EvanScore's working
+set. Available-memory reporting currently supports Windows/Linux.
+
+Local validation is in /workspace/evanscore-validation/20261019: 33 solver/client/
+memory tests (including 96 varied chord cases and 1000 repeated analyses), plus
+34 native-model/score-edit/Undo/actual painter-pointer tests, all passing. Native
+dependencies are ASan-instrumented with leak reporting off for retained services;
+this is not a clean leak check. Product and Inspector sources compile locally,
+and both changed QML files parse; complete Windows interactions remain a gate.
+The old local runner required its own setup correction (duplicate configuration
+registration), not a product fix. Full Linux suite remains blocked by retained
+Qt 6.8.2 versus pinned Windows Qt 6.11.2. New Windows source/build and native gates
+are still required before a new download. Preserve the verified c1b release below
+and the dirty muse submodule/root framework patch.
+
 Updated 2026-10-16 UTC. Branch: `codex/rounded-ui-windows-preview`.
 
 ## Verified Windows release — 2026-10-16

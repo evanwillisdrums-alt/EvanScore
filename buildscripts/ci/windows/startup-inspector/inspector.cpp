@@ -809,6 +809,19 @@ private:
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,center->mapToScene({center->width()/2,center->height()/2}).toPoint());QTest::qWait(100);
         QMetaObject::invokeMethod(model,"resetStrikePoints");
         panel->setProperty("currentTab", 2); QTest::qWait(100);
+        auto aiToggle=findItem(panel,"mallet-local-ai-enabled");
+        if(!aiToggle || model->property("assistant").toMap().value("enabled").toBool())qFatal("Local AI must start disabled");
+        reveal(aiToggle);
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({aiToggle->width()/2,aiToggle->height()/2}).toPoint());QTest::qWait(100);
+        auto aiState=model->property("assistant").toMap();
+        if(!aiState.value("enabled").toBool() || aiState.value("busy").toBool())qFatal("Enabling optional AI must not start inference or discovery");
+        auto aiAsk=findItem(panel,"mallet-local-ai-ask");
+        if(!aiAsk || aiAsk->isEnabled())qFatal("Local AI must not infer without an installed selected model");
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,aiToggle->mapToScene({aiToggle->width()/2,aiToggle->height()/2}).toPoint());QTest::qWait(100);
+        if(model->property("assistant").toMap().value("enabled").toBool())qFatal("Optional AI toggle did not turn off");
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"inwardPreference"),Q_ARG(QVariant,QVariant(0)));
+        if(state().value("inwardPreference").toInt()!=0)qFatal("Neutral rotation preference was not retained");
+        QMetaObject::invokeMethod(model,"setOption",Q_ARG(QString,"inwardPreference"),Q_ARG(QVariant,QVariant(15)));
         auto opening = findItem(panel, "mallet-player-opening");
         if (!opening) qFatal("Mallet player opening editor is unavailable");
         for (const int key : {Qt::Key_Return, Qt::Key_Enter}) {
@@ -1084,6 +1097,13 @@ private:
         auto data = readReport();
         if (data.value("runtime").toObject().value("workingSetBytes").toDouble() <= 0)
             qFatal("Feature diagnostics omitted actual process memory");
+        const auto runtime=data.value("runtime").toObject();
+        const auto systemPercent=runtime.value("systemUsedPercent").toDouble(-1);
+        const auto processPercent=runtime.value("processPhysicalMemoryPercent").toDouble(-1);
+        auto memoryLabel=findItem(dialog->contentItem(),"feature-debug-memory");
+        if(systemPercent<0 || systemPercent>100 || processPercent<=0 || processPercent>100
+            || !memoryLabel || !memoryLabel->property("text").toString().contains("%"))
+            qFatal("Feature diagnostics omitted labeled system/process memory percentages");
         const auto rows = data.value("sticking").toArray();
         if (!data.value("scoreOpen").toBool() || rows.isEmpty() || data.value("truncated").toBool()
             || data.value("scope").toString() != "selected notes")
