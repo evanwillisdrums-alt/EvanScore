@@ -1631,6 +1631,10 @@ void TRead::read(Tuplet* t, XmlReader& e, ReadContext& ctx)
             baseLen = TDuration(TConv::fromXml(e.readAsciiText(), DurationType::V_INVALID));
         } else if (tag == "baseDots") {
             baseLen.setDots(e.readInt());
+        } else if (tag == "crossBar") {
+            if (e.readInt() == 1 && !ctx.pasteMode()) {
+                ctx.markCrossBarTuplet(t);
+            }
         } else if (tag == "Number") {
             number = Factory::createText(t, TextStyleType::TUPLET);
             number->setComposition(true);

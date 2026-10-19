@@ -58,6 +58,32 @@ void ReadContext::setScore(Score* score)
     m_score = score;
 }
 
+Tuplet* ReadContext::continuingTuplet(track_idx_t track) const
+{
+    const auto found = m_continuingTuplets.find({ m_score, track });
+    return found == m_continuingTuplets.end() ? nullptr : found->second;
+}
+
+void ReadContext::setContinuingTuplet(track_idx_t track, Tuplet* tuplet)
+{
+    const auto key = std::make_pair(m_score, track);
+    if (tuplet) {
+        m_continuingTuplets[key] = tuplet;
+    } else {
+        m_continuingTuplets.erase(key);
+    }
+}
+
+bool ReadContext::hasUnfinishedCrossBarTuplets() const
+{
+    for (const auto& [key, tuplet] : m_continuingTuplets) {
+        if (key.first == m_score && tuplet) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const MStyle& ReadContext::style() const
 {
     return score()->style();

@@ -3513,6 +3513,9 @@ void TWrite::write(const Tuplet* item, XmlWriter& xml, WriteContext& ctx)
     writeProperty(item, xml, Pid::P2);
 
     xml.tag("baseNote", TConv::toXml(item->baseLen().type()));
+    if (item->measure() && item->tick() + item->actualTicks() > item->measure()->endTick()) {
+        xml.tag("crossBar", 1);
+    }
     if (int dots = item->baseLen().dots()) {
         xml.tag("baseDots", dots);
     }

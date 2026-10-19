@@ -313,10 +313,12 @@ void Tuplet::add(EngravingItem* e)
         de->setTuplet(this);
 
         bool found = false;
-        Fraction tick = de->rtick();
-        if (tick != Fraction(-1, 1)) {
+        // Elements may belong to different measures. Relative ticks restart
+        // at every barline and cannot establish their chronological order.
+        const Fraction tick = de->tick();
+        if (de->rtick() != Fraction(-1, 1)) {
             for (unsigned int i = 0; i < m_currentElements.size(); ++i) {
-                if (m_currentElements[i]->rtick() > tick) {
+                if (m_currentElements[i]->tick() > tick) {
                     m_currentElements.insert(m_currentElements.begin() + i, de);
                     found = true;
                     break;

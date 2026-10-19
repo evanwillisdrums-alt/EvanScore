@@ -49,3 +49,32 @@ Choose the native creation interaction after the engraving prototype passes: spe
 8. Linked parts and full score agree; ordinary/nested single-measure tuplet regressions continue to pass. MusicXML export/import requires explicit verification and must not silently change timing.
 
 No release claim is justified until the native object, editing, persistence, layout and playback paths pass these checks. Do not fold an unverified notation-model change into the currently compiling caption/stem release.
+
+## Isolated persistence prototype — 2026-10-19
+
+Branch `codex/crossbar-tuplet-prototype` is separate from verified Windows release
+041f9fe067b40675642e45578fbd80c96bd9a97c. It is not enabled or distributed.
+Tuplet membership uses absolute onset order. The writer marks explicitly spanning
+groups; the reader carries a per-score/per-track stack only for those groups,
+retaining nested parent links. Missing end markers, expired intervals and EOF
+before completion produce an import error. Outer reader loops stop on that error
+so child note IDs cannot be mistaken for measure IDs during rejection.
+
+Eight native test cases pass in the isolated ASan harness. Their loops cover
+3:2/5:4/7:4 in tracks0/1/3/4, exact onsets/written/actual durations, one barline tie,
+an unaffected ordinary voice, simultaneous groups with different ratios, nested
+3:2 inside3:2, ordinary compatibility, missing terminator/final measure and
+reader-context score isolation. The same real reader/writer preserves ordinary
+single-measure timing. Build replacements include complete original unity units,
+so the harness does not suppress duplicate definitions or change public Tuplet
+layout. Missing chord-resource/EID/transaction mock warnings remain: this is not
+full-app rendering, audio, editing or importer robustness certification.
+
+The marker is an experimental persistence mechanism, not a finished format.
+Current MscLoader rejects numeric format versions above Constants::MSC_VERSION;
+a future feature-specific newer version can therefore make old readers refuse
+these scores rather than silently losing ratios. Deliberately settle the format,
+loader dispatch and exchange behavior before enabling creation or releasing files.
+Keep ordinary files in their current format; do not globally upgrade every score
+just to carry this one feature. No generated prototype MSCX is a working released
+workaround. Remaining acceptance requirements above still apply.

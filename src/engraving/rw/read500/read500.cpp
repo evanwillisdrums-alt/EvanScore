@@ -78,7 +78,7 @@ muse::Ret Read500::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
         ctx.setForcePageMode(data->forcePageMode);
     }
 
-    while (e.readNextStartElement()) {
+    while (e.error() == muse::XmlStreamReader::NoError && e.readNextStartElement()) {
         const AsciiStringView tag(e.name());
         if (tag == "programVersion") {
             String ver = e.readText();
@@ -119,7 +119,7 @@ muse::Ret Read500::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
 bool Read500::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
 {
     std::vector<int> sysStaves;
-    while (e.readNextStartElement()) {
+    while (e.error() == muse::XmlStreamReader::NoError && e.readNextStartElement()) {
         ctx.setTrack(muse::nidx);
         const AsciiStringView tag(e.name());
         if (tag == "eid") {
@@ -259,6 +259,9 @@ bool Read500::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
         } else {
             e.unknown();
         }
+    }
+    if (ctx.hasUnfinishedCrossBarTuplets()) {
+        e.raiseError(u"Score ends before an explicitly continuing tuplet is complete");
     }
     ctx.setMMRestEndMeasures();
     ctx.connectNoteAnchoredSpanners();

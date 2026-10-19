@@ -42,7 +42,7 @@ void StaffRead::readStaff(Score* score, XmlReader& e, ReadContext& ctx)
     ctx.setTrack(staff * VOICES);
 
     if (staff == 0) {
-        while (e.readNextStartElement()) {
+        while (e.error() == muse::XmlStreamReader::NoError && e.readNextStartElement()) {
             const AsciiStringView tag(e.name());
 
             if (tag == "Measure") {
@@ -99,7 +99,7 @@ void StaffRead::readStaff(Score* score, XmlReader& e, ReadContext& ctx)
         }
     } else {
         Measure* measure = score->firstMeasure();
-        while (e.readNextStartElement()) {
+        while (e.error() == muse::XmlStreamReader::NoError && e.readNextStartElement()) {
             const AsciiStringView tag(e.name());
 
             if (tag == "Measure") {

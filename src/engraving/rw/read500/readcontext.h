@@ -23,6 +23,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_set>
 
 #include "iengravingfontsprovider.h"
 
@@ -131,6 +132,16 @@ public:
     void addNoteAnchoredSpannerEndEl(Spanner* spanner, EID endElementEID);
     void connectNoteAnchoredSpanners();
 
+    // Experimental persistence support. Only an explicitly marked logical
+    // group may continue into the next measure; ordinary malformed groups
+    // keep their existing measure-local behavior. Context owns no tuplets.
+    void markCrossBarTuplet(Tuplet* tuplet) { m_crossBarTuplets.insert(tuplet); }
+    bool isCrossBarTuplet(Tuplet* tuplet) const { return m_crossBarTuplets.contains(tuplet); }
+    void finishCrossBarTuplet(Tuplet* tuplet) { m_crossBarTuplets.erase(tuplet); }
+    Tuplet* continuingTuplet(track_idx_t track) const;
+    void setContinuingTuplet(track_idx_t track, Tuplet* tuplet);
+    bool hasUnfinishedCrossBarTuplets() const;
+
 private:
     Score* m_score = nullptr;
 
@@ -164,5 +175,7 @@ private:
     std::unordered_map<EID, EID> m_pastedEIDs;
 
     std::map<Spanner*, std::pair<EID, EID> > m_incompleteNoteAnchoredSpanners;
+    std::unordered_set<Tuplet*> m_crossBarTuplets;
+    std::map<std::pair<Score*, track_idx_t>, Tuplet*> m_continuingTuplets;
 };
 }

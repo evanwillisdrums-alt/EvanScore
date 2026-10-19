@@ -103,6 +103,9 @@ void MeasureRead::readMeasure(Measure* measure, XmlReader& e, ReadContext& ctx, 
             ctx.setTrack(nextTrack++);
             ctx.setTick(measure->tick());
             readVoice(measure, e, ctx, staffIdx, irregular);
+            if (e.error() != muse::XmlStreamReader::NoError) {
+                return;
+            }
         } else if (tag == "Marker" || tag == "Jump") {
             EngravingItem* el = Factory::createItemByName(tag, measure);
             el->setTrack(ctx.track());
@@ -210,7 +213,15 @@ void MeasureRead::readVoice(Measure* measure, XmlReader& e, ReadContext& ctx, in
     Segment* segment = nullptr;
     std::vector<Chord*> graceNotes;
     Beam* startingBeam = nullptr;
-    Tuplet* tuplet = nullptr;
+    Tuplet* tuplet = ctx.continuingTuplet(ctx.track());
+    // A missing terminator must never swallow music beyond the group's exact
+    // logical interval. Reject instead of inventing ordinary-note timing.
+    if (tuplet && ctx.tick() >= tuplet->tick() + tuplet->actualTicks()) {
+        ctx.setContinuingTuplet(ctx.track(), nullptr);
+        e.raiseError(u"Unterminated cross-bar tuplet exceeds its declared interval");
+        return;
+    }
+    ctx.setContinuingTuplet(ctx.track(), nullptr);
     Fermata* fermata = nullptr;
 
     Staff* staff = ctx.staff(staffIdx);
@@ -218,6 +229,13 @@ void MeasureRead::readVoice(Measure* measure, XmlReader& e, ReadContext& ctx, in
 
     while (e.readNextStartElement()) {
         const AsciiStringView tag(e.name());
+
+        if ((tag == "Chord" || tag == "Rest" || tag == "Tuplet")
+            && tuplet && ctx.isCrossBarTuplet(tuplet)
+            && ctx.tick() >= tuplet->tick() + tuplet->actualTicks()) {
+            e.raiseError(u"Cross-bar tuplet is missing its end marker");
+            return;
+        }
 
         if (tag == "location") {
             Location loc = Location::relative();
@@ -561,6 +579,13 @@ void MeasureRead::readVoice(Measure* measure, XmlReader& e, ReadContext& ctx, in
             }
             Tuplet* oldTuplet = tuplet;
             tuplet = tuplet->tuplet();
+            if (ctx.isCrossBarTuplet(oldTuplet)) {
+                if (ctx.tick() != oldTuplet->tick() + oldTuplet->actualTicks()) {
+                    e.raiseError(u"Cross-bar tuplet end does not match its exact duration");
+                    return;
+                }
+                ctx.finishCrossBarTuplet(oldTuplet);
+            }
             if (oldTuplet->elements().empty()) {
                 // this should not happen and is a sign of input file corruption
                 LOGD("Measure:read: empty tuplet in measure index=%d, input file corrupted?", ctx.currentMeasureIndex());
@@ -596,12 +621,25 @@ void MeasureRead::readVoice(Measure* measure, XmlReader& e, ReadContext& ctx, in
         delete startingBeam;
     }
     if (tuplet) {
-        LOGD("Measure:readVoice: measure index=%d, <endTuplet/> not found", ctx.currentMeasureIndex());
-        if (tuplet->elements().empty()) {
+        bool explicitContinuation = true;
+        for (auto* current = tuplet; current; current = current->tuplet()) {
+            if (!ctx.isCrossBarTuplet(current) || current->tick() + current->actualTicks() <= measure->endTick()) {
+                explicitContinuation = false;
+                break;
+            }
+        }
+        if (explicitContinuation && !tuplet->elements().empty()) {
+            ctx.setContinuingTuplet(ctx.track(), tuplet);
+        } else if (ctx.isCrossBarTuplet(tuplet)) {
+            e.raiseError(u"Cross-bar tuplet is missing its end marker");
+        } else if (tuplet->elements().empty()) {
+            LOGD("Measure:readVoice: measure index=%d, empty unterminated tuplet", ctx.currentMeasureIndex());
             if (tuplet->tuplet()) {
                 tuplet->tuplet()->remove(tuplet);
             }
             delete tuplet;
+        } else {
+            LOGD("Measure:readVoice: measure index=%d, <endTuplet/> not found", ctx.currentMeasureIndex());
         }
     }
     if (fermata) {
