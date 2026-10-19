@@ -1,6 +1,9 @@
 name: EvanScore real local mallet AI
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/rounded-ui-windows-preview]
+    paths: ['.github/workflows/check_mallet_local_ai.yml']
 permissions:
   contents: read
 jobs:
