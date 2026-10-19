@@ -1,5 +1,43 @@
 # Development checkpoint
 
+## Verified local-AI Windows release — 2026-10-19 21:02 UTC
+
+**Ready:** native source **041f9fe067b40675642e45578fbd80c96bd9a97c**, full
+Windows build [39319891960](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/39319891960).
+Compilation/deployment, startup beyond splash, score export, normal closure and
+fresh-machine portable checks pass. Matching native gates: Mallets **39323419607**,
+Dynamics **39321830718**, bundled keypad **39321844817**, global stems **39321857720**.
+Both actual complete-app captures were retrieved and viewed: compact focused bars
+with player inset and untruncated controls; native Notes Style dialog. Evidence
+and readiness are retained in validation `release-watch.json`/`release-reviews.json`.
+
+**Download:** [EvanScore-Windows-x64](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/39319891960/artifacts/12220391046),
+181,293,203 bytes; expires **2026-11-02 20:43 UTC**. SHA256
+`f8fcbe2336fbcd88c59fa55f93703dfe93826e2ca6060ef0a4e574e56f14ccd7`.
+Extract the whole ZIP and run `bin/MuseScoreStudio5.exe`.
+
+AI: Mallets → Player → Optional local AI guidance → Set up local AI (~2.5 GB)
+once, then Explain this chord. No API key/account/admin privileges required.
+Private CPU runtime/model stay optional and unload; ordinary analysis works
+without model memory. Real native setup/inference/unloading/abrupt-exit proof is
+**39316734774/check118280050565**, backend/script/contract identical in this
+binary. Model selects independently checked candidates/fact IDs; native code
+renders exact geometry and tradeoffs. This is bounded guidance, not validated
+expert musical judgment or calibrated human biomechanics. No silent score edits.
+
+The initial mallet gate **39321817537** failed in the Python verifier because
+source identity now contains six fields (including TPC spelling), while it parsed
+four. Test-only **6792435a394** corrects that parser and additionally checks saved
+TPC; the same binary passes rerun39323419607. No product change or weakened score
+assertion was required. The new embedded setup resource/UI tests also pass.
+
+Queue work remains separate in `/workspace/EvanScore-crossbar`, branch
+`codex/crossbar-tuplet-prototype`. An isolated native persistence prototype now
+round-trips 3:2, 5:4 and7:4 with one logical group, exact half-note total and one
+native tie over the barline. It is **not shipped**: creation/Undo, segmented
+layout, malformed-input handling, file-version compatibility and edit/export
+acceptance remain. Preserve the verified release while continuing that work.
+
 ## Frozen AI release candidate — 2026-10-19 20:32 UTC
 
 Source **041f9fe067b40675642e45578fbd80c96bd9a97c** is frozen. Deferred queue

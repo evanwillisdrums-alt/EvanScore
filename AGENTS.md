@@ -97,3 +97,5 @@ Windows platform sources (currently processmemory.cpp and malletassistant.cpp)
 must stay outside notationscene unity files: windows.h defines ABSOLUTE, which
 collides with engraving PropertyValue types. The standalone AI check alone does
 not catch that full-app integration error; retain the full Windows compile gate.
+
+Latest verified release: Windows39319891960, product source041f9fe067b40675642e45578fbd80c96bd9a97c. Full/fresh startup/export, all four native feature gates and actual capture review pass; see the top checkpoint for download and real local-model evidence. Cross-bar tuplets are being prototyped separately and are not in this release. Preserve the verified binary while continuing the queue.
