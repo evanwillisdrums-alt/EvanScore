@@ -230,6 +230,12 @@ void MalletSceneView::hoverLeaveEvent(QHoverEvent*) { m_keyboardHover = false; m
 void MalletSceneView::mousePressEvent(QMouseEvent* event) {
     forceActiveFocus();
     m_pressPosition=event->position();m_dragging=false;m_dragged=-1;m_draggedPitch=-1;
+    // Zoomed strike heads can project beneath the clipped context inset.
+    // That hidden geometry must not steal a click on the visible player.
+    if(m_compactFraming && event->position().y()>=20
+        && event->position().x()>=width()-std::min(90.0,width()*.18)) {
+        m_pendingPitch=-1;event->accept();return;
+    }
     const int pitch = pitchAt(event->position());
     const bool picking=m_scene.value("pickMode").toBool();
     m_pendingPitch=pitch;

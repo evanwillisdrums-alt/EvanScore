@@ -25,6 +25,14 @@ processmemory.cpp isolation. Rebuild this correction before any download. Its
 old watcher/capture helper were stopped and evidence copied with a 356c- prefix;
 release-watch.json is marked superseded, not ready. Start new final-source gates.
 
+Full corrected build **39317474765/source fc350a24e93** is running. A last
+compact hit-test regression also passed: at 3.5× zoom, a clipped strike head can
+project beneath the separate player inset. That inset now rejects the hidden
+head hit before selection/drag. All 10 painter-pointer cases pass, including the
+actual hidden-head coordinate. Freeze product edits after this fix and build
+the final source once the current build has finished populating its cache;
+do not distribute the earlier source with a known click-stealing case.
+
 Explicit Windows x64 private CPU setup installs under LOCALAPPDATA/EvanScore/
 local-ai, verifies the official pinned Ollama v0.40.6 archive SHA256, downloads
 Qwen 2.5 1.5B and retains its license. The owned loopback service uses 11435.

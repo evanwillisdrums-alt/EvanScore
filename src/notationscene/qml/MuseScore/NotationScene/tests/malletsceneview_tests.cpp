@@ -58,6 +58,14 @@ TEST_F(MalletSceneInteraction, CompactFocusEnlargesActiveBarsAndKeepsClicksAndOv
     click(60);ASSERT_EQ(clicks.count(),1);EXPECT_EQ(clicks.back().front().toInt(),60);
     QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,QPoint(680,100));
     EXPECT_EQ(clicks.count(),1); // The player context inset is not a bar.
+    view.setZoom(3.5);QTest::qWait(50);
+    const auto hiddenHead=view.barPoint(72);
+    ASSERT_GE(hiddenHead.x(),610);ASSERT_LE(hiddenHead.x(),700);
+    ASSERT_GE(hiddenHead.y(),20);ASSERT_LE(hiddenHead.y(),124);
+    QSignalSpy selected(&view,&MalletSceneView::malletSelected);
+    QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,hiddenHead.toPoint());
+    EXPECT_EQ(clicks.count(),1);EXPECT_EQ(selected.count(),0);
+    view.setZoom(1);QTest::qWait(50);
     for(int pitch=36;pitch<=96;++pitch) {click(pitch,true);ASSERT_EQ(clicks.count(),pitch-34);EXPECT_EQ(clicks.back().front().toInt(),pitch);}
     const auto stable=view.barPoint(64);
     view.setScene(sceneData({60,64},true));QTest::qWait(50);
