@@ -58,12 +58,11 @@ void MalletSceneView::paint(QPainter* p) {
         }
         for(const auto& value:pose.value("wrists").toList()) {const auto w=location(value.toMap());left=std::min(left,w.x()-10);right=std::max(right,w.x()+10);bottom=std::max(bottom,w.y()+10);}
         if(compact) {
-            // Detail uses the strike/holding area; the complete actor remains
+            // Detail uses the strike area; the complete actor remains
             // in a separate context inset. Preserve one uniform physical scale.
             left=1e9;right=-1e9;top=1e9;bottom=-1e9;
             for(const auto& value:pose.value("heads").toList()) {const auto h=value.toMap();if(!h.value("active").toBool())continue;
                 const auto t=location(h);left=std::min(left,t.x()-10);right=std::max(right,t.x()+10);top=std::min(top,t.y()-8);bottom=std::max(bottom,t.y()+8);}
-            for(const auto& value:pose.value("wrists").toList()) {const auto w=location(value.toMap());left=std::min(left,w.x()-8);right=std::max(right,w.x()+8);top=std::min(top,w.y()-8);bottom=std::max(bottom,w.y()+8);}
             if(left>right) {left=body.x()-30;right=body.x()+30;top=front-30;bottom=body.y()+24;}
         }
     }

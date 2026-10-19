@@ -104,6 +104,8 @@ Inspect sticking and estimated reach/opening, preview alternatives, and audition
 Click anywhere on a suggestion card to preview it. Original returns to the source. Apply to score writes safe octave/sticking changes in one Undo step, including recommended sticking for an unwritten original; previews do not change the score.
 In Pick on bars, click to add/remove notes. Click an occupied bar to choose its mallet; drag its head or use Center/Near edge for a temporary strike-point preview. Measurements and limits expands concrete geometry estimates and advice.
 Player comfort limits and instrument dimensions are estimates, not calibrated physical guarantees.
+In a shallow dock, Focus shows a strike-area close-up plus a complete-player inset. Full and the range overview remain available.
+Player > Optional local AI guidance > Set up local AI installs a private CPU runtime and small model (about 2.5 GB downloads, 6 GB free disk). No account or API key is needed. Then choose Explain this chord. Setup/inference are explicit; ordinary analysis works without AI. Read docs/evanscore/mallet-local-ai.md in the corresponding source for resource limits, licenses and troubleshooting.
 Full animated passage analysis and Virtual Drumline-specific sample routing remain future work.
 The internal executable and application name remain MuseScore.
 

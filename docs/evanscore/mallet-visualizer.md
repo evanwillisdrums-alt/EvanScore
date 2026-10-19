@@ -20,7 +20,7 @@ Manual points stay attached to their notes and are not overridden by the automat
 
 In **Pick on bars**, click a selected bar again to remove that note; dragging it moves the strike point. The top range overview also picks natural and accidental notes across the full keyboard. The camera stays still as you pick; **Fit** or **Focus** deliberately reframes it. Editing a preview starts from the chord you are seeing, and inserting a lower note keeps manual strike points attached to the correct pitches. In Score selection, double-click an occupied bar to restore its center strike.
 
-**Focus** shows the active register and complete player at a larger scale, with a full-range overview above. **Full** fits the entire instrument; +/− or the mouse wheel magnifies either view. No Front view is exposed. The overhead illustration includes body, arms, hands, fingers, independent Stevens holding regions and shaft ends. Natural skin/hair colors change on opening and remain stable during that session.
+**Focus** shows the active register at a larger scale, with a full-range overview above. In a shallow panel it frames the strike area closely and keeps the complete player in a separate context inset, rather than shrinking the whole scene. Click targets use the same uniform physical transform; the inset does not pick notes. **Full** fits the entire instrument; +/− or the mouse wheel magnifies either view. No Front view is exposed. The overhead illustration includes body, arms, hands, fingers, independent Stevens holding regions and shaft ends. Natural skin/hair colors change on opening and remain stable during that session.
 
 ## Evaluate a suggestion
 
@@ -39,6 +39,12 @@ pitch spelling; octave changes retain it, and unused bar labels follow the staff
 key. Physical upper/lower rows are determined by sounding pitch, not spelling.
 
 Diagnostics shows pitch names and each mallet's central/end-access zone, left/right openings, pair tilt, arm reach, estimated hand/shaft clearance, outer 1–4 spread, and nearby attack travel/preparation. Original and preview statuses stay separate.
+
+Head overlap checks and the drawing now share the configured **Head diameter**.
+An overlap warning reports modeled center separation and diameter in centimeters.
+Accidental-row elevation contributes to the 3D separation, even when heads appear
+close in the overhead projection. This remains estimated geometry; set the
+diameter/elevation to match the actual instrument and mallets.
 
 - Green: within this model's configured comfort limits.
 - Orange: difficult or requiring a technique/clearance check.
@@ -67,6 +73,12 @@ on explicit request. It is off by default and requires no API key. See
 [setup, resources, references and limitations](mallet-local-ai.md).
 
 **Player** stores the grip, mallet count/convention, comfortable opening/tilt/reach, shaft length, head diameter, hand width, body distance, accidental-row elevation and estimated travel speed. Two-mallet mode uses physical outer left/right; three-mallet mode explicitly deploys two left and one right. The body follows the selected register and tapered front automatically; its horizontal slider adds an offset. Suggestions can protect bass and top melody, disable octave changes, or permit inversion. Preference changes persist across restarts.
+
+New preferences allow octave, bass and top-note changes. Keeping the original
+register/outside voices receives a small **musical preference** during ranking;
+changing them does not increase physical cost or warning severity. Explicit saved
+choices remain authoritative. All revoicings retain every source pitch class and
+physical note-to-mallet link unless explicitly labeled a secondary reassignment.
 
 **Diagnostics → EvanScore feature diagnostics** exposes the selected original/preview geometry, written sticking, alternatives count, search order, neighboring pitches/timing and analysis duration. It is read-only unless you explicitly copy its report.
 

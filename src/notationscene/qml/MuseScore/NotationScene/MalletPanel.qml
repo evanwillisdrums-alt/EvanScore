@@ -212,7 +212,7 @@ Item {
                         }
                         Button {
                             text: qsTrc("notation", "Focus")
-                            toolTipDescription: qsTrc("notation", "Enlarge the active register and player. The overview shows the full instrument.")
+                            toolTipDescription: qsTrc("notation", "Enlarge active bars. Compact panels show a strike close-up and a separate complete-player view. The overview keeps the full instrument available.")
                             transparent: !accentButton
                             accentButton: scene.focusPlacement
                             navigation.order: 9
@@ -585,6 +585,11 @@ Item {
                                         onClicked: root.model.setOption(modelData.key, modelData.inverse ? checked : !checked)
                                         navigation.panel: panelNavigation
                                     }
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTrc("notation", "Octave, bass and top-note changes are allowed by default. Keeping them earns a small musical preference; changing them does not add physical difficulty. Saved choices take priority.")
+                                    opacity: .8
                                 }
                                 StyledDropdown {
                                     Layout.fillWidth: true

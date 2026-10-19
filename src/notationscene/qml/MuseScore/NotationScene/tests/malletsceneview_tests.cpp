@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only; MuseScore-Studio-CLA-applies */
 #include <gtest/gtest.h>
 #include <QQuickWindow>
+#include <QPainter>
 #include <QLineF>
 #include <QSignalSpy>
 #include <QShortcut>
@@ -15,13 +16,15 @@ namespace {
 QVariantMap sceneData(const std::vector<int>& pitches, bool pick) {
     const auto keys=keyboard(36,96); Player player;player.optimizeStrikes=false;
     const auto pose=solve(keys,pitches,player).front();
-    QVariantList bars,heads,notes,ids,wrists;
+    QVariantList bars,heads,notes,ids,wrists,anchors,shoulders;
     for(const auto& b:keys.bars)bars<<QVariantMap{{"pitch",b.pitch},{"x",b.x},{"y",b.y},{"width",b.width},{"length",b.length},{"accidental",b.accidental}};
     for(int i=0;i<4;++i)heads<<QVariantMap{{"id",i+1},{"active",pose.active[i]},{"x",pose.targets[i].x},{"y",pose.targets[i].y}};
     for(int p:pitches)notes<<p;for(int id:pose.mallets)ids<<id;
     for(const auto& w:pose.wrists)wrists<<QVariantMap{{"x",w.x},{"y",w.y}};
-    return {{"bars",bars},{"keyboardWidth",keys.width},{"keyboardFront",keys.front},{"low",36},{"high",96},{"pickMode",pick},
-        {"skin","#d99d78"},{"hair","#382b27"},{"pose",QVariantMap{{"pitches",notes},{"mallets",ids},{"heads",heads},{"wrists",wrists},{"body",QVariantMap{{"x",pose.body.x},{"y",pose.body.y}}}}}};
+    for(const auto& a:pose.anchors)anchors<<QVariantMap{{"x",a.x},{"y",a.y}};
+    for(const auto& s:pose.shoulders)shoulders<<QVariantMap{{"x",s.x},{"y",s.y}};
+    return {{"bars",bars},{"keyboardWidth",keys.width},{"keyboardFront",keys.front},{"headDiameter",player.head},{"low",36},{"high",96},{"pickMode",pick},
+        {"skin","#d99d78"},{"hair","#382b27"},{"pose",QVariantMap{{"pitches",notes},{"mallets",ids},{"heads",heads},{"wrists",wrists},{"anchors",anchors},{"shoulders",shoulders},{"body",QVariantMap{{"x",pose.body.x},{"y",pose.body.y}}}}}};
 }
 }
 class MalletSceneInteraction : public ::testing::Test {
@@ -49,6 +52,8 @@ TEST_F(MalletSceneInteraction, CompactFocusEnlargesActiveBarsAndKeepsClicksAndOv
     const double full=QLineF(view.barPoint(60),view.barPoint(64)).length();
     view.setFocusPlacement(true);view.fit();QTest::qWait(50);
     EXPECT_GT(QLineF(view.barPoint(60),view.barPoint(64)).length(),full*1.4);
+    const auto capture=qEnvironmentVariable("EVANSCORE_MALLET_COMPACT_CAPTURE");
+    if(!capture.isEmpty()) {QImage image(view.size().toSize(),QImage::Format_ARGB32);QPainter painter(&image);view.paint(&painter);painter.end();EXPECT_TRUE(image.save(capture));}
     QSignalSpy clicks(&view,&MalletSceneView::pitchClicked);
     click(60);ASSERT_EQ(clicks.count(),1);EXPECT_EQ(clicks.back().front().toInt(),60);
     QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,QPoint(680,100));

@@ -316,8 +316,9 @@ void MalletPanelModel::publish(bool rebuildAlternatives) {
         if(!same) {
             cons << tr("Register/spacing changes: listen for voice-leading and balance.");
             const int low=*std::min_element(candidate.pitches.begin(),candidate.pitches.end()),high=*std::max_element(candidate.pitches.begin(),candidate.pitches.end());
-            (low==m_pitches.front()?pros:cons) << (low==m_pitches.front()?tr("Bass pitch retained."):tr("Bass pitch changes."));
-            (high==m_pitches.back()?pros:cons) << (high==m_pitches.back()?tr("Top melody pitch retained."):tr("Top melody pitch changes."));
+            const int originalLow=*std::min_element(m_pitches.begin(),m_pitches.end()),originalHigh=*std::max_element(m_pitches.begin(),m_pitches.end());
+            (low==originalLow?pros:cons) << (low==originalLow?tr("Bass pitch retained."):tr("Bass pitch changes."));
+            (high==originalHigh?pros:cons) << (high==originalHigh?tr("Top melody pitch retained."):tr("Top melody pitch changes."));
         }
         for(const auto& issue:candidate.issues) if(issue.severity>0 || issue.key=="edge") cons << QString::fromStdString(issue.message);
         if(cons.empty()) cons << tr("Static geometry is an estimate; motion and tone still need a player check.");
@@ -514,6 +515,7 @@ void MalletPanelModel::askAssistant() {
             {"notesInSourceVoiceOrder",data.value("voices")},{"leftOpeningCm",pose.openings[0]},{"rightOpeningCm",pose.openings[1]},
             {"leftPairTiltDegrees",pose.rotations[0]},{"rightPairTiltDegrees",pose.rotations[1]},
             {"handClearanceCm",pose.handClearance},{"shaftClearanceCm",pose.shaftClearance},
+            {"physicalCost",pose.cost},{"musicalPreferenceCost",pose.musicalCost},
             {"preparationSeconds",pose.preparation},{"warnings",data.value("issues")},{"keepsPhysicalLinks",pose.mallets==m_original.mallets}};
         QVariantList rows;
         for(const auto pitch:pose.pitches) {const auto* bar=m_keyboard.bar(pitch);rows << (bar && bar->accidental?"upper":"lower");}

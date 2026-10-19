@@ -7,19 +7,33 @@ while EvanScore starts, while you select chords, or when you enable the option.
 
 ## Use
 
-1. Install [Ollama](https://ollama.com/download) on the computer running EvanScore.
-   Its local service must be running on `127.0.0.1:11434`.
-2. Install a small **local** instruction model once, for example with
-   `ollama pull qwen2.5:1.5b`. Read the license for the exact model/tag you use.
-   EvanScore does not install a runtime or bundle model weights.
-3. Open Mallets, select a score chord or pick bars, then open **Player** and enable
-   **Optional local AI guidance**. Click **Check local models**, select a model,
-   then **Explain this chord**. Discovery lists weights without loading them.
+1. On Windows x64, open Mallets, select a chord or pick bars, then open **Player**
+   and enable **Optional local AI guidance**.
+2. Click **Set up local AI (~2.5 GB)** once. This downloads a pinned official
+   CPU runtime, verifies its published SHA256, installs a small local model,
+   and retains its license. Allow about 2.5 GB of downloads and 6 GB free disk.
+   No administrator rights, account, API key or separate installer are needed.
+   Progress appears in the panel; Cancel stops the private setup. Retry resumes
+   partial model downloads. A partial runtime archive is downloaded again.
+3. Once setup lists the model, click **Explain this chord**. On later openings,
+   enable the option and click **Check local models**, then Explain. Checking
+   starts the private service without loading weights. Inference starts only
+   when requested. No startup download or background inference is scheduled.
 4. Read the benefits, drawbacks and reference IDs alongside ordinary Diagnostics.
    **Preview checked candidate** only previews. **Apply to score** is still the
    separate, undoable action that edits notes/sticking. A `none` answer has no
    preview action. Cancelling, changing score/selection/settings/strike points,
    or closing the panel discards pending and old guidance.
+
+The private install lives under `%LOCALAPPDATA%\EvanScore\local-ai` and uses
+`127.0.0.1:11435`. Closing/disabling the panel stops its owned service. Its setup
+script has a 30-minute limit; inference remains separately bounded. Setup/service
+failures and recent backend output are visible in feature Diagnostics.
+
+An existing, independently installed [Ollama](https://ollama.com/download) service
+on `127.0.0.1:11434` can also be used without managed setup. Install small local
+weights there, such as `ollama pull qwen2.5:1.5b`, then Check local models. That
+route also works on supported non-Windows hosts; automatic setup is Windows x64.
 
 The service is local, needs no API key, and receives only bounded chord facts,
 candidate measurements, changes and neighboring-attack timing. It receives no
@@ -33,9 +47,11 @@ responsible for its own configuration.
 ## Resource and licensing assessment
 
 Ollama's [runtime license](https://github.com/ollama/ollama/blob/main/LICENSE)
-is MIT. Model licenses are separate and must be checked for the exact weights;
-runtime licensing does not license every model. No third-party model or runtime
-is redistributed by this change. The example model is a setup example, not a
+is MIT; the pinned runtime is v0.40.6. Model licenses are separate and must be
+checked for the exact weights; runtime licensing does not license every model.
+No third-party model or runtime is bundled in EvanScore's archive. Explicit setup
+downloads Qwen 2.5 1.5B weights and retains the actual installed license as
+`MODEL-LICENSE.txt`. This is not a
 claim that every similarly named model has the same license or musical ability.
 
 A roughly 1 GB quantized 1–2B model is a reasonable starting experiment, with
@@ -44,7 +60,8 @@ The client refuses inference below a conservative available-memory budget of
 the larger of 3 GiB and twice the weight size plus 1 GiB on Windows/Linux.
 This snapshot cannot guarantee that other apps will not consume memory afterward;
 available RAM is not measured on unsupported platforms. CPU inference can be
-slow; a compatible GPU is optional and managed by the local runtime.
+slow. EvanScore requests CPU inference with four threads and no GPU layers to
+keep this setup predictable; a GPU is not required.
 
 One request runs at a time, with four CPU threads requested, 4096-token context,
 384 output tokens, a conservative 10 KB serialized request budget, 150-second
@@ -57,12 +74,21 @@ model use is outside EvanScore's control.
 
 ## What is checked, and what is not
 
-The model may select only a supplied candidate or `none`. A response referencing
+The request constrains structured output to supplied candidate IDs or `none`.
+The native response validator independently checks that contract. A response referencing
 an unknown, invalid or uncertain candidate, invented editable fields, malformed
 JSON, incomplete output, or unavailable source IDs is rejected. The AI cannot
 write notes, change mallet assignments, bypass geometry checks or commit edits.
 Preview checks the current score again, preventing old guidance from targeting
 a newly selected chord.
+
+The recommendation pool is deterministic: keep a comfortable original; otherwise
+use the lowest available warning level, preserve physical links when an equally
+safe fixed-link candidate exists, and exclude materially worse ranking scores.
+The original can remain in the request for comparison without being an eligible
+recommendation. The model cannot override this policy; it may still return none.
+This guard was added after a real small-model test incorrectly kept a 54.7 cm
+opening despite a checked 11.6 cm revoicing.
 
 Generated prose can still be wrong. Candidate validity means the deterministic
 model's checks passed, not that human biomechanics or musical judgment is proven.
@@ -91,7 +117,10 @@ October 19 clarification supersedes that recommendation order.
 The repository tests use a controlled local HTTP service for discovery, actual
 request/response handling, disabled/idle behavior, cancellation, rejection and
 resource bounds. They do not establish real language-model musical expertise.
-Real model output and speed require a separately installed runtime and weights.
+The Windows real-model workflow additionally downloads the official runtime and
+real weights, compiles this same native client, and checks actual responses and
+model unloading. A separate gate exercises the native setup method/private
+service lifecycle. These small cases establish integration, not musical expertise.
 Windows release checks also exercise the real optional toggle without starting
 inference. See the development checkpoint for executed results and build status.
 

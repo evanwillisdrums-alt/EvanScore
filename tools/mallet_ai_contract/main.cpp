@@ -23,7 +23,7 @@ static QVariantMap facts(const Pose& pose,const QString& id,bool fixed=true) {
         {"notesInSourceVoiceOrder",notes},{"physicalMallets",ids},{"warnings",warnings},
         {"leftOpeningCm",pose.openings[0]},{"rightOpeningCm",pose.openings[1]},
         {"leftPairTiltDegrees",pose.rotations[0]},{"rightPairTiltDegrees",pose.rotations[1]},
-        {"keepsPhysicalLinks",fixed},{"musicalPreferenceCost",pose.musicalCost}};
+        {"keepsPhysicalLinks",fixed},{"physicalCost",pose.cost},{"musicalPreferenceCost",pose.musicalCost}};
 }
 static bool wait(MalletAssistant& client,int timeout) {
     QEventLoop loop;QTimer timer;timer.setSingleShot(true);

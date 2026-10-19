@@ -1,5 +1,61 @@
 # Development checkpoint
 
+## Active follow-up — managed local AI and compact view, 2026-10-19
+
+User is away and explicitly requests no questions. Prioritize working AI,
+compact readability/overlap/default permissions, then queued notation work.
+No extra user permission setting is needed to edit this repository.
+
+Explicit Windows x64 private CPU setup installs under LOCALAPPDATA/EvanScore/
+local-ai, verifies the official pinned Ollama v0.40.6 archive SHA256, downloads
+Qwen 2.5 1.5B and retains its license. The owned loopback service uses 11435.
+Setup/inference are bounded and cancellable, with no startup/model loading.
+Ordinary analysis and score editing never require model memory.
+
+**Real inference passed** in Windows **39312959127/check 118267030865**: the
+setup script installed verified runtime/weights, the actual native client returned
+the checked original, and /api/ps confirmed unloading. This proves a small
+integration fixture, not musical expertise. Native-method gate
+**39313517323/check 118268971665** caught Get-FileHash missing under inherited
+PowerShell module paths. Pushed **c1e919cb569** removes that inherited path and
+uses streaming .NET SHA256. Its **39313960186/check 118270488238** passed native
+setup and saved-service restart, but caught a poor AI choice on a difficult chord:
+54.7 cm right opening rather than a checked 11.6 cm alternative.
+
+Current follow-up constrains the AI to a deterministic recommendation pool:
+comfortable original first; otherwise minimum warning level, fixed links where
+available, and no materially worse ranking score. JSON schema restricts IDs and
+the independent native validator enforces the same rules. The original remains
+comparison-only when excluded. Generated prose can still be wrong. Run the
+expanded real test again before claiming the complete assistant ready.
+
+New defaults permit octave/bass/top/inversion changes; saved choices remain.
+A small separate musical cost ranks register/outside-voice changes without
+increasing physical cost/severity. Overlap warnings include measured 3D head
+separation and configured diameter; the drawing now uses that same diameter.
+The user's exact false-overlap case is not independently reproduced.
+Compact Focus provides a strike close-up, complete-player context inset and
+full-range navigator with the same uniform physical hit-test transform.
+
+Local **36 solver/client tests pass**. The last **35 native model/score/painter
+tests pass**; rerun them after final framing/model edits. Search avoids optimizing
+23 unused assignments per candidate. The same bounded component run fell from
+about 60s to 13s on this runner; this is not a universal app performance claim.
+Validation workspace: `/workspace/evanscore-validation/20261019`.
+
+Full app **39312959244**, source **3a739d8713e**, is compiling an earlier source
+without the native setup fix. It is not the final AI download. Prior app
+**39277590013** compiled/startup/export passed; Dynamics, keypad and stems gates
+passed, but mallets **39283484034** failed its AI-toggle assertion. That test
+clicked the allocated checkbox center outside its content hit area. The checkbox
+is now naturally sized; the Inspector clicks its visible box and separates
+enabled/busy assertions. Preserve those assertions and rerun them. Do not
+conflate this UI test failure with the user's library crash reports.
+
+Retain old watcher evidence before starting the final source's Windows checks.
+The verified c1b download below remains the baseline until all replacement gates
+and actual capture review pass. Preserve the dirty muse submodule/root patch.
+
 ## Current work — mallet identity, optional local AI and memory diagnostics, 2026-10-19
 
 User clarified that ordinary chords must not arbitrarily permute mallets, real

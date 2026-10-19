@@ -93,6 +93,27 @@ TEST(MalletAssistant, ResultMustIdentifyAValidatedCandidateAndAvailableSources) 
     EXPECT_TRUE(MalletAssistant::validateResponse("{}",context()).contains("error"));
     EXPECT_TRUE(MalletAssistant::validateResponse(QByteArray(300000,'x'),context()).contains("error"));
 }
+TEST(MalletAssistant, AiCannotOverruleComfortAndFixedLinkRecommendationChecks) {
+    auto original=context().value("candidates").toList().front().toMap();
+    original.insert("severity",1);original.insert("keepsPhysicalLinks",true);original.insert("physicalCost",111.0);
+    auto kept=original;kept.insert("candidateId","alternative-0");kept.insert("severity",0);kept.insert("physicalCost",13.0);
+    auto changed=kept;changed.insert("candidateId","alternative-1");changed.insert("keepsPhysicalLinks",false);changed.insert("physicalCost",8.0);
+    QVariantMap facts{{"candidates",QVariantList{original,kept,changed}},{"originalComfortable",false}};
+    const auto body=QJsonDocument::fromJson(MalletAssistant::requestBody("local",facts)).object();
+    EXPECT_EQ(body.value("format").toObject().value("properties").toObject().value("candidateId").toObject().value("enum").toArray(),(QJsonArray{"none","alternative-0"}));
+    const auto supplied=QJsonDocument::fromJson(body.value("messages").toArray().last().toObject().value("content").toString().toUtf8()).object();
+    EXPECT_EQ(supplied.value("candidates").toArray().size(),1);EXPECT_TRUE(supplied.contains("originalForComparisonOnly"));
+    EXPECT_TRUE(MalletAssistant::validateResponse(envelope(guidance()),facts).contains("error"));
+    auto answer=guidance();answer.insert("candidateId","alternative-0");
+    EXPECT_FALSE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
+    // Even equal warning levels cannot select a materially worse score.
+    original.insert("severity",0);facts.insert("candidates",QVariantList{original,kept});
+    EXPECT_TRUE(MalletAssistant::validateResponse(envelope(guidance()),facts).contains("error"));
+    // A comfortable original stays the recommendation despite a lower cost.
+    facts.insert("originalComfortable",true);
+    EXPECT_FALSE(MalletAssistant::validateResponse(envelope(guidance()),facts).contains("error"));
+    EXPECT_TRUE(MalletAssistant::validateResponse(envelope(answer),facts).contains("error"));
+}
 TEST(MalletAssistant, RealLocalHttpRoundTripAcceptsOnlyStructuredCheckedGuidance) {
     LocalService service;MalletAssistant client(nullptr,service.endpoint());client.setEnabled(true);client.discover();ASSERT_TRUE(idle(client));
     client.ask(context());ASSERT_TRUE(idle(client));ASSERT_EQ(service.paths.size(),2);EXPECT_EQ(service.paths.back(),"/api/chat");
