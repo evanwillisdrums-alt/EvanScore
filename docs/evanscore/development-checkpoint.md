@@ -1,5 +1,38 @@
 # Development checkpoint
 
+## Release verification in progress — 2026-10-20 23:42 UTC
+
+Replacement native source **1d812a3f2279cffd9bcb8aff845d0650c0aeff9d**,
+Windows **39514615600**, passes full compile, startup/export, clean closure and
+fresh-machine portable tests. Mallets **39515921455**, Dynamics **39515932844**,
+Keypad **39515943276**, and Stems **39515952794** all pass. Native percussion
+**39515962715** passes all actual placement/direction/voice pointer edits,
+Undo/Redo, template creation and saving, then its independent window check flags
+a normal hovered Voice2 tooltip. Retrieved window inventory and viewed screenshot
+confirm `Qt6112QWindowToolSaveBits`, 316x84, with the expected voice tooltip—not a
+modal/startup dialog. Evidence: validation `percussion-dialog.jpg` and annotations.
+Test-only **daf1c86fa6d** moves the pointer to a neutral score area before capture;
+the strict unexpected-dialog check remains. **39516586220** reruns percussion on
+the same binary and must also complete the XML persistence verifier. Four other
+gates remain valid. Do not rebuild or alter product source for this test issue.
+
+Read validation `/workspace/evanscore-validation/20261020/release-watch.json` for
+live state. `watch-percussion-rerun.py` updates that one gate; `review-captures.py`
+then retrieves native mallet/percussion captures when all pass. Both images must
+actually be viewed before marking ready or sending the new download. If a monitor
+fails, preserve completed results and repair it; don't rerun all five blindly.
+Last verified download remains39319891960 below until that review finishes.
+The candidate artifact is12307109199, size181296931, SHA256
+`ac0402ad4f28e8b09ae6fce44db4344c7b84441f0db42dc117380f9c238308dd`;
+expires2026-11-03 23:34 UTC. It is not yet offered as the replacement.
+
+Separate cross-bar prototype now **bfc1245d488** with sixteen focused native tests
+passing. New cases exercise ordinary native tied-note entry and whole-group
+deletion for3:2/5:4/7:4, Undo/Redo and save/reopen. No editing engine change was
+needed for those specific cases. Segmented rendering/hit testing, interactive
+writing, partial deletion, containing-measure/time-signature edits and format/
+exchange remain. This branch is not merged or shipped. Preserve dirty muse.
+
 ## Active percussion follow-up — 2026-10-20
 
 User asked to resume after interruption; no questions. The verified local-AI
