@@ -10,7 +10,10 @@ with ZipFile(paths[0]) as archive:
     score = ET.fromstring(archive.read(name)).find('Score')
 assert score is not None
 staff_defs = score.findall('./Part/Staff')
-assert [int(s.findtext('StaffType/lines', '5')) for s in staff_defs] == [5, 1, 3, 2], 'Existing staff or new template defaults changed'
+lines = [int(s.findtext('StaffType/lines', '5')) for s in staff_defs]
+assert lines == [5, 1, 3, 2], f'Existing staff or new template defaults changed: {lines}'
+groups = [s.find('StaffType').get('group') for s in staff_defs]
+assert groups == ['pitched', 'percussion', 'percussion', 'percussion'], f'Instrument staff groups changed: {groups}'
 staff = next(s for s in score.findall('Staff') if s.attrib['id'] == '2')
 voices = staff.findall('Measure/voice')
 assert len(voices) == 2

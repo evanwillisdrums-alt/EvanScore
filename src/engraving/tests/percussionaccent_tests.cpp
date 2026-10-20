@@ -132,3 +132,21 @@ TEST_F(Engraving_PercussionAccent, NewInstrumentStaffDefaultsDoNotOverrideExplic
         staff->init(instrument, explicitType, 0); EXPECT_EQ(staff->staffType(Fraction())->lines(), 5);
     }
 }
+TEST_F(Engraving_PercussionAccent, AppendedPartsUseTheirInstrumentTemplateStaffDefaults) {
+    if (!searchTemplate(u"marching-snare")) { ASSERT_TRUE(loadInstrumentTemplates(":/engraving/instruments/instruments.xml")); }
+    auto* original = score->staff(1);
+    const int existingLines = original->staffType(Fraction())->lines();
+    score->startCmd(muse::TranslatableString::untranslatable("Append marching instruments"));
+    for (auto [name, lines] : { std::pair { u"marching-snare", 3 }, std::pair { u"marching-cymbals", 2 } }) {
+        const auto* instrument = searchTemplate(name); ASSERT_NE(instrument, nullptr);
+        score->appendPart(instrument);
+        EXPECT_EQ(score->staves().back()->staffType(Fraction())->lines(), lines);
+        EXPECT_EQ(score->staves().back()->staffType(Fraction())->group(), StaffGroup::PERCUSSION);
+    }
+    score->endCmd();
+    EXPECT_EQ(original->staffType(Fraction())->lines(), existingLines);
+    score->undoRedo(true, nullptr); EXPECT_EQ(score->nstaves(), 2);
+    score->undoRedo(false, nullptr); EXPECT_EQ(score->nstaves(), 4);
+    EXPECT_EQ(score->staff(2)->staffType(Fraction())->lines(), 3);
+    EXPECT_EQ(score->staff(3)->staffType(Fraction())->lines(), 2);
+}

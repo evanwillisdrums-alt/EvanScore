@@ -3826,9 +3826,10 @@ void Score::appendPart(const InstrumentTemplate* t)
     part->initFromInstrTemplate(t);
     for (staff_idx_t i = 0; i < t->staffCount; ++i) {
         Staff* staff = Factory::createStaff(part);
-        StaffType* stt = staff->staffType(Fraction(0, 1));
         undoInsertStaff(staff, i);
-        staff->init(t, stt, int(i));
+        // A newly allocated staff's generic type is not an explicit user choice.
+        // Use the instrument template, matching Add Instruments/new-score setup.
+        staff->init(t, nullptr, int(i));
     }
     undoInsertPart(part, m_parts.size());
     masterScore()->rebuildMidiMapping();
