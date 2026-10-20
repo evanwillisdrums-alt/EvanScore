@@ -88,7 +88,7 @@ the group, and supports Undo/Redo and native persistence. It checks transaction
 identity against the target score rather than accepting another score's active
 transaction. Invalid previews contain no half-built fragment list.
 
-Fifteen native tests pass. Creation covers3:2/5:4/7:4 and an exact5:3 split from
+Sixteen native tests pass. Creation covers3:2/5:4/7:4 and an exact5:3 split from
 13/16 to19/16. The same5:3 ratio at3/4 is refused because it would need a written
 1/24 at the boundary; supported ratios are not rejected as a class. All arithmetic
 is rational and decomposition must sum exactly. Notes, voice gaps, existing
@@ -123,7 +123,14 @@ needed for these three cases. The test re-queries segments after editing because
 `makeGap` can replace the source segment; its first stale-segment assertion was a
 harness error, not evidence that the engine had lost the note.
 
-The fifteen-case ASan suite passes with retained-service leak reporting disabled.
+The sixteen-case ASan suite passes with retained-service leak reporting disabled.
 This proves those DOM/tie operations, not audio attack counting, the interactive
 writing workflow, arbitrary duration changes or system/page rendering. Those
 acceptance requirements remain; the prototype is still not enabled or shipped.
+
+Whole-group deletion is now also covered for3:2/5:4/7:4 through the existing
+`cmdDeleteTuplet(..., true)` path. Both bars retain continuous ordinary rests with
+no overlaps or gaps, earlier music remains, and Undo/Redo plus save/reopen retain
+the expected state. No deletion engine change was needed for these cases. This
+does not cover deleting a partial selection, a containing measure, or changing
+time signatures inside a group.

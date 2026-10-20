@@ -308,6 +308,45 @@ TEST(CrossBarTupletPrototype, NativeNoteEntryAcrossTheBarlineKeepsOneAttackAndUn
         EXPECT_EQ(savedA->notes().front()->tieFor()->endNote(), savedB->notes().front());
     }
 }
+TEST(CrossBarTupletPrototype, DeletingTheWholeGroupPreservesBothBarsAndUndoes) {
+    for (int actual : { 3, 5, 7 }) {
+        Fixture fixture; auto* seed = emptyCrossBarSpan(fixture);
+        CrossBarTuplet::Options options; options.actual = actual; options.normal = actual == 3 ? 2 : 4;
+        options.base = TDuration(actual == 3 ? DurationType::V_QUARTER : DurationType::V_EIGHTH);
+        fixture.score->startCmd(muse::TranslatableString::untranslatable("Create cross-bar tuplet"));
+        muse::String error;
+        auto* group = CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error);
+        fixture.score->endCmd(); ASSERT_NE(group, nullptr);
+        auto* before = fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction())->element(0);
+        fixture.score->startCmd(muse::TranslatableString::untranslatable("Delete cross-bar tuplet"));
+        fixture.score->cmdDeleteTuplet(group, true);
+        fixture.score->endCmd();
+        const auto checkBars = [](const MasterScore* score) {
+            for (const Measure* bar = score->firstMeasure(); bar; bar = bar->nextMeasure()) {
+                Fraction next = bar->tick();
+                for (const Segment* segment = bar->first(SegmentType::ChordRest); segment;
+                     segment = segment->next(SegmentType::ChordRest)) {
+                    if (!segment->element(0)) { continue; }
+                    auto* rest = segment->element(0);
+                    ASSERT_TRUE(rest->isRest());
+                    EXPECT_EQ(toRest(rest)->tuplet(), nullptr);
+                    EXPECT_EQ(rest->tick(), next);
+                    EXPECT_GT(toRest(rest)->actualTicks(), Fraction());
+                    next = toRest(rest)->endTick();
+                    EXPECT_LE(next, bar->endTick());
+                }
+                EXPECT_EQ(next, bar->endTick());
+            }
+        };
+        checkBars(fixture.score.get());
+        EXPECT_EQ(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction())->element(0), before);
+        fixture.score->undoRedo(true, nullptr);
+        EXPECT_EQ(group->elements().size(), actual + 1);
+        EXPECT_EQ(toRest(fixture.bars[1]->findSegment(SegmentType::ChordRest, Fraction(1, 1))->element(0))->tuplet(), group);
+        fixture.score->undoRedo(false, nullptr);
+        auto reopened = load(fixture.save()); checkBars(reopened.get());
+    }
+}
 
 TEST(CrossBarTupletPrototype, CreationRevalidatesAfterPreviewAndPreservesExistingNotes) {
     Fixture fixture; auto* seed = emptyCrossBarSpan(fixture); CrossBarTuplet::Options options;
