@@ -15,6 +15,9 @@
 #include "notation/inotationinteraction.h"
 #include "notation/inotationselection.h"
 #include "engraving/dom/chord.h"
+#include "engraving/dom/articulation.h"
+#include "engraving/dom/staff.h"
+#include "engraving/editing/editvoice.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/score.h"
@@ -114,6 +117,11 @@ void FeatureDebugModel::refresh()
         // Clicking a sticking label should inspect the note it belongs to.
         for (const EngravingItem* item : m_notation->interaction()->selection()->elements()) {
             if (chords.size() > limit) break;
+            if (item && item->isArticulationFamily()) {
+                const auto* parent = toArticulation(item)->chordRest();
+                if (parent && parent->isChord() && seen.insert(toChord(parent)).second) chords.push_back(toChord(parent));
+                continue;
+            }
             if (!item || !item->isSticking()) continue;
             const auto* segment = toSticking(item)->segment();
             const auto* target = segment ? segment->element(item->track()) : nullptr;
@@ -142,6 +150,19 @@ void FeatureDebugModel::refresh()
             });
         }
         QJsonArray pitches;
+        QJsonArray articulations;
+        for (const auto* articulation : chord->articulations()) {
+            QJsonArray destinations;
+            for (int voice = 0; voice < VOICES; ++voice) {
+                if (EditVoice::canMoveArticulationToVoice(articulation, voice)) destinations.append(voice + 1);
+            }
+            articulations.append(QJsonObject {
+                { "symbol", int(articulation->symId()) }, { "voice", int(articulation->voice()) + 1 },
+                { "writtenAnchor", articulation->getProperty(Pid::ARTICULATION_ANCHOR).toInt() },
+                { "effectiveAnchor", int(articulation->anchor()) }, { "symbolDirection", int(articulation->direction()) },
+                { "renderedAbove", articulation->up() }, { "availableVoiceDestinations", destinations }
+            });
+        }
         QJsonArray dynamics;
         const QStringList roles { "auto", "normal", "tap", "accent", "tenuto", "marcato", "ghost", "soft accent", "stress", "unstress" };
         for (const Note* note : chord->notes()) {
@@ -169,6 +190,8 @@ void FeatureDebugModel::refresh()
             { "tick", chord->tick().ticks() },
             { "writtenPitches", pitches },
             { "dynamics", dynamics },
+            { "articulations", articulations },
+            { "unpitchedPercussion", chord->staff()->isDrumStaff(chord->tick()) },
             { "rawSticking", QString::fromStdString(assignment.rawText) },
             { "recognition", kinds.at(static_cast<int>(assignment.kind)) },
             { "strokes", strokes },
@@ -187,7 +210,8 @@ void FeatureDebugModel::refresh()
         { "sticking", rows },
         { "customDynamicsEnabled", score && DynamicsPlayback::enabled(score) },
         { "batterySeparationEnabled", score && DynamicsPlayback::profile(score).styleB(Sid::evanDynamicsBattery) },
-        { "reportVersion", 2 },
+        { "reportVersion", 3 },
+        { "percussionAccentsAbove", score && score->style().styleB(Sid::percussionAccentsAbove) },
         { "runtime", runtimeDiagnostics() },
         { "virtualDrumline", "Prepared Kontakt patch states and SnareLine Manual/LITE core routing implemented; other patch maps and licensed playback remain unverified" },
         { "malletVisualizer", "Native optional panel; range-aware estimated geometry, sticking, alternatives and undoable commit" }

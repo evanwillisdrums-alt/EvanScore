@@ -27,10 +27,12 @@
 namespace mu::engraving {
 class Score;
 class Transaction;
+class Articulation;
 
 class EditVoice
 {
 public:
+    static bool canMoveArticulationToVoice(const Articulation* articulation, voice_idx_t voice);
     static void changeSelectedElementsVoice(Transaction& tx, Score* score, voice_idx_t voice);
     static void changeSelectedElementsVoiceAssignment(Transaction& tx, Score* score, VoiceAssignment voiceAssignment);
 };

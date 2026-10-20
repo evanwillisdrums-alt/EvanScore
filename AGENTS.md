@@ -20,7 +20,7 @@ The percussion input strip should resemble the supplied MuseScore 3 screenshot: 
 
 The top-left open notehead control on the keypad changes notehead appearance independently of duration and playback. It must not act as a whole/half-note duration shortcut. The half-note key in the main duration grid still changes note length.
 
-“Make Default Style” stores the current score's style as the app's persistent default for new scores, including new scores created from templates. It must not restyle existing scores when opened or switched to. “Apply Default Style” explicitly applies that saved default to the current score. A saved default takes priority over the bundled percussion style; percussion mode still forces accents above.
+“Make Default Style” stores the current score's style as the app's persistent default for new scores, including new scores created from templates. It must not restyle existing scores when opened or switched to. “Apply Default Style” explicitly applies that saved default to the current score. A saved default takes priority over the bundled percussion style; percussion mode defaults unpitched accents/marcatos above when placement and symbol direction are Auto; manual choices take priority.
 
 Dynamics belongs in the native, optional sidebar beside Instruments, Palettes, and Properties. Start with full-score settings, then follow selection for local note, marking, or hairpin controls. Use 0–127 MIDI velocity, handling zero explicitly as silence. Keep battery taps and accents separate, including mixed-category endpoints such as ff accents to mp taps. Dragging a visual curve must change both MIDI playback and audio automation while preserving printed notation. Changes must persist in native score XML and support undo/redo. Closing the panel must not disable the score's settings.
 
@@ -99,3 +99,12 @@ collides with engraving PropertyValue types. The standalone AI check alone does
 not catch that full-app integration error; retain the full Windows compile gate.
 
 Latest verified release: Windows39319891960, product source041f9fe067b40675642e45578fbd80c96bd9a97c. Full/fresh startup/export, all four native feature gates and actual capture review pass; see the top checkpoint for download and real local-model evidence. Cross-bar tuplets are being prototyped separately and are not in this release. Preserve the verified binary while continuing the queue.
+
+Percussion controls follow the latest user correction: above-staff accent defaults
+apply only to the unpitched instrument at the onset and yield to manual placement
+or symbol direction. One selected ordinary-chord accent/marcato can move to an
+existing chord in another voice at that same onset, preserving notes and linked
+counterparts in one Undo; preflight all linked destinations and duplicates. Do
+not implement this as an unattached voice flag or move the notes. New marching
+snare/cymbal templates use three/two lines; saved/explicit staff types remain.
+See percussion-notation-controls.md and the checkpoint for release gates.

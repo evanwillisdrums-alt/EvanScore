@@ -1,5 +1,42 @@
 # Development checkpoint
 
+## Active percussion follow-up — 2026-10-20
+
+User asked to resume after interruption; no questions. The verified local-AI
+release39319891960 below remains available while this next source is validated.
+Product changes now include percussion-only Auto accents/marcatos with manual
+overrides, Properties symbol direction and one selected accent's safe voice move,
+three/two-line marching snare/cymbal templates, and articulation diagnostics.
+The bundled percussion style uses Auto anchor for mixed-score scope; opening old
+scores retains their explicit style/staff choices. Linked destinations and
+existing duplicate markings are checked before moving; ChangeParent derives the
+accent track from its owning chord so Undo and serialization remain consistent.
+
+Local nine native tests pass: scope, overrides, instrument changes, placement
+Undo, voice move/Undo/Redo with note velocity/lock retention, invalid targets,
+linked staves, saved attachment/manual placement, and native template choices.
+Properties/diagnostic models and Inspector compile; QML and workflow parse.
+Evidence: `/workspace/evanscore-validation/20261020/percussion`. The local harness
+uses ASan with retained-service leak reporting off, not a universal leak proof.
+A test fixture initially assigned a bool to the string-valued dynamics lock and
+failed; corrected to its real serialized velocity snapshot. Manual placement
+save fixture also now correctly marks its anchor UNSTYLED, matching the UI. Its
+resource filesystem mock now reads QFile resources, allowing actual template
+loading. These were harness corrections, not hidden product crashes.
+
+Full Windows build/startup/fresh-machine and existing four feature gates plus new
+`percussion` native pointer/persistence gate are required before a new download.
+Preserve dirty muse and root framework patch; do not stage the gitlink.
+
+Cross-bar work is committed/pushed separately at **d8eb32a4fa5**, branch
+`codex/crossbar-tuplet-prototype`, worktree `/workspace/EvanScore-crossbar`.
+Eight native timing/persistence tests pass, including nested groups, twelve
+ratio/voice combinations, linked-independent staves, tied fragments and malformed
+terminator/EOF rejection. Earlier error propagation let a failed read consume
+child IDs as measure IDs; outer loops now stop on custom errors in the prototype.
+Creation/Undo, segment layout, file-version compatibility, editing and exchange
+remain before shipping. It is not merged into the verified app.
+
 ## Verified local-AI Windows release — 2026-10-19 21:02 UTC
 
 **Ready:** native source **041f9fe067b40675642e45578fbd80c96bd9a97c**, full

@@ -395,7 +395,11 @@ void ChangeParent::flip()
     staff_idx_t si = element->staffIdx();
     p->remove(element);
     element->setOwnershipParent(parent);
-    element->setTrack(staffIdx * VOICES + element->voice());
+    // An articulation belongs to its destination chord's voice. Preserving
+    // the old voice here leaves a marking attached to one chord but serialized
+    // and played on another track. The old parent restores that track on Undo.
+    element->setTrack(element->isArticulation() && parent->isChord()
+                      ? parent->track() : staffIdx * VOICES + element->voice());
     parent->add(element);
     staffIdx = si;
     parent = p;

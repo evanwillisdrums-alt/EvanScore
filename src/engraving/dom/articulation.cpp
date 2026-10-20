@@ -135,7 +135,7 @@ int Articulation::subtype() const
 void Articulation::setUp(bool val)
 {
     Articulation::LayoutData* ldata = mutldata();
-    const bool percussionAccent = style().styleB(Sid::percussionAccentsAbove) && (isAccent() || isMarcato());
+    const bool percussionAccent = usesPercussionAboveDefault();
     val = percussionAccent || val;
     ldata->up = val;
 
@@ -964,8 +964,15 @@ double Articulation::LayoutData::opticalCenter() const
 
 ArticulationAnchor Articulation::anchor() const
 {
-    if (style().styleB(Sid::percussionAccentsAbove) && (isAccent() || isMarcato())) {
+    if (usesPercussionAboveDefault()) {
         return ArticulationAnchor::TOP;
     }
     return m_anchor;
+}
+
+bool Articulation::usesPercussionAboveDefault() const
+{
+    return style().styleB(Sid::percussionAccentsAbove)
+           && (isAccent() || isMarcato()) && staff() && staff()->isDrumStaff(tick())
+           && m_anchor == ArticulationAnchor::AUTO && m_direction == DirectionV::AUTO;
 }

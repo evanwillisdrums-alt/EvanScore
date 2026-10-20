@@ -205,7 +205,7 @@
     <propertyDistance>0.4</propertyDistance>
     <articulationMag>1.1</articulationMag>
     <articulationPosAbove x="0" y="0" />
-    <articulationAnchorDefault>0</articulationAnchorDefault>
+    <articulationAnchorDefault>2</articulationAnchorDefault>
     <articulationAnchorLuteFingering>1</articulationAnchorLuteFingering>
     <articulationAnchorOther>0</articulationAnchorOther>
     <articulationStemHAlign>0</articulationStemHAlign>

@@ -23,6 +23,10 @@
 
 #include "engraving/dom/articulation.h"
 #include "engraving/dom/tapping.h"
+#include "engraving/dom/chord.h"
+#include "engraving/editing/editvoice.h"
+#include "notation/inotationinteraction.h"
+#include "notation/inotationselection.h"
 
 #include "log.h"
 #include "translation.h"
@@ -44,6 +48,7 @@ ArticulationSettingsModel::ArticulationSettingsModel(QObject* parent, const muse
 void ArticulationSettingsModel::createProperties()
 {
     m_placement = buildPropertyItem(mu::engraving::Pid::ARTICULATION_ANCHOR);
+    m_direction = buildPropertyItem(mu::engraving::Pid::DIRECTION);
 }
 
 void ArticulationSettingsModel::requestElements()
@@ -67,7 +72,51 @@ void ArticulationSettingsModel::requestElements()
 void ArticulationSettingsModel::loadProperties()
 {
     loadPropertyItem(m_placement);
+    loadPropertyItem(m_direction);
     updateIsPlacementAvailable();
+    updateVoiceChoices();
+}
+
+void ArticulationSettingsModel::onNotationChanged(const PropertyIdSet&, const StyleIdSet&)
+{
+    updateProperties();
+}
+
+void ArticulationSettingsModel::updateVoiceChoices()
+{
+    QVariantList choices;
+    int current = -1;
+    if (m_elementList.size() == 1 && m_elementList.front()->isArticulation()) {
+        auto* articulation = toArticulation(m_elementList.front());
+        if ((articulation->isAccent() || articulation->isMarcato()) && articulation->chordRest()
+            && articulation->chordRest()->isChord() && !toChord(articulation->chordRest())->isGrace()) {
+            current = int(articulation->voice());
+            for (int voice = 0; voice < VOICES; ++voice) {
+                choices << QVariantMap { { "voice", voice }, { "text", QString::number(voice + 1) },
+                    { "available", EditVoice::canMoveArticulationToVoice(articulation, voice) } };
+            }
+        }
+    }
+    if (choices != m_voiceChoices || current != m_currentVoice) {
+        m_voiceChoices = choices;
+        m_currentVoice = current;
+        emit voiceChoicesChanged();
+    }
+}
+
+void ArticulationSettingsModel::moveToVoice(int voice)
+{
+    const auto notation = currentNotation();
+    if (!notation || voice < 0 || voice >= VOICES || m_elementList.size() != 1
+        || !m_elementList.front()->isArticulation()) {
+        return;
+    }
+    const auto& selected = notation->interaction()->selection()->elements();
+    if (selected.size() != 1 || selected.front() != m_elementList.front()
+        || !EditVoice::canMoveArticulationToVoice(toArticulation(selected.front()), voice)) {
+        return;
+    }
+    notation->interaction()->changeSelectedElementsVoice(voice);
 }
 
 void ArticulationSettingsModel::updateIsPlacementAvailable()

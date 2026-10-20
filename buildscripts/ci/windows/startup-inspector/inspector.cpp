@@ -63,7 +63,7 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "keypad" || mode == "stems") {
+        if (mode == "keypad" || mode == "stems" || mode == "percussion") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
                 if (window && window->title() != "EvanScore") verifyKeypad(window);
             });
@@ -426,6 +426,75 @@ private:
         }
         qWarning() << "DYNAMICS INSPECTOR Return and keypad Enter commit velocities without extra score commands passed";
     }
+    static void verifyPercussion(QQuickWindow* window, QQmlEngine* engine, const std::function<QVariant(const QString&)>& evaluate) {
+        const auto select = [&evaluate](int track) {
+            if(!evaluate(QString("(function(){var c=curScore.newCursor(); c.track=%1; c.rewindToTick(0); return curScore.selection.select(c.element.articulations[0]);})()").arg(track)).toBool())
+                qFatal("Cannot select the actual accent on track %d",track);
+            QTest::qWait(150);
+        };
+        const auto markCounts = [&evaluate] {
+            return evaluate("(function(){var c=curScore.newCursor();var n=[];for(var t=4;t<6;++t){c.track=t;c.rewindToTick(0);n.push(c.element.articulations.length);}return n.join(',');})()").toString();
+        };
+        QQmlComponent debugComponent(engine);
+        debugComponent.setData("import MuseScore.NotationScene; FeatureDebugModel {}",QUrl());
+        QScopedPointer<QObject> debug(debugComponent.create());
+        if(!debug || !QMetaObject::invokeMethod(debug.data(),"load"))qFatal("Percussion diagnostics model unavailable");
+        const auto diagnostic = [&debug] {
+            QMetaObject::invokeMethod(debug.data(),"refresh");
+            return QJsonDocument::fromJson(debug->property("report").toString().toUtf8()).object().value("sticking").toArray();
+        };
+        select(0);
+        auto rows=diagnostic();
+        if(rows.size()!=1 || rows[0].toObject().value("unpitchedPercussion").toBool()
+           || rows[0].toObject().value("articulations").toArray()[0].toObject().value("effectiveAnchor").toInt()!=2)
+            qFatal("Percussion default still overrides the pitched-staff accent");
+        select(4); rows=diagnostic();
+        if(rows.size()!=1 || !rows[0].toObject().value("unpitchedPercussion").toBool()
+           || !rows[0].toObject().value("articulations").toArray()[0].toObject().value("renderedAbove").toBool())
+            qFatal("Unpitched percussion did not retain its automatic above accent");
+        if(dockOpen(window,"propertiesPanel")) {
+            dispatchMenu(window,"command://app/dock/toggle-properties");QTest::qWait(100);
+        }
+        dispatchMenu(window,"command://app/dock/toggle-properties");
+        QTest::qWait(200);
+        auto panel=findItem(window->contentItem(),"ArticulationSettings");
+        if(!panel || !panel->isVisible())qFatal("Actual articulation Properties panel is unavailable");
+        QQuickItem* below=nullptr;
+        for(auto* object:objects(panel)) {
+            auto* item=qobject_cast<QQuickItem*>(object);
+            if(item && item->isVisible() && item->property("text").toString()=="Below" && QByteArray(item->metaObject()->className()).contains("FlatRadioButton"))below=item;
+        }
+        if(!below)qFatal("Native Below articulation placement control unavailable");
+        reveal(below);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,below->mapToScene({below->width()/2,below->height()/2}).toPoint());QTest::qWait(150);
+        rows=diagnostic();
+        auto marking=rows[0].toObject().value("articulations").toArray()[0].toObject();
+        if(marking.value("effectiveAnchor").toInt()!=1 || marking.value("renderedAbove").toBool())qFatal("Pointer Below did not override percussion placement");
+        auto direction=findItem(panel,"articulation-symbol-direction");
+        if(!direction)qFatal("Symbol direction controls missing");
+        QQmlExpression expression(qmlContext(direction),direction,"radioButtonGroup.itemAtIndex(1)");
+        auto* down=qvariant_cast<QQuickItem*>(expression.evaluate());
+        if(expression.hasError() || !down)qFatal("Symbol Down button unavailable");
+        reveal(down);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,down->mapToScene({down->width()/2,down->height()/2}).toPoint());QTest::qWait(150);
+        marking=diagnostic()[0].toObject().value("articulations").toArray()[0].toObject();
+        if(marking.value("symbolDirection").toInt()!=2 || marking.value("renderedAbove").toBool())qFatal("Pointer symbol direction did not apply");
+        auto* voice2=findItem(panel,"articulation-voice-2");auto* voice3=findItem(panel,"articulation-voice-3");
+        if(!voice2 || !voice2->isEnabled() || !voice3 || voice3->isEnabled())qFatal("Voice targets do not match existing chords");
+        const auto clickVoice=[window](QQuickItem* button) {reveal(button);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,button->mapToScene({button->width()/2,button->height()/2}).toPoint());QTest::qWait(150);};
+        clickVoice(voice2);
+        if(markCounts()!="0,1")qFatal("Voice button moved notes, copied an accent or left its old attachment");
+        rows=diagnostic();
+        if(rows[0].toObject().value("voice").toInt()!=2 || rows[0].toObject().value("articulations").toArray()[0].toObject().value("voice").toInt()!=2)
+            qFatal("Native accent and owning chord voices disagree");
+        dispatchMenu(window,"command://notation/undo");QTest::qWait(150);if(markCounts()!="1,0")qFatal("Accent move did not Undo in one step");
+        dispatchMenu(window,"command://notation/redo");QTest::qWait(150);if(markCounts()!="0,1")qFatal("Accent move did not Redo");
+        evaluate("curScore.startCmd();curScore.appendPart('marching-snare');curScore.appendPart('marching-cymbals');curScore.endCmd();");QTest::qWait(200);
+        if(evaluate("curScore.nstaves").toInt()!=4)qFatal("Native template append did not create two staves");
+        select(5);
+        dispatchMenu(window,"command://project/save");QTest::qWait(500);
+        const auto capture=qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        if(!capture.isEmpty() && !window->grabWindow().save(capture))qFatal("Percussion Properties capture failed");
+        qWarning()<<"PERCUSSION INSPECTOR pitched/percussion scope, real placement/direction/voice clicks, Undo/Redo, new templates and save passed";
+    }
     static void verifyKeypad(QQuickWindow* window) {
         dispatchMenu(window, "command://notation/select-all");
         QQmlEngine* hostEngine = qmlEngine(window->contentItem());
@@ -457,6 +526,12 @@ private:
             if (expression.hasError()) qFatal("Keypad expression failed: %s", qPrintable(expression.error().toString()));
             return value;
         };
+        if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="percussion") {
+            keypad->close();
+            verifyPercussion(window, engine, evaluate);
+            delete engine;
+            return;
+        }
         if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="stems") {
             const auto lengths=[&evaluate] {
                 return QJsonDocument::fromJson(evaluate(R"JS((function(){

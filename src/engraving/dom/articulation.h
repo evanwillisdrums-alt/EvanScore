@@ -212,6 +212,8 @@ protected:
 
 private:
 
+    bool usesPercussionAboveDefault() const;
+
     void setupShowOnTabStyles();
 
     enum class AnchorGroup : unsigned char {

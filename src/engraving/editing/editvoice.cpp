@@ -49,6 +49,34 @@
 using namespace mu;
 using namespace mu::engraving;
 
+bool EditVoice::canMoveArticulationToVoice(const Articulation* articulation, voice_idx_t voice)
+{
+    if (!articulation || !articulation->isArticulation() || (!articulation->isAccent() && !articulation->isMarcato())
+        || voice >= VOICES || !articulation->chordRest() || !articulation->chordRest()->isChord()) {
+        return false;
+    }
+    const auto* source = toChord(articulation->chordRest());
+    if (source->isGrace() || source->isTrillCueNote() || !source->segment()) {
+        return false;
+    }
+    auto* item = source->segment()->element(source->staffIdx() * VOICES + voice);
+    if (!item || !item->isChord()) {
+        return false;
+    }
+    auto* target = toChord(item);
+    for (auto* linked : articulation->linkList()) {
+        const auto* linkedArticulation = toArticulation(linked);
+        auto* linkedTarget = linkedArticulation == articulation ? target : target->findLinkedInStaff(linkedArticulation->staff());
+        if (!linkedTarget || !linkedTarget->isChord()) {
+            return false;
+        }
+        if (linkedArticulation->chordRest() != linkedTarget && toChord(linkedTarget)->hasArticulation(linkedArticulation)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 //---------------------------------------------------------
 //   changeSelectedElementsVoice
 //    moves selected notes into specified voice if possible
@@ -333,6 +361,19 @@ void EditVoice::changeSelectedElementsVoice(Transaction&, Score* score, voice_id
 
                 elementScore->undoRemoveElement(lyric);
             }
+        } else if (oel.size() == 1 && e->isArticulation()) {
+            // Moving a marking must not move notes, fill rests or invent a new
+            // attack. Linked destinations are checked before any mutation.
+            auto* articulation = toArticulation(e);
+            if (!canMoveArticulationToVoice(articulation, voice)) {
+                continue;
+            }
+            auto* source = articulation->chordRest();
+            auto* target = source->segment()->element(source->staffIdx() * VOICES + voice);
+            if (source != target) {
+                score->undoChangeParent(articulation, target, articulation->staffIdx());
+            }
+            newElements.push_back(articulation);
         } else if (e->hasVoiceAssignmentProperties()) {
             if (e->isSpannerSegment()) {
                 e = toSpannerSegment(e)->spanner();

@@ -60,4 +60,63 @@ Column {
             { text: qsTrc("propertiespanel", "Below"), value: ArticulationTypes.TYPE_BOTTOM }
         ]
     }
+
+    DirectionSection {
+        id: directionSection
+
+        objectName: "articulation-symbol-direction"
+        enabled: root.model && root.model.isPlacementAvailable
+        titleText: qsTrc("propertiespanel", "Symbol direction")
+        width: parent.width
+        propertyItem: root.model ? root.model.direction : null
+        navigationPanel: root.navigationPanel
+        navigationRowStart: placementSection.navigationRowEnd + 1
+    }
+
+    PropertyView {
+        id: voiceSection
+
+        objectName: "articulation-voice-section"
+        width: parent.width
+        visible: root.model && root.model.voiceChoices.length > 0
+        titleText: qsTrc("propertiespanel", "Attach accent to voice")
+        showButton: false
+        navigationPanel: root.navigationPanel
+        navigationRowStart: directionSection.navigationRowEnd + 1
+        navigationRowEnd: navigationRowStart + 4
+        spacing: 6
+
+        Row {
+            width: parent.width
+            spacing: 6
+
+            Repeater {
+                model: root.model ? root.model.voiceChoices : []
+
+                FlatRadioButton {
+                    required property var modelData
+                    required property int index
+
+                    objectName: "articulation-voice-" + (modelData.voice + 1)
+                    width: (parent.width - 18) / 4
+                    text: modelData.text
+                    checked: root.model.currentVoice === modelData.voice
+                    enabled: modelData.available
+                    toolTipTitle: qsTrc("propertiespanel", "Voice %1").arg(modelData.voice + 1)
+                    toolTipDescription: qsTrc("propertiespanel", "Move this accent to an existing chord at the same position. Notes stay in their current voices.")
+                    navigation.name: objectName
+                    navigation.panel: root.navigationPanel
+                    navigation.row: voiceSection.navigationRowStart + 1 + index
+                    onToggled: root.model.moveToVoice(modelData.voice)
+                }
+            }
+        }
+
+        StyledTextLabel {
+            width: parent.width
+            horizontalAlignment: Text.AlignLeft
+            wrapMode: Text.WordWrap
+            text: qsTrc("propertiespanel", "Choose a voice with a chord at this position. Existing accents and linked parts are preserved.")
+        }
+    }
 }

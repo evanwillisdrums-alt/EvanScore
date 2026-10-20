@@ -33,27 +33,39 @@ class ArticulationSettingsModel : public PropertiesPanelAbstractModel
     QML_UNCREATABLE("Not creatable from QML")
 
     Q_PROPERTY(mu::propertiespanel::PropertyItem * placement READ placement CONSTANT)
+    Q_PROPERTY(mu::propertiespanel::PropertyItem * direction READ direction CONSTANT)
     Q_PROPERTY(bool isPlacementAvailable READ isPlacementAvailable NOTIFY isPlacementAvailableChanged FINAL)
+    Q_PROPERTY(QVariantList voiceChoices READ voiceChoices NOTIFY voiceChoicesChanged)
+    Q_PROPERTY(int currentVoice READ currentVoice NOTIFY voiceChoicesChanged)
 
 public:
     explicit ArticulationSettingsModel(QObject* parent, const muse::modularity::ContextPtr& iocCtx, IElementRepositoryService* repository,
                                        PropertiesPanelModelType type = PropertiesPanelModelType::TYPE_ARTICULATION);
 
     PropertyItem* placement() const;
+    PropertyItem* direction() const { return m_direction; }
+    QVariantList voiceChoices() const { return m_voiceChoices; }
+    int currentVoice() const { return m_currentVoice; }
     bool isPlacementAvailable() const;
+    Q_INVOKABLE void moveToVoice(int voice);
 
 signals:
     void isPlacementAvailableChanged(bool available);
+    void voiceChoicesChanged();
 
 private:
     void createProperties() override;
     void requestElements() override;
     void loadProperties() override;
+    void onNotationChanged(const engraving::PropertyIdSet&, const engraving::StyleIdSet&) override;
 
     void updateIsPlacementAvailable();
+    void updateVoiceChoices();
 
     PropertyItem* m_direction = nullptr;
     PropertyItem* m_placement = nullptr;
     bool m_isPlacementAvailable = true;
+    QVariantList m_voiceChoices;
+    int m_currentVoice = -1;
 };
 }
