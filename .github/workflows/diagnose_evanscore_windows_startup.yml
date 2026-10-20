@@ -276,6 +276,35 @@ jobs:
                   message = content[offset:offset + 2800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::notice title=Native interaction diagnostics::' + message)
           PY
+      - name: Report saved percussion fixture fields
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+          import xml.etree.ElementTree as ET
+          for path in Path('checks').rglob('percussion-controls.mscz'):
+              with ZipFile(path) as archive:
+                  entry = next(i for i in archive.infolist() if i.filename.endswith('.mscx'))
+                  if entry.file_size > 1024 * 1024:
+                      raise RuntimeError('Percussion diagnostic fixture is unexpectedly large')
+                  score = ET.fromstring(archive.read(entry)).find('Score')
+              staffs = score.findall('./Part/Staff')
+              data = {'file': str(path), 'staffTypes': [
+                  {'id': s.get('id'), 'group': s.find('StaffType').get('group'),
+                   'name': s.findtext('StaffType/name'), 'lines': s.findtext('StaffType/lines', '5')}
+                  for s in staffs]}
+              staff = next(s for s in score.findall('Staff') if s.get('id') == '2')
+              data['voices'] = [[{'duration': chord.findtext('durationType'),
+                  'pitches': [n.findtext('pitch') for n in chord.findall('Note')],
+                  'marks': [{'anchor': a.findtext('anchor'), 'direction': a.findtext('direction'),
+                             'symbol': a.findtext('subtype')} for a in chord.findall('Articulation')]}
+                  for chord in voice.findall('Chord')] for voice in staff.findall('Measure/voice')]
+              data['layoutBreaks'] = len(score.findall('.//LayoutBreak'))
+              message = json.dumps(data)
+              for offset in range(0, len(message), 2800):
+                  print('::notice title=Saved percussion fields::' + message[offset:offset+2800].replace('%', '%25'))
+          PY
       - name: Report remaining launch logs through check annotations
         run: |
           python3 - <<'PY'

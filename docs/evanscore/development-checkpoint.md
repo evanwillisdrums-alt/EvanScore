@@ -1,6 +1,32 @@
 # Development checkpoint
 
-## Release verification in progress — 2026-10-20 23:42 UTC
+## Active replacement build — 2026-10-20 23:48 UTC
+
+Product **81d5dd69cd8189d09109cd65a15eb371bcb5bd52**, Windows **39517465407**,
+is compiling. The prior candidate1d812 passed full/fresh startup/export and four
+feature gates. Its percussion UI passes all real clicks, Undo/Redo and save after
+the tooltip harness correction, but the saved-score check catches a real plugin
+creation-path bug: `Score::appendPart(template)` passed the new staff's generic
+five-line pitched type as though it were a user choice, bypassing its template.
+The native before-fix regression reproduces wrong line counts AND wrong staff
+group for both appended marching instruments. It now passes nullptr to Staff::init,
+matching template-based creation while leaving explicit Staff::init choices alone.
+
+All **ten** focused native percussion cases pass against the actual replaced
+Score.cpp object, in addition to complete unity1/15/19 replacements. The new case
+checks appended snare3/cymbal2 percussion types, unchanged existing staff, and
+one-step Undo/Redo. Before/after evidence: validation `percussion/append-before.*`,
+`append-after-build.log`, `results.*`. Strengthened native XML verifier reports
+actual line counts and also requires correct pitched/percussion staff groups.
+Product is frozen for full Windows build and all five new feature gates.
+
+The 20261020 release watcher now targets39517465407. Restart capture helper only
+against its current state; retrieve/view both actual mallet and percussion images
+before releasing. Older candidate12307109199 is withheld. The last fully verified
+publicly offered download is still39319891960 below. Preserve dirty muse and the
+separate sixteen-test cross-bar branchbfc1245d488. No new Qt SDK permission retry.
+
+## Earlier candidate verification — 2026-10-20 23:42 UTC
 
 Replacement native source **1d812a3f2279cffd9bcb8aff845d0650c0aeff9d**,
 Windows **39514615600**, passes full compile, startup/export, clean closure and
