@@ -268,7 +268,7 @@ jobs:
           failures = []
           for file in files:
               for line in file.read_text(encoding='utf-8-sig', errors='replace').splitlines():
-                  if re.search(r'FATAL|qFatal|Main articulations|Articulation disclosure|Articulation smoothing|custom dynamics switch|Could not dispatch|DYNAMICS INSPECTOR', line, re.I):
+                  if re.search(r'FATAL|qFatal|Main articulations|Articulation disclosure|Articulation smoothing|custom dynamics switch|Could not dispatch|INSPECTOR|RANGE DIAGNOSTICS|VOICE DIAGNOSTICS|VOICE MODEL', line, re.I):
                       failures.append(f'{file}: {line[:1200]}')
           if failures:
               content = '\n'.join(failures)[-24000:]
@@ -642,7 +642,7 @@ jobs:
           Get-ChildItem checks -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'stderr.log' -or $_.Name -eq 'startup-state.json' -or $_.Name -eq 'keypad-source.json' -or $_.Name -like 'MuseScore*.log' } | ForEach-Object {
             $content = (Get-Content $_.FullName -Raw)
             if ($_.Name -like 'MuseScore*.log') {
-              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|STEMS INSPECTOR|ERROR|ASSERT' }) -join "`n"
+              $content = (($content -split "`n") | Where-Object { $_ -match 'DYNAMICS INSPECTOR|MALLET INSPECTOR|KEYPAD INSPECTOR|STEMS INSPECTOR|PERCUSSION INSPECTOR|ERROR|ASSERT' }) -join "`n"
             }
             if ($content.Length -gt 16000) { $content = $content.Substring($content.Length - 16000) }
             for ($offset = 0; $offset -lt $content.Length; $offset += 2800) {

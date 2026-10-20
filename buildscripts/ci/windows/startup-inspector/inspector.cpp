@@ -483,11 +483,11 @@ private:
         if(!panel)qFatal("Articulation Properties disappeared after symbol edit");
         auto* voice2=findItem(panel,"articulation-voice-2");auto* voice3=findItem(panel,"articulation-voice-3");
         if(!voice2 || !voice2->isEnabled() || !voice3 || voice3->isEnabled()) {
-            qWarning()<<"PERCUSSION VOICE DIAGNOSTICS"<<QJsonDocument(QJsonObject{{"chords",diagnostic()}}).toJson(QJsonDocument::Compact)
+            qWarning()<<"PERCUSSION INSPECTOR VOICE DIAGNOSTICS"<<QJsonDocument(QJsonObject{{"chords",diagnostic()}}).toJson(QJsonDocument::Compact)
                       <<"counts"<<markCounts()<<"voice2"<<voice2<<"enabled"<<(voice2 && voice2->isEnabled())
                       <<"voice3"<<voice3<<"enabled"<<(voice3 && voice3->isEnabled());
             if(auto* model=qvariant_cast<QObject*>(panel->property("model")))
-                qWarning()<<"PERCUSSION PROPERTIES VOICE MODEL"<<model->property("voiceChoices")<<model->property("currentVoice");
+                qWarning()<<"PERCUSSION INSPECTOR PROPERTIES VOICE MODEL"<<model->property("voiceChoices")<<model->property("currentVoice");
             qFatal("Voice targets do not match existing chords");
         }
         const auto clickVoice=[window](QQuickItem* button) {reveal(button);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,button->mapToScene({button->width()/2,button->height()/2}).toPoint());QTest::qWait(150);};
@@ -724,7 +724,7 @@ private:
                     if(evaluate(QString("curScore.selection.isRange && (!curScore.selection.endSegment || curScore.selection.endSegment.fraction.ticks >= %1)").arg(end)).toBool()) break;
                 }
                 if(!evaluate(QString("curScore.selection.isRange && curScore.selection.startSegment.fraction.ticks===1920 && curScore.selection.endSegment.fraction.ticks===%1").arg(end)).toBool()) {
-                    qWarning()<<"KEYPAD RANGE DIAGNOSTICS"<<evaluate("JSON.stringify({range:curScore.selection.isRange,start:curScore.selection.startSegment ? curScore.selection.startSegment.fraction.ticks : null,end:curScore.selection.endSegment ? curScore.selection.endSegment.fraction.ticks : null,elements:Array.from(curScore.selection.elements).map(function(e){return {type:e.type,track:e.track};}),chords:selectedChords().length})").toString();
+                    qWarning()<<"KEYPAD INSPECTOR RANGE DIAGNOSTICS"<<evaluate("JSON.stringify({range:curScore.selection.isRange,start:curScore.selection.startSegment ? curScore.selection.startSegment.fraction.ticks : null,end:curScore.selection.endSegment ? curScore.selection.endSegment.fraction.ticks : null,elements:Array.from(curScore.selection.elements).map(function(e){return {type:e.type,track:e.track};}),chords:selectedChords().length})").toString();
                     qFatal("Keypad native partial range selection failed");
                 }
             }
