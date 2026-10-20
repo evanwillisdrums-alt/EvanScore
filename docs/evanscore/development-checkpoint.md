@@ -26,22 +26,32 @@ loading. These were harness corrections, not hidden product crashes.
 
 Full Windows build/startup/fresh-machine and existing four feature gates plus new
 `percussion` native pointer/persistence gate are required before a new download.
-Full build **39443436130**, native source **e86bb004c0eb717d6e1d8d8c503488b618de7312**,
-is running. Product source is frozen through the gates. The 20261020 watcher
+Full build **39443436130**, source **e86bb004c0eb717d6e1d8d8c503488b618de7312**,
+passed compilation/startup/export/fresh-machine checks. Mallet, Dynamics and
+stem gates passed; keypad range selection and percussion voice UI failed.
+The percussion pointer gate found a real disabled ancestor: PropertyView expects
+a PropertyItem, but voice attachment is a command. The voice section now explicitly
+enables for a valid current voice. Raw native diagnostics confirm destinations
+1/2 available while the old control was disabled; placement and symbol direction
+passed real clicks before this failure. Replacement product **1d812a3f227**, full
+Windows build **39514615600**, is compiling. Test-only follow-ups add bounded
+selection/voice diagnostics; keypad cause remains under investigation. Product source is frozen through the gates. The 20261020 watcher
 automatically launches five feature modes and retrieves mallet/percussion images;
 view both before marking ready. A test-only guarded-pointer follow-up reacquires
 Properties content after changes that may rebuild it. See validation
 `/workspace/evanscore-validation/20261020/release-watch.json`.
 Preserve dirty muse and root framework patch; do not stage the gitlink.
 
-Cross-bar work is committed/pushed separately at **d8eb32a4fa5**, branch
+Cross-bar work is committed/pushed separately at **c2a71e097c8**, branch
 `codex/crossbar-tuplet-prototype`, worktree `/workspace/EvanScore-crossbar`.
-Eight native timing/persistence tests pass, including nested groups, twelve
+Fourteen focused native tests pass, including empty-span creation/preflight/Undo, nested groups, twelve
 ratio/voice combinations, linked-independent staves, tied fragments and malformed
 terminator/EOF rejection. Earlier error propagation let a failed read consume
 child IDs as measure IDs; outer loops now stop on custom errors in the prototype.
-Creation/Undo, segment layout, file-version compatibility, editing and exchange
-remain before shipping. It is not merged into the verified app.
+Full note writing/editing, segment layout, file-version compatibility and exchange
+remain before shipping. Empty-span creation is internal only and refuses unsafe
+spans before mutation. Leak-enabled observations remain explicitly inconclusive;
+see cross-bar-tuplets.md and its separate branch. It is not merged into the verified app.
 
 ## Verified local-AI Windows release — 2026-10-19 21:02 UTC
 
