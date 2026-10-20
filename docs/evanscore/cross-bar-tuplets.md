@@ -78,3 +78,36 @@ loader dispatch and exchange behavior before enabling creation or releasing file
 Keep ordinary files in their current format; do not globally upgrade every score
 just to carry this one feature. No generated prototype MSCX is a working released
 workaround. Remaining acceptance requirements above still apply.
+
+## Empty-span creator prototype — 2026-10-20
+
+`CrossBarTuplet` now previews exact fragments and creates one logical group over
+ordinary rests in one caller-owned native transaction. It validates the complete
+span before edits, revalidates after preview, retains an ordinary remainder after
+the group, and supports Undo/Redo and native persistence. It checks transaction
+identity against the target score rather than accepting another score's active
+transaction. Invalid previews contain no half-built fragment list.
+
+Fourteen native tests pass. Creation covers3:2/5:4/7:4 and an exact5:3 split from
+13/16 to19/16. The same5:3 ratio at3/4 is refused because it would need a written
+1/24 at the boundary; supported ratios are not rejected as a class. All arithmetic
+is rational and decomposition must sum exactly. Notes, voice gaps, existing
+nested tuplets, linked staves/parts, local time stretching, spans beyond the score
+or eight-measure bound, and nonrepresentable durations produce an error before
+mutation. These are explicit prototype limits, not completed support for those
+operations. No UI command exposes this creator yet.
+
+The empty creator splits rests, which have no attacks to tie. Existing chord
+fixtures independently retain a native tie across the barline. Writing notes
+through a split group, linked creation, selected-note preservation, deletion,
+paste, system/page fragments and hit testing remain required. Do not present the
+empty creator's tests as full notation-command or playback acceptance.
+
+Leak-enabled differential observations were also retained. Both the ordinary
+baseline (5,504 bytes/82 allocations) and three-ratio creator run (15,664/224)
+report retained instrument/Part/read, repeat-list, IOC and profiler allocations;
+the direct origin categories match, with per-score categories scaling threefold.
+This is not a clean leak result or a diagnosis of the user's system memory load.
+Instrument-list replacement/copy and instrument-change lifetime contracts require
+further inspection before any cleanup; do not blindly delete shared/Undo-owned
+instrument pointers. See validation `crossbar/leak-observations.json`.

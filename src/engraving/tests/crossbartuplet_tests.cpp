@@ -206,3 +206,95 @@ TEST(CrossBarTupletPrototype, ReaderContextScopesContinuationToItsScoreAndTrack)
     context.setContinuingTuplet(1, nullptr); EXPECT_FALSE(context.hasUnfinishedCrossBarTuplets());
     context.setScore(second.score.get()); EXPECT_EQ(context.continuingTuplet(1), b);
 }
+
+#include "engraving/editing/crossbartuplet.h"
+#include "engraving/editing/transaction/transaction.h"
+namespace {
+Rest* emptyCrossBarSpan(Fixture& fixture) {
+    fixture.score->lockUpdates(true);
+    fixture.rest(Fraction(), Fraction(3, 4), 0);
+    fixture.rest(Fraction(3, 4), Fraction(1, 4), 0);
+    fixture.rest(Fraction(1, 1), Fraction(1, 1), 0);
+    return toRest(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction(3, 4))->element(0));
+}
+}
+TEST(CrossBarTupletPrototype, EmptySpanCreationAndItsOrdinaryRemainderUndoTogether) {
+    for (int actual : { 3, 5, 7 }) {
+        Fixture fixture; auto* seed = emptyCrossBarSpan(fixture);
+        auto* originalSecondRest = fixture.bars[1]->first(SegmentType::ChordRest)->element(0);
+        CrossBarTuplet::Options options; options.actual = actual; options.normal = actual == 3 ? 2 : 4;
+        options.base = TDuration(actual == 3 ? DurationType::V_QUARTER : DurationType::V_EIGHTH);
+        const auto preview = CrossBarTuplet::preview(seed, options); ASSERT_TRUE(preview.valid());
+        EXPECT_EQ(preview.start, Fraction(3, 4)); EXPECT_EQ(preview.end, Fraction(5, 4));
+        ASSERT_EQ(preview.fragments.size(), actual + 2); EXPECT_EQ(preview.fragments.back().attack, -1);
+        fixture.score->startCmd(muse::TranslatableString::untranslatable("Create cross-bar tuplet"));
+        muse::String error;
+        auto* group = CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error);
+        fixture.score->endCmd(); ASSERT_NE(group, nullptr); EXPECT_TRUE(error.empty());
+        ASSERT_EQ(group->elements().size(), actual + 1);
+        Fraction total;
+        for (auto* element : group->elements()) { EXPECT_TRUE(element->isRest()); total += element->actualTicks(); }
+        EXPECT_EQ(total, Fraction(1, 2));
+        auto* tail = fixture.bars[1]->findSegment(SegmentType::ChordRest, Fraction(5, 4))->element(0);
+        ASSERT_TRUE(tail->isRest()); EXPECT_EQ(toRest(tail)->tuplet(), nullptr); EXPECT_EQ(toRest(tail)->actualTicks(), Fraction(3, 4));
+        fixture.score->undoRedo(true, nullptr);
+        EXPECT_EQ(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction(3, 4))->element(0), seed);
+        EXPECT_EQ(fixture.bars[1]->first(SegmentType::ChordRest)->element(0), originalSecondRest);
+        EXPECT_TRUE(group->elements().empty());
+        fixture.score->undoRedo(false, nullptr); EXPECT_EQ(group->elements().size(), actual + 1);
+        auto restored = load(fixture.save());
+        auto* segment = restored->firstMeasure()->nextMeasure()->findSegment(SegmentType::ChordRest, Fraction(1, 1)); ASSERT_NE(segment, nullptr);
+        ASSERT_TRUE(segment->element(0)->isRest()); ASSERT_NE(toRest(segment->element(0))->tuplet(), nullptr);
+        EXPECT_EQ(toRest(segment->element(0))->tuplet()->elements().size(), actual + 1);
+    }
+}
+TEST(CrossBarTupletPrototype, NonDyadicBarlineSplitIsRefusedBeforeEditing) {
+    Fixture fixture; auto* seed = emptyCrossBarSpan(fixture);
+    CrossBarTuplet::Options options; options.actual = 5; options.normal = 3; options.base = TDuration(DurationType::V_EIGHTH);
+    const auto preview = CrossBarTuplet::preview(seed, options); EXPECT_FALSE(preview.valid()); EXPECT_TRUE(preview.error.contains(u"nonrepresentable")); EXPECT_TRUE(preview.fragments.empty());
+    fixture.score->startCmd(muse::TranslatableString::untranslatable("Rejected group")); muse::String error;
+    EXPECT_EQ(CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error), nullptr);
+    fixture.score->endCmd(); EXPECT_FALSE(error.empty());
+    EXPECT_EQ(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction(3, 4))->element(0), seed); EXPECT_EQ(seed->tuplet(), nullptr);
+    EXPECT_EQ(toRest(fixture.bars[1]->first(SegmentType::ChordRest)->element(0))->ticks(), Fraction(1, 1));
+}
+TEST(CrossBarTupletPrototype, CreationRevalidatesAfterPreviewAndPreservesExistingNotes) {
+    Fixture fixture; auto* seed = emptyCrossBarSpan(fixture); CrossBarTuplet::Options options;
+    ASSERT_TRUE(CrossBarTuplet::preview(seed, options).valid());
+    auto* segment = fixture.bars[1]->first(SegmentType::ChordRest); auto* rest = toRest(segment->element(0)); segment->remove(rest); delete rest;
+    auto* chord = fixture.chord(Fraction(1, 1), Fraction(1, 4), 0, 67, nullptr);
+    fixture.score->startCmd(muse::TranslatableString::untranslatable("Rejected stale preview")); muse::String error;
+    EXPECT_EQ(CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error), nullptr);
+    fixture.score->endCmd(); EXPECT_TRUE(error.contains(u"contains notes"));
+    EXPECT_EQ(chord->notes().front()->pitch(), 67); EXPECT_EQ(chord->ticks(), Fraction(1, 4)); EXPECT_EQ(seed->tuplet(), nullptr);
+}
+TEST(CrossBarTupletPrototype, CreationRequiresAnUndoTransactionAndRefusesUnverifiedLinks) {
+    Fixture fixture; auto* seed = emptyCrossBarSpan(fixture); CrossBarTuplet::Options options; muse::String error;
+    EXPECT_EQ(CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error), nullptr);
+    EXPECT_TRUE(error.contains(u"transaction")); EXPECT_EQ(seed->tuplet(), nullptr);
+    fixture.score->staff(1)->linkTo(fixture.score->staff(0));
+    EXPECT_FALSE(CrossBarTuplet::preview(seed, options).valid());
+}
+TEST(CrossBarTupletPrototype, CreationCannotUseAnotherScoresTransaction) {
+    Fixture first, second; auto* seed = emptyCrossBarSpan(first); emptyCrossBarSpan(second);
+    first.score->startCmd(muse::TranslatableString::untranslatable("First score"));
+    second.score->startCmd(muse::TranslatableString::untranslatable("Other score"));
+    muse::String error;
+    EXPECT_EQ(CrossBarTuplet::create(second.score->transactionManager()->currentOrDummyTransaction(), seed, CrossBarTuplet::Options(), error), nullptr);
+    EXPECT_TRUE(error.contains(u"transaction")); EXPECT_EQ(seed->tuplet(), nullptr);
+    first.score->endCmd(); second.score->endCmd();
+}
+TEST(CrossBarTupletPrototype, CompatibleNonBinaryRatioUsesExactDyadicSplits) {
+    Fixture fixture; fixture.score->lockUpdates(true);
+    fixture.rest(Fraction(), Fraction(3, 4), 0); fixture.rest(Fraction(3, 4), Fraction(1, 16), 0);
+    fixture.rest(Fraction(13, 16), Fraction(3, 16), 0); fixture.rest(Fraction(1, 1), Fraction(1, 1), 0);
+    auto* seed = toRest(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction(13, 16))->element(0));
+    CrossBarTuplet::Options options; options.actual = 5; options.normal = 3; options.base = TDuration(DurationType::V_EIGHTH);
+    auto preview = CrossBarTuplet::preview(seed, options); ASSERT_TRUE(preview.valid()); EXPECT_EQ(preview.end, Fraction(19, 16));
+    fixture.score->startCmd(muse::TranslatableString::untranslatable("Compatible 5:3 group")); muse::String error;
+    auto* group = CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed, options, error);
+    fixture.score->endCmd(); ASSERT_NE(group, nullptr); ASSERT_EQ(group->elements().size(), 6);
+    Fraction total; for (auto* item : group->elements()) { total += item->actualTicks(); } EXPECT_EQ(total, Fraction(3, 8));
+    EXPECT_EQ(group->elements()[2]->ticks(), Fraction(1, 16)); EXPECT_EQ(group->elements()[3]->ticks(), Fraction(1, 16));
+    fixture.score->undoRedo(true, nullptr); EXPECT_EQ(seed->tuplet(), nullptr); EXPECT_EQ(seed->ticks(), Fraction(3, 16));
+}

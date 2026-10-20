@@ -188,6 +188,8 @@ target_sources(engraving PRIVATE
     editing/edittremolo.h
     editing/editvisibility.cpp
     editing/editvisibility.h
+    editing/crossbartuplet.cpp
+    editing/crossbartuplet.h
     editing/editvoice.cpp
     editing/editvoice.h
     editing/elementeditdata.h
