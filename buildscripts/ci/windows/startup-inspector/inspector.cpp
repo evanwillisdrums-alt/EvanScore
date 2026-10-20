@@ -457,7 +457,7 @@ private:
         }
         dispatchMenu(window,"command://app/dock/toggle-properties");
         QTest::qWait(200);
-        auto panel=findItem(window->contentItem(),"ArticulationSettings");
+        QPointer<QQuickItem> panel=findItem(window->contentItem(),"ArticulationSettings");
         if(!panel || !panel->isVisible())qFatal("Actual articulation Properties panel is unavailable");
         QQuickItem* below=nullptr;
         for(auto* object:objects(panel)) {
@@ -469,6 +469,8 @@ private:
         rows=diagnostic();
         auto marking=rows[0].toObject().value("articulations").toArray()[0].toObject();
         if(marking.value("effectiveAnchor").toInt()!=1 || marking.value("renderedAbove").toBool())qFatal("Pointer Below did not override percussion placement");
+        panel=findItem(window->contentItem(),"ArticulationSettings");
+        if(!panel)qFatal("Articulation Properties disappeared after placement edit");
         auto direction=findItem(panel,"articulation-symbol-direction");
         if(!direction)qFatal("Symbol direction controls missing");
         QQmlExpression expression(qmlContext(direction),direction,"radioButtonGroup.itemAtIndex(1)");
@@ -477,6 +479,8 @@ private:
         reveal(down);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,down->mapToScene({down->width()/2,down->height()/2}).toPoint());QTest::qWait(150);
         marking=diagnostic()[0].toObject().value("articulations").toArray()[0].toObject();
         if(marking.value("symbolDirection").toInt()!=2 || marking.value("renderedAbove").toBool())qFatal("Pointer symbol direction did not apply");
+        panel=findItem(window->contentItem(),"ArticulationSettings");
+        if(!panel)qFatal("Articulation Properties disappeared after symbol edit");
         auto* voice2=findItem(panel,"articulation-voice-2");auto* voice3=findItem(panel,"articulation-voice-3");
         if(!voice2 || !voice2->isEnabled() || !voice3 || voice3->isEnabled())qFatal("Voice targets do not match existing chords");
         const auto clickVoice=[window](QQuickItem* button) {reveal(button);QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,button->mapToScene({button->width()/2,button->height()/2}).toPoint());QTest::qWait(150);};

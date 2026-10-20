@@ -3,7 +3,7 @@
 Select the printed accent or marcato, then open **Properties**.
 
 - **Placement → Auto / Above / Below** controls which side of the staff holds the marking. The percussion workspace defaults Auto accents/marcatos above unpitched percussion; a manual placement takes priority.
-- **Symbol direction** controls the glyph's orientation independently of its staff placement.
+- **Symbol direction** controls the glyph's orientation. The percussion above default applies while placement and direction are both Auto; choose Above or Below to pin the staff side when using a manual glyph direction.
 - **Attach accent to voice → 1 / 2 / 3 / 4** moves this marking to an existing chord at the same onset on the same staff. Notes, rests, durations, velocities and playback locks remain. One Undo restores the previous attachment and its linked counterparts.
 
 A destination is disabled if it has no chord, already has that articulation, or cannot preserve a linked destination. The control applies to one selected accent or marcato on an ordinary chord. It does not invent a chord or move a grace articulation into the main attack. It is not a staff-wide playback voice assignment.

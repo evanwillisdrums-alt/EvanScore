@@ -26,6 +26,12 @@ loading. These were harness corrections, not hidden product crashes.
 
 Full Windows build/startup/fresh-machine and existing four feature gates plus new
 `percussion` native pointer/persistence gate are required before a new download.
+Full build **39443436130**, native source **e86bb004c0eb717d6e1d8d8c503488b618de7312**,
+is running. Product source is frozen through the gates. The 20261020 watcher
+automatically launches five feature modes and retrieves mallet/percussion images;
+view both before marking ready. A test-only guarded-pointer follow-up reacquires
+Properties content after changes that may rebuild it. See validation
+`/workspace/evanscore-validation/20261020/release-watch.json`.
 Preserve dirty muse and root framework patch; do not stage the gitlink.
 
 Cross-bar work is committed/pushed separately at **d8eb32a4fa5**, branch
