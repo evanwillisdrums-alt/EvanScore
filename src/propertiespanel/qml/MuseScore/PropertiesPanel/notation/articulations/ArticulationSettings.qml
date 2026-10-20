@@ -79,6 +79,9 @@ Column {
         objectName: "articulation-voice-section"
         width: parent.width
         visible: root.model && root.model.voiceChoices.length > 0
+        // This is an undoable command, rather than a PropertyItem editor.
+        // PropertyView otherwise disables the whole section for a null item.
+        enabled: root.model && root.model.currentVoice >= 0
         titleText: qsTrc("propertiespanel", "Attach accent to voice")
         showButton: false
         navigationPanel: root.navigationPanel
