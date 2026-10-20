@@ -35,16 +35,19 @@ enables for a valid current voice. Raw native diagnostics confirm destinations
 1/2 available while the old control was disabled; placement and symbol direction
 passed real clicks before this failure. Replacement product **1d812a3f227**, full
 Windows build **39514615600**, is compiling. Test-only follow-ups add bounded
-selection/voice diagnostics; keypad cause remains under investigation. Product source is frozen through the gates. The 20261020 watcher
+selection/voice diagnostics. Keypad rerun **39514466624** passes all native scopes,
+roll types, Undo/Redo/toggle, compact tabs and persistence on the same e86 binary.
+The earlier range-selection setup failure is not reproduced and not declared a
+product fix; retain failure diagnostics and run the gate on the replacement. Product source is frozen through the gates. The 20261020 watcher
 automatically launches five feature modes and retrieves mallet/percussion images;
 view both before marking ready. A test-only guarded-pointer follow-up reacquires
 Properties content after changes that may rebuild it. See validation
 `/workspace/evanscore-validation/20261020/release-watch.json`.
 Preserve dirty muse and root framework patch; do not stage the gitlink.
 
-Cross-bar work is committed/pushed separately at **c2a71e097c8**, branch
+Cross-bar work is committed/pushed separately at **8e2a6509666**, branch
 `codex/crossbar-tuplet-prototype`, worktree `/workspace/EvanScore-crossbar`.
-Fourteen focused native tests pass, including empty-span creation/preflight/Undo, nested groups, twelve
+Fifteen focused native tests pass, including native tied note entry across the boundary, empty-span creation/preflight/Undo, nested groups, twelve
 ratio/voice combinations, linked-independent staves, tied fragments and malformed
 terminator/EOF rejection. Earlier error propagation let a failed read consume
 child IDs as measure IDs; outer loops now stop on custom errors in the prototype.
