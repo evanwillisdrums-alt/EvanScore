@@ -502,6 +502,11 @@ private:
         if(evaluate("curScore.nstaves").toInt()!=4)qFatal("Native template append did not create two staves");
         select(5);
         dispatchMenu(window,"command://project/save");QTest::qWait(500);
+        // Leave the controls after the last real click. A normal hover tooltip
+        // is a second QWindow; it must not obscure the capture or be mistaken
+        // for a startup dialog by the independent desktop-window check.
+        QTest::mouseMove(window,QPoint(window->width()*3/4,window->height()/2));
+        QTest::qWait(500);
         const auto capture=qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
         if(!capture.isEmpty() && !window->grabWindow().save(capture))qFatal("Percussion Properties capture failed");
         qWarning()<<"PERCUSSION INSPECTOR pitched/percussion scope, real placement/direction/voice clicks, Undo/Redo, new templates and save passed";
