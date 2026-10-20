@@ -258,6 +258,57 @@ TEST(CrossBarTupletPrototype, NonDyadicBarlineSplitIsRefusedBeforeEditing) {
     EXPECT_EQ(fixture.bars[0]->findSegment(SegmentType::ChordRest, Fraction(3, 4))->element(0), seed); EXPECT_EQ(seed->tuplet(), nullptr);
     EXPECT_EQ(toRest(fixture.bars[1]->first(SegmentType::ChordRest)->element(0))->ticks(), Fraction(1, 1));
 }
+TEST(CrossBarTupletPrototype, NativeNoteEntryAcrossTheBarlineKeepsOneAttackAndUndoes) {
+    for (int actual : { 3, 5, 7 }) {
+        Fixture fixture;
+        auto* seed = emptyCrossBarSpan(fixture);
+        CrossBarTuplet::Options options;
+        options.actual = actual; options.normal = actual == 3 ? 2 : 4;
+        options.base = TDuration(actual == 3 ? DurationType::V_QUARTER : DurationType::V_EIGHTH);
+        const Fraction splitTick = Fraction(1, 1) - options.base.fraction() / Fraction(actual, options.normal) / 2;
+        fixture.score->startCmd(muse::TranslatableString::untranslatable("Create cross-bar tuplet"));
+        muse::String error;
+        auto* group = CrossBarTuplet::create(fixture.score->transactionManager()->currentOrDummyTransaction(), seed,
+                                           options, error);
+        fixture.score->endCmd();
+        ASSERT_NE(group, nullptr);
+        ASSERT_EQ(group->elements().size(), actual + 1);
+        auto* splitStart = fixture.bars[0]->findSegment(SegmentType::ChordRest, splitTick);
+        ASSERT_NE(splitStart, nullptr);
+        fixture.score->startCmd(muse::TranslatableString::untranslatable("Enter tied tuplet note"));
+        fixture.score->setNoteRest(splitStart, 0, NoteVal(60), options.base.fraction(), DirectionV::AUTO);
+        fixture.score->endCmd();
+        // makeGap may remove the empty source segment before undoAddCR recreates it.
+        // Query the score's current segment instead of retaining that detached one.
+        splitStart = fixture.bars[0]->findSegment(SegmentType::ChordRest, splitTick);
+        ASSERT_NE(splitStart, nullptr);
+        auto* first = splitStart->element(0);
+        auto* continuation = fixture.bars[1]->findSegment(SegmentType::ChordRest, Fraction(1, 1))->element(0);
+        ASSERT_TRUE(first && first->isChord());
+        ASSERT_TRUE(continuation && continuation->isChord());
+        auto* a = toChord(first); auto* b = toChord(continuation);
+        EXPECT_EQ(a->tuplet(), group); EXPECT_EQ(b->tuplet(), group);
+        EXPECT_EQ(a->ticks(), options.base.fraction() / 2); EXPECT_EQ(b->ticks(), options.base.fraction() / 2);
+        EXPECT_EQ(a->actualTicks() + b->actualTicks(), options.base.fraction() / Fraction(actual, options.normal));
+        ASSERT_NE(a->notes().front()->tieFor(), nullptr);
+        EXPECT_EQ(a->notes().front()->tieFor()->endNote(), b->notes().front());
+        EXPECT_EQ(b->notes().front()->tieBack(), a->notes().front()->tieFor());
+        EXPECT_EQ(a->notes().front()->pitch(), 60); EXPECT_EQ(b->notes().front()->pitch(), 60);
+        EXPECT_EQ(group->elements().size(), actual + 1);
+        fixture.score->undoRedo(true, nullptr);
+        EXPECT_TRUE(fixture.bars[0]->findSegment(SegmentType::ChordRest, splitTick)->element(0)->isRest());
+        EXPECT_TRUE(fixture.bars[1]->findSegment(SegmentType::ChordRest, Fraction(1, 1))->element(0)->isRest());
+        EXPECT_EQ(group->elements().size(), actual + 1);
+        fixture.score->undoRedo(false, nullptr);
+        auto reopened = load(fixture.save());
+        auto* savedA = toChord(reopened->firstMeasure()->findSegment(SegmentType::ChordRest, splitTick)->element(0));
+        auto* savedB = toChord(reopened->firstMeasure()->nextMeasure()->findSegment(SegmentType::ChordRest, Fraction(1, 1))->element(0));
+        EXPECT_EQ(savedA->tuplet(), savedB->tuplet());
+        ASSERT_NE(savedA->notes().front()->tieFor(), nullptr);
+        EXPECT_EQ(savedA->notes().front()->tieFor()->endNote(), savedB->notes().front());
+    }
+}
+
 TEST(CrossBarTupletPrototype, CreationRevalidatesAfterPreviewAndPreservesExistingNotes) {
     Fixture fixture; auto* seed = emptyCrossBarSpan(fixture); CrossBarTuplet::Options options;
     ASSERT_TRUE(CrossBarTuplet::preview(seed, options).valid());

@@ -88,7 +88,7 @@ the group, and supports Undo/Redo and native persistence. It checks transaction
 identity against the target score rather than accepting another score's active
 transaction. Invalid previews contain no half-built fragment list.
 
-Fourteen native tests pass. Creation covers3:2/5:4/7:4 and an exact5:3 split from
+Fifteen native tests pass. Creation covers3:2/5:4/7:4 and an exact5:3 split from
 13/16 to19/16. The same5:3 ratio at3/4 is refused because it would need a written
 1/24 at the boundary; supported ratios are not rejected as a class. All arithmetic
 is rational and decomposition must sum exactly. Notes, voice gaps, existing
@@ -111,3 +111,19 @@ This is not a clean leak result or a diagnosis of the user's system memory load.
 Instrument-list replacement/copy and instrument-change lifetime contracts require
 further inspection before any cleanup; do not blindly delete shared/Undo-owned
 instrument pointers. See validation `crossbar/leak-observations.json`.
+
+## Native note-entry regression — 2026-10-20
+
+The ordinary `Score::setNoteRest` path now has a prototype regression for entering
+a full written attack at the fragment that crosses the barline, for3:2/5:4/7:4.
+It creates two correctly timed chord fragments with one shared logical tuplet and
+a native forward/back tie. One Undo restores both rests, Redo restores the note,
+and native save/reopen retains the group and tie. No note-entry engine change was
+needed for these three cases. The test re-queries segments after editing because
+`makeGap` can replace the source segment; its first stale-segment assertion was a
+harness error, not evidence that the engine had lost the note.
+
+The fifteen-case ASan suite passes with retained-service leak reporting disabled.
+This proves those DOM/tie operations, not audio attack counting, the interactive
+writing workflow, arbitrary duration changes or system/page rendering. Those
+acceptance requirements remain; the prototype is still not enabled or shipped.
