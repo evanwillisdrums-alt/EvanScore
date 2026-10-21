@@ -1,30 +1,42 @@
 # Development checkpoint
 
-## Active replacement build — 2026-10-20 23:48 UTC
+## Active release gates — 2026-10-21
 
 Product **81d5dd69cd8189d09109cd65a15eb371bcb5bd52**, Windows **39517465407**,
-is compiling. The prior candidate1d812 passed full/fresh startup/export and four
-feature gates. Its percussion UI passes all real clicks, Undo/Redo and save after
-the tooltip harness correction, but the saved-score check catches a real plugin
-creation-path bug: `Score::appendPart(template)` passed the new staff's generic
-five-line pitched type as though it were a user choice, bypassing its template.
-The native before-fix regression reproduces wrong line counts AND wrong staff
-group for both appended marching instruments. It now passes nullptr to Staff::init,
-matching template-based creation while leaving explicit Staff::init choices alone.
+passes full compile/startup/export/closure and fresh-machine portable checks.
+Native Mallets **39519108567**, Dynamics **39519119577**, Stems **39519141027**,
+and Percussion **39519151139** all pass. Percussion now completes real placement,
+direction and voice clicks, Undo/Redo, save and XML verification: existing staffs
+stay5/1 lines; new snare/cymbal staffs are3/2 lines and actually percussion.
 
-All **ten** focused native percussion cases pass against the actual replaced
-Score.cpp object, in addition to complete unity1/15/19 replacements. The new case
-checks appended snare3/cymbal2 percussion types, unchanged existing staff, and
-one-step Undo/Redo. Before/after evidence: validation `percussion/append-before.*`,
-`append-after-build.log`, `results.*`. Strengthened native XML verifier reports
-actual line counts and also requires correct pitched/percussion staff groups.
-Product is frozen for full Windows build and all five new feature gates.
+The plugin creation bug was reproduced before fixing: `Score::appendPart(template)`
+passed its new staff's generic five-line pitched type as an explicit choice.
+It now passes nullptr to Staff::init, matching template defaults and preserving
+existing/explicit choices. All ten focused native tests pass with real Score.cpp
+plus complete unity1/15/19 replacements; the added regression checks group, lines,
+unchanged existing staff and one-step Undo/Redo. Evidence: validation
+`percussion/append-before.*`, `append-after-build.log`, `results.*`.
 
-The 20261020 release watcher now targets39517465407. Restart capture helper only
-against its current state; retrieve/view both actual mallet and percussion images
-before releasing. Older candidate12307109199 is withheld. The last fully verified
-publicly offered download is still39319891960 below. Preserve dirty muse and the
-separate sixteen-test cross-bar branchbfc1245d488. No new Qt SDK permission retry.
+Keypad **39519130465** failed while constructing its range BEFORE applying any
+range roll: requested1920–2640/three chords, observed1920–2880/four. Diagnostic
+JSON is `keypad-81d-failure.json`. Test-only **644cec7a275** replaces the fixed20ms
+extension delay with a bounded wait for the native endpoint to change before the
+next command, and asserts the initial single note. **39519659817** reruns ONLY
+keypad against the same binary. Do not alter product source or rebuild for this
+harness issue without contrary evidence. Four other successful gates remain valid.
+
+Live state: `/workspace/evanscore-validation/20261020/release-watch.json`.
+`watch-keypad-rerun.py` updates that one gate; `review-captures.py` retrieves native
+mallet/percussion images after all pass. Actually view both images before setting
+ready and offering the replacement. Candidate artifact **12310905604**, size
+**181297870**, SHA256
+`2b9942947d21db9ee0d25b8a1f157c283c6e2ce47f0359de9ef35f4f23914d63`,
+expires2026-11-04 00:04 UTC. Last fully offered download is still39319891960 below.
+Earlier candidate12307109199 remains withheld; do not send its link instead.
+
+Keep product frozen for these gates. Preserve dirty muse and separate cross-bar
+branch **bfc1245d488**, sixteen focused tests, still not shipped. No further Qt
+SDK permission retry; the user aborted that optional download prompt.
 
 ## Earlier candidate verification — 2026-10-20 23:42 UTC
 
