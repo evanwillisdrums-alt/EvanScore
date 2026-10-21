@@ -1,42 +1,60 @@
 # Development checkpoint
 
-## Active release gates — 2026-10-21
+## Verified Windows release — 2026-10-21 00:16 UTC
 
-Product **81d5dd69cd8189d09109cd65a15eb371bcb5bd52**, Windows **39517465407**,
-passes full compile/startup/export/closure and fresh-machine portable checks.
-Native Mallets **39519108567**, Dynamics **39519119577**, Stems **39519141027**,
-and Percussion **39519151139** all pass. Percussion now completes real placement,
-direction and voice clicks, Undo/Redo, save and XML verification: existing staffs
-stay5/1 lines; new snare/cymbal staffs are3/2 lines and actually percussion.
+**Ready:** source **81d5dd69cd8189d09109cd65a15eb371bcb5bd52**, full Windows
+[39517465407](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/39517465407).
+Full compile, responsive startup beyond splash, score export, clean closure and
+fresh-machine portable checks pass. Matching native gates all pass: Mallets
+**39519108567**, Dynamics **39519119577**, bundled Keypad **39519659817**, Stems
+**39519141027**, Percussion **39519151139**. Actual mallet/percussion captures were
+retrieved AND viewed; compact focus bars/player inset and full controls fit,
+manual Below/Down and voice2 are shown without a tooltip, new snare/cymbal staffs
+are3/2 lines. Live readiness/review evidence is retained in
+`/workspace/evanscore-validation/20261020/release-watch.json` and `release-reviews.json`.
 
-The plugin creation bug was reproduced before fixing: `Score::appendPart(template)`
-passed its new staff's generic five-line pitched type as an explicit choice.
-It now passes nullptr to Staff::init, matching template defaults and preserving
-existing/explicit choices. All ten focused native tests pass with real Score.cpp
-plus complete unity1/15/19 replacements; the added regression checks group, lines,
-unchanged existing staff and one-step Undo/Redo. Evidence: validation
-`percussion/append-before.*`, `append-after-build.log`, `results.*`.
+**Download:** [EvanScore-Windows-x64](https://github.com/evanwillisdrums-alt/EvanScore/actions/runs/39517465407/artifacts/12310905604),
+181,297,870 bytes; expires2026-11-04 00:04 UTC. SHA256
+`2b9942947d21db9ee0d25b8a1f157c283c6e2ce47f0359de9ef35f4f23914d63`.
+Extract the entire ZIP and run `bin/MuseScoreStudio5.exe`. Older failed candidates
+remain withheld. This release includes the verified local-AI/mallet, Dynamics,
+keypad and global stem work, plus percussion controls and new staff defaults.
 
-Keypad **39519130465** failed while constructing its range BEFORE applying any
-range roll: requested1920–2640/three chords, observed1920–2880/four. Diagnostic
-JSON is `keypad-81d-failure.json`. Test-only **644cec7a275** replaces the fixed20ms
-extension delay with a bounded wait for the native endpoint to change before the
-next command, and asserts the initial single note. **39519659817** reruns ONLY
-keypad against the same binary. Do not alter product source or rebuild for this
-harness issue without contrary evidence. Four other successful gates remain valid.
+Use: select an accent/marcato → Properties → Placement, Symbol direction or
+Attach accent to voice. Only existing chord destinations at the same onset are
+available; notes/locks remain and Undo restores the attachment. New snare/cymbal
+staffs use3/2 lines; existing/explicit staff types are retained. Ten focused native
+DOM/Undo/persistence/template/API tests pass. The saved Windows gate independently
+checks voices, unchanged notes/rhythm, manual placement/direction, old5/1 lines,
+new3/2 lines AND real percussion staff groups.
 
-Live state: `/workspace/evanscore-validation/20261020/release-watch.json`.
-`watch-keypad-rerun.py` updates that one gate; `review-captures.py` retrieves native
-mallet/percussion images after all pass. Actually view both images before setting
-ready and offering the replacement. Candidate artifact **12310905604**, size
-**181297870**, SHA256
-`2b9942947d21db9ee0d25b8a1f157c283c6e2ce47f0359de9ef35f4f23914d63`,
-expires2026-11-04 00:04 UTC. Last fully offered download is still39319891960 below.
-Earlier candidate12307109199 remains withheld; do not send its link instead.
+Two actual bugs were fixed: PropertyView disabled the new voice-command section
+without a PropertyItem; Score::appendPart(template) passed a generic five-line
+pitched staff type instead of using its template. The added native regression
+reproduced wrong lines/groups before the latter fix and passes afterward. Test-
+only corrections leave controls before the strict window check (normal Voice2
+hover tooltip was misidentified as a startup dialog), and await each native range
+extension instead of a20ms loop that could enqueue an extra extension. The latter
+failure occurred before any range roll was applied. The same binary passes the
+corrected full keypad scope/roll/Undo/persistence gate. Preserve these diagnostics.
 
-Keep product frozen for these gates. Preserve dirty muse and separate cross-bar
-branch **bfc1245d488**, sixteen focused tests, still not shipped. No further Qt
-SDK permission retry; the user aborted that optional download prompt.
+AI: Mallets → Player → enable Optional local AI guidance → Set up local AI
+(~2.5 GB) once → Explain this chord. Later enable/Check local models/Explain.
+No API key/account/admin rights needed. Runtime/model stay optional, lazy and
+unloaded when unused; ordinary analysis works without them. Real native setup,
+inference, unloading and abrupt-exit proof39316734774/check118280050565 remains
+applicable: assistant.cpp/h, setup script and native contract have no diff from
+verified041f9fe to this source. Guidance selects checked candidates/fact IDs;
+expert musical judgment and calibrated biomechanics are not established. Licensed
+Muse Drumline/VDL intermittent crashes are not claimed eliminated by MS Basic CI.
+
+The next engine work remains isolated in `/workspace/EvanScore-crossbar`, branch
+`codex/crossbar-tuplet-prototype`, **bfc1245d488**. Sixteen focused native cases
+pass, including exact timing/persistence, empty creation, tied native note entry,
+whole-group deletion and Undo/Redo. Segmented rendering/hit testing, full writing/
+editing, partial/measure/time-signature edits, compatibility and exchange remain.
+It is NOT merged or shipped. Preserve dirty muse and the framework patch. The
+optional Qt SDK approval was aborted; do not retry that permission/download.
 
 ## Earlier candidate verification — 2026-10-20 23:42 UTC
 
