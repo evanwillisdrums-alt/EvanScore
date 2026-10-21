@@ -721,11 +721,23 @@ private:
                 evaluate("(function(){var c=curScore.newCursor();c.rewindToTick(2400);if(!curScore.selection.select(c.element.notes[0],true))throw Error('disjoint selection');})()");
             else if (QByteArray(selection)=="range" || QByteArray(selection)=="rests") {
                 const int end = QByteArray(selection)=="range" ? 2640 : 7680;
+                const auto rangePosition = [&evaluate] {
+                    return evaluate("JSON.stringify({range:curScore.selection.isRange,start:curScore.selection.startSegment ? curScore.selection.startSegment.fraction.ticks : null,end:curScore.selection.endSegment ? curScore.selection.endSegment.fraction.ticks : null})").toString();
+                };
+                if(evaluate("curScore.selection.isRange || selectedChords().length!==1 || selectedChords()[0].fraction.ticks!==1920").toBool())
+                    qFatal("Keypad range setup did not start from the requested single note");
                 // Use the same native range-extension command as Shift+Right.
                 // selectRange's plugin wrapper currently leaves a stale element
                 // list until a later update, which is a separate API regression.
                 for(int step=0;step<16;++step) {
-                    evaluate("cmd('select-next-chord')"); QTest::qWait(20);
+                    const auto before=rangePosition();
+                    evaluate("cmd('select-next-chord')");
+                    // Legacy action dispatch can complete on a later event-loop
+                    // turn. Do not enqueue another extension while observing
+                    // the old endpoint, which can overshoot the intended range.
+                    QElapsedTimer deadline;deadline.start();
+                    while(rangePosition()==before && deadline.elapsed()<2000)QTest::qWait(10);
+                    if(rangePosition()==before)qFatal("Keypad native range extension did not complete");
                     if(evaluate(QString("curScore.selection.isRange && (!curScore.selection.endSegment || curScore.selection.endSegment.fraction.ticks >= %1)").arg(end)).toBool()) break;
                 }
                 if(!evaluate(QString("curScore.selection.isRange && curScore.selection.startSegment.fraction.ticks===1920 && curScore.selection.endSegment.fraction.ticks===%1").arg(end)).toBool()) {
