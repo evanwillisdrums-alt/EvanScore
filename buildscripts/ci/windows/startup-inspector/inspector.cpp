@@ -14,6 +14,7 @@
 #include <QGuiApplication>
 #include <QApplication>
 #include <QDialog>
+#include <QFileDialog>
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QSpinBox>
@@ -63,7 +64,11 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "keypad" || mode == "stems" || mode == "percussion") {
+        if (mode == "save") {
+            QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
+                if(window && window->title()!="EvanScore")verifySaveChooser(window);
+            });
+        } else if (mode == "keypad" || mode == "stems" || mode == "percussion") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
                 if (window && window->title() != "EvanScore") verifyKeypad(window);
             });
@@ -359,6 +364,40 @@ public:
     }
 private:
     bool done = false;
+    static void verifySaveChooser(QQuickWindow* window) {
+        dispatchMenu(window,"command://project/save-as");
+        QObject* chooser=nullptr;
+        QElapsedTimer timer;timer.start();
+        while(!chooser && timer.elapsed()<5000) {
+            for(auto* object:objects(window))
+                if(object->objectName()=="AskSaveLocationTypeDialog")chooser=object;
+            if(!chooser)QTest::qWait(20);
+        }
+        if(!chooser)qFatal("SAVE INSPECTOR location chooser did not open");
+        auto* content=qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
+        if(!content || !content->window())qFatal("SAVE INSPECTOR chooser content unavailable");
+        QQuickItem* computer=nullptr;
+        for(auto* object:objects(content)) {
+            auto* item=qobject_cast<QQuickItem*>(object);
+            if(item && item->isVisible() && item->isEnabled() && item->property("text").toString()=="Save to computer")computer=item;
+        }
+        if(!computer)qFatal("SAVE INSPECTOR computer button unavailable");
+        QPointer<QObject> guardedChooser=chooser;
+        QTest::mouseClick(content->window(),Qt::LeftButton,Qt::NoModifier,computer->mapToScene({computer->width()/2,computer->height()/2}).toPoint());
+        QTest::qWait(1200);
+        QFileDialog* fileDialog=nullptr;
+        for(auto* widget:QApplication::topLevelWidgets()) {
+            if(auto* dialog=qobject_cast<QFileDialog*>(widget)) {
+                qWarning()<<"SAVE INSPECTOR file dialog"<<dialog->windowTitle()<<"visible"<<dialog->isVisible()<<"files"<<dialog->selectedFiles();
+                if(dialog->isVisible())fileDialog=dialog;
+            }
+        }
+        qWarning()<<"SAVE INSPECTOR chooser after click"<<guardedChooser<<"result"<<(guardedChooser ? guardedChooser->property("ret") : QVariant());
+        if(!fileDialog)qFatal("SAVE INSPECTOR computer choice closed without a visible file dialog");
+        QMetaObject::invokeMethod(fileDialog,"reject",Qt::DirectConnection);
+        QTest::qWait(200);
+        qWarning()<<"SAVE INSPECTOR real computer chooser opened a file dialog and cancel passed";
+    }
     static void verifyDynamicsLocksAndDefaults(QQuickWindow* window, QObject* model) {
         const auto originalMappings = model->property("mappings");
         const auto originalState = model->property("state").toMap();
