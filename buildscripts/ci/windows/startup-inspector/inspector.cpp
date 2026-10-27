@@ -52,6 +52,11 @@ class Inspector final : public QObject {
 public:
     explicit Inspector(QObject* parent) : QObject(parent) {}
     bool eventFilter(QObject* object, QEvent* event) override {
+        if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="save"
+           && (event->type()==QEvent::Show || event->type()==QEvent::Hide)) {
+            if(auto* dialog=qobject_cast<QFileDialog*>(object))
+                qWarning()<<"SAVE INSPECTOR file lifecycle"<<event->type()<<dialog->windowTitle()<<"result"<<dialog->result()<<"visible"<<dialog->isVisible();
+        }
         if (done || event->type() != QEvent::UpdateRequest) return false;
         auto window = qobject_cast<QQuickWindow*>(object);
         if (!window) return false;
@@ -383,8 +388,13 @@ private:
         }
         if(!computer)qFatal("SAVE INSPECTOR computer button unavailable");
         QPointer<QObject> guardedChooser=chooser;
+        QSignalSpy results(chooser,SIGNAL(retChanged(QVariantMap)));
         QTest::mouseClick(content->window(),Qt::LeftButton,Qt::NoModifier,computer->mapToScene({computer->width()/2,computer->height()/2}).toPoint());
         QTest::qWait(1200);
+        for(const auto& result:results) {
+            const auto envelope=result[0].toMap();
+            qWarning()<<"SAVE INSPECTOR chooser result"<<envelope<<"payload type"<<envelope.value("value").typeName();
+        }
         QFileDialog* fileDialog=nullptr;
         for(auto* widget:QApplication::topLevelWidgets()) {
             if(auto* dialog=qobject_cast<QFileDialog*>(widget)) {
