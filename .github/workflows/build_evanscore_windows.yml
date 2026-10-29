@@ -72,7 +72,9 @@ jobs:
         run: |
           $buildPython = (Get-Command python).Source
           & $buildPython --version
-          python -m pip install pdm==2.26.1
+          # Pin PDM's own dependencies too. Newer unearth uses httpx2 and is
+          # incompatible with this PDM version's httpx-based client.
+          python -m pip install 'pdm[locked]==2.26.1'
           if ($LASTEXITCODE -ne 0) { throw 'PDM installation failed' }
           pdm use -f $buildPython
           if ($LASTEXITCODE -ne 0) { throw 'Could not select the configured Python for PDM' }

@@ -22,14 +22,27 @@ save-scenario tests pass in the focused native harness. Inspector compiles local
 workflow YAML parses and diff checks pass. **Replacement Windows validation is
 pending; do not claim fixed or offer it yet.**
 
-Repair source **fb556acb8a04c1cd307ce9c03195cb78249f36fe**, full Windows build
-**40937068448**. A bounded watcher at
+Product repair source **fb556acb8a04c1cd307ce9c03195cb78249f36fe**. Builds40937068448
+and40937800351 stopped before compilation in PDM installation. The second pins
+Python3.12 correctly, but unearth0.19 now subclasses httpx2.Client while PDM2.26.1
+calls httpx.Client.__init__: TypeError (not an instance/subtype). Use the upstream
+`pdm[locked]==2.26.1` extra (unearth0.17.5/httpx0.28.1). Its client initialization
+and the exact frozen project-tool install both pass locally. No app source change
+since the64 passing save tests. A replacement build follows the CI correction.
+A bounded watcher at
 `/workspace/evanscore-validation/20261029/save/watch.py` records build/portable
 checks and automatically starts the native `save` gate on this exact binary.
 Resume from its `release-watch.json` before starting duplicate runs. If successful,
 retrieve/view the actual save capture and retain native save/reopen evidence before
 publishing the artifact. If it fails, inspect that gate rather than assuming the
 source fix worked.
+
+**Old-app rescue verified:** native Windows40937506031 (check123671862876) passes
+real checkbox/computer clicks, filename typing, writing, reopening and clean quit
+on the old39517465407 binary. In the chooser check **Don't show again**, click
+**Save to computer**, then invoke **File → Save As…** again. The remembered Local
+choice skips the broken handoff and the picker stays open. This lets the user
+save an already-open score before upgrading; it is not the permanent fix.
 
 Local evidence/harness: `/workspace/evanscore-validation/20261027/save`.
 The environment disconnected during the2026-10-27 trace and was restored on the
