@@ -40,6 +40,16 @@ retrieve/view the actual save capture and retain native save/reopen evidence bef
 publishing the artifact. If it fails, inspect that gate rather than assuming the
 source fix worked.
 
+At19:25 UTC40938807679 has cleared the locked-tool install and is in **Compile
+and deploy the native app**. No further product edits are pending. The watcher
+continues in the workspace; `review-capture.py` waits for the native save gate,
+retrieves its actual capture and writes `release-reviews.json`. A human/model
+must still view the image before marking ready. If the environment is suspended,
+read both JSON files and the live GitHub run before resuming; don't rebuild the
+same passing source. The future automatic `save` job is in test-only0d65ae0d853
+and therefore not part of this already-running3f705063d78 build; this build's
+native save gate is dispatched by the watcher. No new download has been offered.
+
 **Old-app rescue verified:** native Windows40937506031 (check123671862876) passes
 real checkbox/computer clicks, filename typing, writing, reopening and clean quit
 on the old39517465407 binary. In the chooser check **Don't show again**, click

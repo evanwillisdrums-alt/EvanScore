@@ -100,6 +100,13 @@ not catch that full-app integration error; retain the full Windows compile gate.
 
 Latest verified release: Windows39517465407, product source81d5dd69cd8189d09109cd65a15eb371bcb5bd52. Full/fresh startup/export, all five native feature gates and actual mallet/percussion capture review pass. This includes percussion placement/direction/voice controls and new snare3/cymbal2 staff defaults in both template and plugin creation paths. See the top checkpoint for download, evidence and local-AI use. Cross-bar tuplets remain a separate sixteen-test prototype, not shipped. Preserve the verified binary while continuing the queue.
 
+Saving follow-up (2026-10-29): the above release has a reproduced first-save/
+Save As handoff bug: the computer chooser closes and immediately dismisses the
+file picker. Earlier gates saved existing files and missed it. Follow the active
+checkpoint before offering a download. The focused deferred-handoff fix passes64
+scenario tests; require the real Windows chooser/filename/save/reopen gate before
+calling it fixed. Future full builds include that native gate automatically.
+
 Percussion controls follow the latest user correction: above-staff accent defaults
 apply only to the unpitched instrument at the onset and yield to manual placement
 or symbol direction. One selected ordinary-chord accent/marcato can move to an

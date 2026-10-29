@@ -214,7 +214,7 @@ jobs:
               inputs: {mode: 'save', run_id: String(context.runId)}});
             const expected = `save checks for Windows build ${context.runId} `;
             let runId;
-            for (let poll = 0; poll < 80; ++poll) {
+            for (let poll = 0; poll < 108; ++poll) {
               await new Promise(resolve => setTimeout(resolve, 10000));
               if (!runId) {
                 const {data} = await github.rest.actions.listWorkflowRuns({...repo, workflow_id, branch,
