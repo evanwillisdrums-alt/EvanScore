@@ -52,7 +52,7 @@ class Inspector final : public QObject {
 public:
     explicit Inspector(QObject* parent) : QObject(parent) {}
     bool eventFilter(QObject* object, QEvent* event) override {
-        if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="save"
+        if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL").startsWith("save")
            && (event->type()==QEvent::Show || event->type()==QEvent::Hide)) {
             if(auto* dialog=qobject_cast<QFileDialog*>(object))
                 qWarning()<<"SAVE INSPECTOR file lifecycle"<<event->type()<<dialog->windowTitle()<<"result"<<dialog->result()<<"visible"<<dialog->isVisible();
@@ -69,9 +69,12 @@ public:
         qWarning() << "LAYOUT INSPECTOR" << mode << "window" << window->size()
                    << "page" << root->property("currentPageUri");
         dump(root);
-        if (mode == "save") {
+        if (mode == "save" || mode == "save-workaround") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
-                if(window && window->title()!="EvanScore")verifySaveChooser(window);
+                if (window && window->title() != "EvanScore") {
+                    if (qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL") == "save-workaround") verifySaveWorkaround(window);
+                    else verifySaveChooser(window);
+                }
             });
         } else if (mode == "keypad" || mode == "stems" || mode == "percussion") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
@@ -381,7 +384,7 @@ private:
         qFatal("SAVE INSPECTOR location chooser did not open");
         return nullptr;
     }
-    static QFileDialog* chooseComputer(QQuickWindow* window) {
+    static QFileDialog* chooseComputer(QQuickWindow* window, bool requirePicker = true) {
         auto* chooser = waitForSaveChooser(window);
         auto* content = qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
         if (!content || !content->window()) qFatal("SAVE INSPECTOR chooser content unavailable");
@@ -399,7 +402,7 @@ private:
         for (auto* widget : QApplication::topLevelWidgets()) {
             if (auto* dialog = qobject_cast<QFileDialog*>(widget); dialog && dialog->isVisible()) return dialog;
         }
-        qFatal("SAVE INSPECTOR computer choice closed without a visible file dialog");
+        if (requirePicker) qFatal("SAVE INSPECTOR computer choice closed without a visible file dialog");
         return nullptr;
     }
     static void saveThroughNativePicker(QFileDialog* dialog, const QString& path) {
@@ -448,6 +451,38 @@ private:
             if (auto* open = qobject_cast<QFileDialog*>(widget); open && open->isVisible())
                 qFatal("SAVE INSPECTOR file picker remained open after saving");
         }
+    }
+    static void verifySaveWorkaround(QQuickWindow* window) {
+        dispatchMenu(window, "command://project/save-as");
+        auto* chooser = waitForSaveChooser(window);
+        auto* content = qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
+        if (!content || !content->window()) qFatal("SAVE INSPECTOR workaround chooser unavailable");
+        QQuickItem* remember = nullptr;
+        for (auto* object : objects(content)) {
+            auto* item = qobject_cast<QQuickItem*>(object);
+            if (item && item->isVisible() && item->isEnabled()
+                && item->property("text").toString() == QString::fromUtf8("Don’t show again")) remember = item;
+        }
+        if (!remember) qFatal("SAVE INSPECTOR remember checkbox unavailable");
+        QTest::mouseClick(content->window(), Qt::LeftButton, Qt::NoModifier,
+                          remember->mapToScene({ 10, remember->height()/2 }).toPoint());
+        if (chooser->property("askAgain").toBool()) qFatal("SAVE INSPECTOR remember click did not take effect");
+        if (auto* picker = chooseComputer(window, false)) {
+            QMetaObject::invokeMethod(picker, "reject", Qt::DirectConnection);
+        }
+        QTest::qWait(250);
+        dispatchMenu(window, "command://project/save-as");
+        QTest::qWait(1000);
+        QFileDialog* picker = nullptr;
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (auto* dialog = qobject_cast<QFileDialog*>(widget); dialog && dialog->isVisible()) picker = dialog;
+        }
+        if (!picker) qFatal("SAVE INSPECTOR remembered computer choice did not allow retry");
+        const QDir folder(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath());
+        const auto fixtures = folder.entryList({ "*.mscz" }, QDir::Files);
+        if (fixtures.size() != 1) qFatal("SAVE INSPECTOR workaround fixture unavailable");
+        saveThroughNativePicker(picker, folder.filePath(QFileInfo(fixtures[0]).completeBaseName() + "-workaround.mscz"));
+        qWarning() << "SAVE INSPECTOR old app remember computer, retry and actual file save passed";
     }
     static void verifySaveChooser(QQuickWindow* window) {
         const QDir folder(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath());
