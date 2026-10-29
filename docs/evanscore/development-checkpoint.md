@@ -1,5 +1,33 @@
 # Development checkpoint
 
+## Active saving repair — 2026-10-29
+
+The user clarified that **Save to computer closes the location chooser, then
+nothing happens**. No crash. This is reproduced in the released Windows39517465407
+by the test-only `save` Inspector mode. Runs40564887637 and40565887867 fail on the
+same binary. The latter trace records the correct Local1 QVariantMap result and
+a native QFileDialog Show immediately followed by Hide, before the chooser close
+finishes. This rules out a dropped chooser result; the handoff occurs inside the
+old modal window's close callback. Previous gates saved existing files and missed
+the chooser, so their save coverage was incomplete.
+
+The focused repair defers the successful save-location result through the native
+async queue, allowing the chooser close stack to unwind before another window
+opens. New scenario regressions model that close lifecycle for first Save, Save
+As and Save Copy, plus chooser/file cancellation and retry/busy release. A native
+Windows gate drives the actual chooser and Windows filename field, saves new and
+existing scores, verifies the archives, reopens them and checks normal shutdown.
+Both lifecycle regressions fail on the old code and pass after the repair; all64
+save-scenario tests pass in the focused native harness. Inspector compiles locally,
+workflow YAML parses and diff checks pass. **Replacement Windows validation is
+pending; do not claim fixed or offer it yet.**
+
+Local evidence/harness: `/workspace/evanscore-validation/20261027/save`.
+The environment disconnected during the2026-10-27 trace and was restored on the
+29th. Main resumes at test-onlya9288e23e20. Preserve dirty muse and the root
+framework patch; do not stage the gitlink. Cross-bar prototypebfc1245d488 remains
+isolated/unshipped. The old release below has the now-reproduced first-save bug.
+
 ## Verified Windows release — 2026-10-21 00:16 UTC
 
 **Ready:** source **81d5dd69cd8189d09109cd65a15eb371bcb5bd52**, full Windows

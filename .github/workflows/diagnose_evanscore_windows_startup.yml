@@ -579,7 +579,13 @@ jobs:
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'save') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-              if (-not $logs.Contains('SAVE INSPECTOR real computer chooser opened a file dialog and cancel passed')) { throw 'Native save chooser handoff did not complete' }
+              if (-not $logs.Contains('SAVE INSPECTOR real native first save, Save As, cancel and retry passed')) { throw 'Native save checks did not complete' }
+              python buildscripts/ci/windows/startup-inspector/verify_saved_saves.py
+              if ($LASTEXITCODE -ne 0) { throw 'Native saved score contents did not match' }
+              Remove-Item Env:EVANSCORE_LAYOUT_TRIAL
+              foreach ($saved in @('tuplet1-ref-saved as', 'tuplet1-ref-first save')) {
+                ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory "checks/reopened-$saved" -ScorePath "checks/score/$saved.mscz"
+              }
             }
             if ($env:EVANSCORE_LAYOUT_TRIAL -eq 'percussion') {
               $logs = (Get-ChildItem checks/score -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"

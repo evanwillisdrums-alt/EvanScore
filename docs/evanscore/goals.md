@@ -1,10 +1,10 @@
 # EvanScore goals
 
-Updated 2026-10-21. Battery is the primary focus; keyboard percussion receives its own detailed visualizer. Use the supplied Drive videos/images and the existing EvanScore styling for every interface. This is the complete roadmap, not a claim that every feature ships.
+Updated 2026-10-29. Battery is the primary focus; keyboard percussion receives its own detailed visualizer. Use the supplied Drive videos/images and the existing EvanScore styling for every interface. This is the complete roadmap, not a claim that every feature ships.
 
 ## Current priorities
 
-1. Windows build39517465407 is verified, including mallet/local AI, Dynamics, keypad, global stems and the percussion accent/staff-default follow-up. Complete native cross-bar tuplets separately; the prototype is not distributed. See the checkpoint for the exact download and all five native gates.
+1. **Fix first Save / Save As before another download.** The user reports that Save to computer closes the location chooser and nothing follows. The released Windows39517465407 reproduces it: the native file picker opens then immediately hides during the chooser's close callback. Earlier gates saved existing fixture files and missed this path. Verify actual first save, Save As, both cancellation stages, retry, saved contents and reopening on Windows. Keep cross-bar work separate while saving is repaired.
 2. Integrate the user's existing Kontakt-based VDL 2.5.5 library: Player setup, every instrument's documented maps, staff-text techniques, and automatic Muse Drumline conversion.
 3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.
 4. Extend the first mallet visualizer with passage analysis/calibrated geometry, then continue mixer/effects, spatial placement, and the remaining workflow/performance roadmap. Preserve current release verification requirements.

@@ -28,6 +28,7 @@
 #include <QTemporaryFile>
 #include <QUrl>
 
+#include "async/async.h"
 #include "defer.h"
 #include "translation.h"
 
@@ -1564,7 +1565,13 @@ Promise<RetVal<SaveLocationType> > SaveProjectScenario::askSaveLocationType() co
         configuration()->setShouldAskSaveLocationType(askAgain);
 
         SaveLocationType type = static_cast<SaveLocationType>(vals["saveLocationType"].toInt());
-        return resolve(RetVal<SaveLocationType>::make_ok(type));
+        // Interactive delivers this result inside the chooser's closed signal.
+        // Finish closing that window before a continuation opens a native file
+        // picker: on Windows the closing modal window otherwise dismisses it.
+        async::Async::call(this, [resolve, type]() {
+            (void)resolve(RetVal<SaveLocationType>::make_ok(type));
+        });
+        return Promise<RetVal<SaveLocationType> >::dummy_result();
     });
 }
 

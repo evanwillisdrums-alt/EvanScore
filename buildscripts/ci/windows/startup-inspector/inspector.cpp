@@ -369,44 +369,154 @@ public:
     }
 private:
     bool done = false;
-    static void verifySaveChooser(QQuickWindow* window) {
-        dispatchMenu(window,"command://project/save-as");
-        QObject* chooser=nullptr;
-        QElapsedTimer timer;timer.start();
-        while(!chooser && timer.elapsed()<5000) {
-            for(auto* object:objects(window))
-                if(object->objectName()=="AskSaveLocationTypeDialog")chooser=object;
-            if(!chooser)QTest::qWait(20);
-        }
-        if(!chooser)qFatal("SAVE INSPECTOR location chooser did not open");
-        auto* content=qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
-        if(!content || !content->window())qFatal("SAVE INSPECTOR chooser content unavailable");
-        QQuickItem* computer=nullptr;
-        for(auto* object:objects(content)) {
-            auto* item=qobject_cast<QQuickItem*>(object);
-            if(item && item->isVisible() && item->isEnabled() && item->property("text").toString()=="Save to computer")computer=item;
-        }
-        if(!computer)qFatal("SAVE INSPECTOR computer button unavailable");
-        QPointer<QObject> guardedChooser=chooser;
-        QSignalSpy results(chooser,SIGNAL(retChanged(QVariantMap)));
-        QTest::mouseClick(content->window(),Qt::LeftButton,Qt::NoModifier,computer->mapToScene({computer->width()/2,computer->height()/2}).toPoint());
-        QTest::qWait(1200);
-        for(const auto& result:results) {
-            const auto envelope=result[0].toMap();
-            qWarning()<<"SAVE INSPECTOR chooser result"<<envelope<<"payload type"<<envelope.value("value").typeName();
-        }
-        QFileDialog* fileDialog=nullptr;
-        for(auto* widget:QApplication::topLevelWidgets()) {
-            if(auto* dialog=qobject_cast<QFileDialog*>(widget)) {
-                qWarning()<<"SAVE INSPECTOR file dialog"<<dialog->windowTitle()<<"visible"<<dialog->isVisible()<<"files"<<dialog->selectedFiles();
-                if(dialog->isVisible())fileDialog=dialog;
+    static QObject* waitForSaveChooser(QQuickWindow* window) {
+        QElapsedTimer timer;
+        timer.start();
+        do {
+            for (auto* object : objects(window)) {
+                if (object->objectName() == "AskSaveLocationTypeDialog") return object;
             }
+            QTest::qWait(20);
+        } while (timer.elapsed() < 5000);
+        qFatal("SAVE INSPECTOR location chooser did not open");
+        return nullptr;
+    }
+    static QFileDialog* chooseComputer(QQuickWindow* window) {
+        auto* chooser = waitForSaveChooser(window);
+        auto* content = qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
+        if (!content || !content->window()) qFatal("SAVE INSPECTOR chooser content unavailable");
+        QQuickItem* computer = nullptr;
+        for (auto* object : objects(content)) {
+            auto* item = qobject_cast<QQuickItem*>(object);
+            if (item && item->isVisible() && item->isEnabled()
+                && item->property("text").toString() == "Save to computer") computer = item;
         }
-        qWarning()<<"SAVE INSPECTOR chooser after click"<<guardedChooser<<"result"<<(guardedChooser ? guardedChooser->property("ret") : QVariant());
-        if(!fileDialog)qFatal("SAVE INSPECTOR computer choice closed without a visible file dialog");
-        QMetaObject::invokeMethod(fileDialog,"reject",Qt::DirectConnection);
-        QTest::qWait(200);
-        qWarning()<<"SAVE INSPECTOR real computer chooser opened a file dialog and cancel passed";
+        if (!computer) qFatal("SAVE INSPECTOR computer button unavailable");
+        QTest::mouseClick(content->window(), Qt::LeftButton, Qt::NoModifier,
+                          computer->mapToScene({ computer->width()/2, computer->height()/2 }).toPoint());
+        // A fleeting Show event is not enough: the old bug immediately hid it.
+        QTest::qWait(1200);
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (auto* dialog = qobject_cast<QFileDialog*>(widget); dialog && dialog->isVisible()) return dialog;
+        }
+        qFatal("SAVE INSPECTOR computer choice closed without a visible file dialog");
+        return nullptr;
+    }
+    static void saveThroughNativePicker(QFileDialog* dialog, const QString& path) {
+#ifdef Q_OS_WIN
+        // Drive the real Windows Save dialog, including its File name field.
+        // No replacement picker, direct score writer or programmatic accept.
+        HWND picker = GetForegroundWindow();
+        DWORD pid = 0;
+        GetWindowThreadProcessId(picker, &pid);
+        wchar_t title[256] = {};
+        GetWindowTextW(picker, title, 256);
+        if (pid != GetCurrentProcessId() || QString::fromWCharArray(title) != "Save score")
+            qFatal("SAVE INSPECTOR native picker is not foreground: %s", qPrintable(QString::fromWCharArray(title)));
+        const auto key = [](WORD code, bool up = false) {
+            INPUT input = {};
+            input.type = INPUT_KEYBOARD;
+            input.ki.wVk = code;
+            input.ki.dwFlags = up ? KEYEVENTF_KEYUP : 0;
+            if (SendInput(1, &input, sizeof(input)) != 1) qFatal("SAVE INSPECTOR keyboard injection failed");
+        };
+        key(VK_MENU); key('N'); key('N', true); key(VK_MENU, true);
+        QTest::qWait(100);
+        key(VK_CONTROL); key('A'); key('A', true); key(VK_CONTROL, true);
+        for (QChar character : QDir::toNativeSeparators(path)) {
+            INPUT input[2] = {};
+            input[0].type = input[1].type = INPUT_KEYBOARD;
+            input[0].ki.wScan = input[1].ki.wScan = character.unicode();
+            input[0].ki.dwFlags = KEYEVENTF_UNICODE;
+            input[1].ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+            if (SendInput(2, input, sizeof(INPUT)) != 2) qFatal("SAVE INSPECTOR path typing failed");
+        }
+        QTest::qWait(100);
+        key(VK_RETURN); key(VK_RETURN, true);
+#else
+        dialog->selectFile(path);
+        QMetaObject::invokeMethod(dialog, "accept", Qt::DirectConnection);
+#endif
+        Q_UNUSED(dialog);
+        QElapsedTimer timer;
+        timer.start();
+        while ((!QFileInfo::exists(path) || QFileInfo(path).size() < 1024) && timer.elapsed() < 8000) QTest::qWait(50);
+        QFile saved(path);
+        if (!saved.open(QIODevice::ReadOnly) || saved.read(2) != "PK") qFatal("SAVE INSPECTOR native save did not write MSCZ: %s", qPrintable(path));
+        QTest::qWait(250);
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (auto* open = qobject_cast<QFileDialog*>(widget); open && open->isVisible())
+                qFatal("SAVE INSPECTOR file picker remained open after saving");
+        }
+    }
+    static void verifySaveChooser(QQuickWindow* window) {
+        const QDir folder(QFileInfo(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")).absolutePath());
+        const auto fixtures = folder.entryList({ "*.mscz" }, QDir::Files);
+        if (fixtures.size() != 1) qFatal("SAVE INSPECTOR cannot identify original score");
+        const auto base = QFileInfo(fixtures.first()).completeBaseName();
+        QFile original(folder.filePath(fixtures.first()));
+        if (!original.open(QIODevice::ReadOnly)) qFatal("SAVE INSPECTOR original score unavailable");
+        const auto originalBytes = original.readAll();
+        original.close();
+
+        dispatchMenu(window, "command://project/save-as");
+        auto* chooser = waitForSaveChooser(window);
+        auto* content = qvariant_cast<QQuickItem*>(chooser->property("contentItem"));
+        if (!content || !content->window()) qFatal("SAVE INSPECTOR chooser cancel unavailable");
+        QTest::keyClick(content->window(), Qt::Key_Escape);
+        QTest::qWait(250);
+        dispatchMenu(window, "command://project/save-as");
+        auto* picker = chooseComputer(window);
+        QMetaObject::invokeMethod(picker, "reject", Qt::DirectConnection);
+        QTest::qWait(250);
+        if (!original.open(QIODevice::ReadOnly) || original.readAll() != originalBytes)
+            qFatal("SAVE INSPECTOR cancellation changed the original score");
+        original.close();
+        qWarning() << "SAVE INSPECTOR chooser cancel, computer handoff and file cancel passed";
+
+        const auto saveAsPath = folder.filePath(base + "-saved as.mscz");
+        dispatchMenu(window, "command://project/save-as");
+        saveThroughNativePicker(chooseComputer(window), saveAsPath);
+        dispatchMenu(window, "command://project/save");
+        QTest::qWait(300);
+        qWarning() << "SAVE INSPECTOR Save As retry and existing Save passed";
+
+        // Use the same native project-creation model as the New Score dialog.
+        // The old plugin newScore API does not open a project and is unsuitable.
+        QQmlEngine* host = qmlEngine(findItem(window->contentItem(), "WindowContent"));
+        if (!host) qFatal("SAVE INSPECTOR host QML engine unavailable");
+        auto* engine = new QQmlEngine(window);
+        engine->setImportPathList(host->importPathList());
+        const auto context = host->rootContext()->contextProperty("ioc_context");
+        engine->rootContext()->setContextProperty("ioc_context", context);
+        engine->setProperty("ioc_context", context);
+        QQmlComponent component(engine);
+        component.setData("import MuseScore.Project; NewScoreModel {}", QUrl());
+        QScopedPointer<QObject> model(component.create());
+        if (!model) qFatal("SAVE INSPECTOR new score model failed: %s", qPrintable(component.errorString()));
+        const QVariantMap info {
+            { "title", base + "-new score" }, { "measureCount", 2 },
+            { "timeSignature", QVariantMap { { "numerator", 4 }, { "denominator", 4 } } },
+            { "pickupTimeSignature", QVariantMap { { "numerator", 1 }, { "denominator", 4 } } },
+            { "keySignature", QVariantMap { { "key", 0 } } },
+            { "scoreOrder", QVariantMap { { "id", "orchestral" } } },
+            { "instruments", QVariantList { QVariantMap { { "instrumentId", "piano" } } } }
+        };
+        bool created = false;
+        if (!QMetaObject::invokeMethod(model.data(), "createScore", Q_RETURN_ARG(bool, created), Q_ARG(QVariant, info)) || !created)
+            qFatal("SAVE INSPECTOR new native project creation failed");
+        QTest::qWait(400);
+        const auto firstSavePath = folder.filePath(base + "-first save.mscz");
+        dispatchMenu(window, "command://project/save");
+        saveThroughNativePicker(chooseComputer(window), firstSavePath);
+        dispatchMenu(window, "command://project/save");
+        QTest::qWait(300);
+        qWarning() << "SAVE INSPECTOR new project first Save and repeat Save passed";
+        // Keep the saved score visible and leave all dialogs closed for the
+        // independent desktop responsiveness and normal-shutdown checks.
+        const auto capture = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+        if (!window->grabWindow().save(capture)) qFatal("SAVE INSPECTOR desktop capture failed");
+        qWarning() << "SAVE INSPECTOR real native first save, Save As, cancel and retry passed";
     }
     static void verifyDynamicsLocksAndDefaults(QQuickWindow* window, QObject* model) {
         const auto originalMappings = model->property("mappings");

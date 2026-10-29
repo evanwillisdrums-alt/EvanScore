@@ -254,6 +254,29 @@ protected:
         ON_CALL(*m_configuration, lastUsedSaveLocationType()).WillByDefault(Return(SaveLocationType::Local));
     }
 
+    // Interactive resolves a QML dialog's result from its closed signal, before
+    // that window has finished closing. The next dialog must wait for that stack
+    // to unwind, otherwise Windows immediately dismisses the native file picker.
+    void givenComputerChoiceDuringClose(bool& closing, bool askAgain = true)
+    {
+        ON_CALL(*m_configuration, shouldAskSaveLocationType()).WillByDefault(Return(true));
+        ON_CALL(*m_configuration, lastUsedSaveLocationType()).WillByDefault(Return(SaveLocationType::Undefined));
+        ON_CALL(*m_interactive, open(IsDialog("musescore://project/asksavelocationtype")))
+        .WillByDefault([&closing, askAgain] {
+            return async::make_promise<Val>([&closing, askAgain](auto resolve, auto) {
+                async::Async::call(nullptr, [&closing, askAgain, resolve] {
+                    closing = true;
+                    (void)resolve(Val(ValMap {
+                        { "askAgain", Val(askAgain) },
+                        { "saveLocationType", Val(int(SaveLocationType::Local)) }
+                    }));
+                    closing = false;
+                });
+                return async::Promise<Val>::dummy_result();
+            }, async::PromiseType::AsyncByBody);
+        });
+    }
+
     //! The cloud destination dialog is answered with "publish under this name".
     void givenUserConfirmsCloudDialog(const QString& name = "Score")
     {
@@ -422,6 +445,67 @@ TEST_F(SaveProjectScenarioTests, SaveProject_SaveAs_AlwaysAsksForSaveLocation)
 
     //! [WHEN] Saving it as a new file...
     saveProject(SaveMode::SaveAs);
+}
+
+TEST_F(SaveProjectScenarioTests, SaveProject_ComputerChoice_FinishesClosingBeforeOpeningFilePicker)
+{
+    const io::path_t path = "first-save.mscz";
+    bool closing = false;
+    givenComputerChoiceDuringClose(closing, false);
+
+    EXPECT_CALL(*m_interactive, open(IsDialog("musescore://project/asksavelocationtype"))).Times(3);
+    EXPECT_CALL(*m_configuration, setShouldAskSaveLocationType(false)).Times(3);
+    EXPECT_CALL(*m_configuration, setLastUsedSaveLocationType(SaveLocationType::Local)).Times(3);
+    EXPECT_CALL(*m_interactive, selectSavingFile(_, _, _, _))
+    .Times(3).WillRepeatedly([&closing, path] {
+        EXPECT_FALSE(closing) << "the file picker opened inside the closing chooser";
+        return resolvedPromise(path);
+    });
+
+    for (SaveMode mode : { SaveMode::Save, SaveMode::SaveAs, SaveMode::SaveCopy }) {
+        ON_CALL(*m_project, isNewlyCreated()).WillByDefault(Return(mode == SaveMode::Save));
+        EXPECT_CALL(*m_project, save(path, mode, true)).Times(1);
+        EXPECT_TRUE(saveProject(mode));
+        EXPECT_FALSE(m_scenario->isBusy(BusyStatus::Saving));
+    }
+}
+
+TEST_F(SaveProjectScenarioTests, SaveProject_ComputerChoice_FilePickerCancelAllowsRetry)
+{
+    ON_CALL(*m_project, isNewlyCreated()).WillByDefault(Return(true));
+    bool closing = false;
+    givenComputerChoiceDuringClose(closing);
+    const io::path_t path = "retry.mscz";
+    EXPECT_CALL(*m_interactive, selectSavingFile(_, _, _, _))
+    .WillOnce([&closing] {
+        EXPECT_FALSE(closing);
+        return rejectedPromise<io::path_t>(make_ret(Ret::Code::Cancel));
+    })
+    .WillOnce([&closing, path] {
+        EXPECT_FALSE(closing);
+        return resolvedPromise(path);
+    });
+    EXPECT_CALL(*m_project, save(path, SaveMode::Save, true)).Times(1);
+
+    EXPECT_EQ(saveProject(SaveMode::Save).code(), int(Ret::Code::Cancel));
+    EXPECT_FALSE(m_scenario->isBusy(BusyStatus::Saving));
+    EXPECT_TRUE(saveProject(SaveMode::Save));
+    EXPECT_FALSE(m_scenario->isBusy(BusyStatus::Saving));
+}
+
+TEST_F(SaveProjectScenarioTests, SaveProject_LocationChooserCancel_AllowsRetryWithoutSaving)
+{
+    ON_CALL(*m_project, isNewlyCreated()).WillByDefault(Return(true));
+    ON_CALL(*m_configuration, shouldAskSaveLocationType()).WillByDefault(Return(true));
+    EXPECT_CALL(*m_interactive, open(IsDialog("musescore://project/asksavelocationtype")))
+    .Times(2).WillRepeatedly([] { return rejectedPromise<Val>(make_ret(Ret::Code::Cancel)); });
+    EXPECT_CALL(*m_interactive, selectSavingFile(_, _, _, _)).Times(0);
+    EXPECT_CALL(*m_project, save(_, _, _)).Times(0);
+
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        EXPECT_EQ(saveProject(SaveMode::Save).code(), int(Ret::Code::Cancel));
+        EXPECT_FALSE(m_scenario->isBusy(BusyStatus::Saving));
+    }
 }
 
 TEST_F(SaveProjectScenarioTests, SaveProject_LocalScoreToCloud_AsksForSaveLocation)
