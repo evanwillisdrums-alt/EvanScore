@@ -228,7 +228,7 @@ jobs:
               fs.writeFileSync('checks/job.log', log);
               // Keep huge compiler command lines from hiding other failures in
               // the bounded check annotations. The full log remains available.
-              const errors = log.split('\n').filter(line => /FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK/i.test(line));
+              const errors = log.split('\n').filter(line => /FAILED:|error C\d|fatal error|sccache: error|CMake Error|error LNK|[a-z]+Error:|[a-z]+Exception:/i.test(line));
               fs.writeFileSync('checks/compiler-errors.log', errors.join('\n'));
             } catch (error) {
               core.notice('Job log retrieval failed: ' + error.message);

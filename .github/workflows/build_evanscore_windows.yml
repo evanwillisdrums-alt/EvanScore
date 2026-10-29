@@ -46,6 +46,9 @@ jobs:
       - name: Install the repository's Qt version
         uses: jurplel/install-qt-action@v4
         with:
+          # Keep the Python 3.12 selected above. The action otherwise replaces
+          # it with the runner's newest Python, incompatible with locked tools.
+          setup-python: false
           version: '6.11.2'
           host: windows
           target: desktop
@@ -67,8 +70,12 @@ jobs:
       - name: Install locked Python tools
         shell: pwsh
         run: |
+          $buildPython = (Get-Command python).Source
+          & $buildPython --version
           python -m pip install pdm==2.26.1
           if ($LASTEXITCODE -ne 0) { throw 'PDM installation failed' }
+          pdm use -f $buildPython
+          if ($LASTEXITCODE -ne 0) { throw 'Could not select the configured Python for PDM' }
           pdm install --frozen-lockfile --no-self
           if ($LASTEXITCODE -ne 0) { throw 'Locked tool installation failed' }
 
