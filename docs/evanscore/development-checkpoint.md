@@ -22,9 +22,18 @@ save-scenario tests pass in the focused native harness. Inspector compiles local
 workflow YAML parses and diff checks pass. **Replacement Windows validation is
 pending; do not claim fixed or offer it yet.**
 
+Repair source **fb556acb8a04c1cd307ce9c03195cb78249f36fe**, full Windows build
+**40937068448**. A bounded watcher at
+`/workspace/evanscore-validation/20261029/save/watch.py` records build/portable
+checks and automatically starts the native `save` gate on this exact binary.
+Resume from its `release-watch.json` before starting duplicate runs. If successful,
+retrieve/view the actual save capture and retain native save/reopen evidence before
+publishing the artifact. If it fails, inspect that gate rather than assuming the
+source fix worked.
+
 Local evidence/harness: `/workspace/evanscore-validation/20261027/save`.
 The environment disconnected during the2026-10-27 trace and was restored on the
-29th. Main resumes at test-onlya9288e23e20. Preserve dirty muse and the root
+29th. Main resumed at test-onlya9288e23e20. Preserve dirty muse and the root
 framework patch; do not stage the gitlink. Cross-bar prototypebfc1245d488 remains
 isolated/unshipped. The old release below has the now-reproduced first-save bug.
 
