@@ -28,7 +28,10 @@ Python3.12 correctly, but unearth0.19 now subclasses httpx2.Client while PDM2.26
 calls httpx.Client.__init__: TypeError (not an instance/subtype). Use the upstream
 `pdm[locked]==2.26.1` extra (unearth0.17.5/httpx0.28.1). Its client initialization
 and the exact frozen project-tool install both pass locally. No app source change
-since the64 passing save tests. A replacement build follows the CI correction.
+since the64 passing save tests. Replacement build **40938807679**, source
+**3f705063d78e8da587635db851425623e0e66912**, is running after the CI correction.
+Future builds require the native save gate automatically after portable checks;
+that test-only workflow follow-up does not restart this already-running compile.
 A bounded watcher at
 `/workspace/evanscore-validation/20261029/save/watch.py` records build/portable
 checks and automatically starts the native `save` gate on this exact binary.

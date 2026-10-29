@@ -193,3 +193,40 @@ jobs:
           path: build.artifacts/
           if-no-files-found: ignore
           retention-days: 14
+
+  save:
+    needs: portable
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Require real first-save and Save As checks on the packaged app
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const repo = {owner: context.repo.owner, repo: context.repo.repo};
+            const workflow_id = 'diagnose_evanscore_windows_startup.yml';
+            const branch = context.ref.replace('refs/heads/', '');
+            const started = Date.now();
+            await github.rest.actions.createWorkflowDispatch({...repo, workflow_id, ref: branch,
+              inputs: {mode: 'save', run_id: String(context.runId)}});
+            const expected = `save checks for Windows build ${context.runId} `;
+            let runId;
+            for (let poll = 0; poll < 80; ++poll) {
+              await new Promise(resolve => setTimeout(resolve, 10000));
+              if (!runId) {
+                const {data} = await github.rest.actions.listWorkflowRuns({...repo, workflow_id, branch,
+                  event: 'workflow_dispatch', per_page: 20});
+                runId = data.workflow_runs.find(run => run.display_title.startsWith(expected)
+                  && Date.parse(run.created_at) >= started - 1000)?.id;
+              }
+              if (!runId) continue;
+              const {data: run} = await github.rest.actions.getWorkflowRun({...repo, run_id: runId});
+              if (run.status !== 'completed') continue;
+              core.info(`Native saving checks: ${run.html_url}`);
+              if (run.conclusion !== 'success') core.setFailed(`Native saving checks ${run.conclusion}`);
+              return;
+            }
+            core.setFailed(`Native saving checks did not finish: ${runId ?? 'dispatch not found'}`);
