@@ -15,6 +15,13 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <layout class="QHBoxLayout" name="soundSearchRow">
+     <item><widget class="QLineEdit" name="soundSearch"><property name="placeholderText"><string>Search this kit by sound name, pitch or shortcut</string></property><property name="clearButtonEnabled"><bool>true</bool></property><property name="accessibleName"><string>Search kit sounds</string></property></widget></item>
+     <item><widget class="QCheckBox" name="mappedSoundsOnly"><property name="text"><string>Mapped sounds only</string></property><property name="checked"><bool>true</bool></property><property name="toolTip"><string>Turn off to inspect all 128 MIDI keys. Unmapped keys may be silent or unsupported by the current sound source.</string></property></widget></item>
+     <item><widget class="QPushButton" name="auditionSoundButton"><property name="text"><string>Audition</string></property><property name="toolTip"><string>Preview the selected MIDI sound using this staff's current instrument. This does not change the score.</string></property></widget></item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <item>
       <widget class="QTreeWidget" name="pitchList">

@@ -29,6 +29,7 @@
 #include "modularity/ioc.h"
 #include "interactive/iinteractive.h"
 #include "context/iglobalcontext.h"
+#include "playback/iplaybackcontroller.h"
 #include "notation/inotationconfiguration.h"
 #include "engraving/iengravingfontsprovider.h"
 #include "engraving/rendering/isinglerenderer.h"
@@ -54,6 +55,7 @@ public:
     muse::GlobalInject<engraving::rendering::ISingleRenderer> engravingRenderer;
     muse::ContextInject<muse::IInteractive> interactive = { this };
     muse::ContextInject<context::IGlobalContext> globalContext = { this };
+    muse::ContextInject<playback::IPlaybackController> playbackController = { this };
     muse::ContextInject<engraving::IPaletteScoreProvider> paletteScoreProvider = { this };
 public:
     CustomizeKitDialog(QWidget* parent = nullptr);
@@ -75,6 +77,9 @@ private slots:
 private:
     void initDrumsetAndKey();
 
+    std::pair<engraving::staff_idx_t, const engraving::Segment*> auditionContext() const;
+    void filterSounds();
+    void auditionSound();
     void apply();
     void cancel();
 

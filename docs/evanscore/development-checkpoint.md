@@ -2,35 +2,38 @@
 
 ## Active workflow cycle — November14, 2026 (America/Chicago)
 
-Latest scope is in workflow-upgrade-plan.md. User clarified ordinary empty-staff
-hiding is insufficient: snare-split staves above main, no before/after/first-system
-space or names, main label remains centered on normal staves, arbitrary repeated
-auxiliaries. Also queued independent percussion note placement and sound search /
-audition / mapping. Do not claim the simple visibility combo completes this.
+Latest scope and evidence: workflow-upgrade-plan.md. User's app-navigation
+question does not cancel the implementation queue. Main at194b27bf4a8975247ca289c1573d0469d92a4c97;
+Windows43675984483 completed compilation and is checking startup/export. That
+binary precedes the Arial, written-position, current-kit browser and branding
+changes below. No new download has been offered.
 
-Work in progress adds native STAFF_AUXILIARY (appended before Pid::END to preserve
-existing IDs), saved evanAuxiliaryStaff tag in500/460 readers, config/Undo and
-staff-role combo, renderer hiding and normal-staff label centering. Initial scope
-is additional staves within the same Part, not automatic separate-part linking.
-Keyboard forwarding/protection and deferred matching panel clamps are drafted.
-Two initial visibility/config/persistence tests passed BEFORE the auxiliary role
-was added; they are not layout/name proof. QML syntax and native .ui generation
-pass; Inspector compiled before its last small dialog-test follow-up.
+Native Solo/split staff role now persists through500/460 readers and Undo. Empty
+auxiliaries reclaim first/last-system space and do not own or shift main labels.
+Five focused temporary-staff tests and ten existing percussion tests pass together
+(15total). This includes actual vertical renderer bounding boxes/name centers;
+the focused harness uses stub fonts and disables horizontal stretching only for
+that test. Full Windows tests retain real fonts and normal justification.
+The engraving library was rebuilt successfully after the Staff layout change.
 
-The local engraving library is rebuilding in /workspace/evanscore-build, output
-/workspace/evanscore-validation/20261115/engraving-build.log (session55899). Default
-reconfigure hit home dependency-cache restrictions; escalation was approved and
-LD_LIBRARY_PATH fixed the import scanner. Do not link new Staff-layout code
-against the old library: class layout changed. After rebuild, recompile the
-percussion harness and extend temporarystaff_tests.cpp for actual split layouts,
-label anchoring, first-system disappearance, Undo and save/reopen.
+Pending latest Windows verification: same-sound percussion written-position
+buttons,70 ordinary factory Arial font defaults and an explicit Arial for score
+text action (preserve music font, bold and symbols), current-kit search/audition,
+and graphite/steel EvanScore branding. Search operates on the current kit's128
+MIDI slots, not arbitrary Kontakt libraries or local samples. Palette/EditStyle
+syntax compiles, notehead/diagnostics objects compile, QML parses and the native
+Inspector compiles locally. Extended Windows tests exercise actual buttons,
+Undo/Redo, Cancel, keyboard input, split visibility, persistence and captures.
 
-Old build40938807679 completed Windows/portable successfully but its workspace
-watcher died on broken pipe before native save verification. Its artifact expired;
-no fresh download has been offered. Keep the save fix and automatic native-save
-job. New source needs fresh Windows checks and actual captures. Preserve dirty
-muse and cross-bar worktree. Official research pages are blocked403; accessible
-GitHub user feedback is recorded without pretending to establish popularity.
+Update source/commit/build IDs after pushing the coherent batch. Require full
+Windows/portable/native-save plus keypad, percussion, split, stems/fonts and
+Dynamics checks on the exact binary, and actually view captures. Do not imply
+licensed-library audio or the complete broad UI overhaul has been verified.
+
+Old build40938807679 and historical release artifacts expired. Preserve save fix,
+automatic native-save job, dirty muse gitlink and separate cross-bar worktree.
+Official research pages are proxy403; accessible GitHub feedback is recorded as
+examples, not a popularity survey. No environment draft settings were changed.
 
 ## Active saving repair — 2026-10-29
 

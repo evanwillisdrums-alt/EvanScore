@@ -41,6 +41,7 @@ class NoteheadSettingsModel : public PropertiesPanelAbstractModel
     Q_PROPERTY(mu::propertiespanel::PropertyItem * headSystem READ headSystem CONSTANT)
     Q_PROPERTY(mu::propertiespanel::PropertyItem * dotPosition READ dotPosition CONSTANT)
     Q_PROPERTY(mu::propertiespanel::PropertyItem * offset READ offset CONSTANT)
+    Q_PROPERTY(bool canMovePercussionPosition READ canMovePercussionPosition NOTIFY percussionPositionChanged)
     Q_PROPERTY(bool isTrillCueNote READ isTrillCueNote NOTIFY isTrillCueNoteChanged)
 
 public:
@@ -56,6 +57,9 @@ public:
     PropertyItem* dotPosition() const;
     PropertyItem* offset() const;
     bool isTrillCueNote() const;
+    bool canMovePercussionPosition() const;
+    Q_INVOKABLE void movePercussionPosition(int steps);
+    Q_INVOKABLE void resetPercussionPosition();
 
     Q_INVOKABLE QVariantList possibleHeadSystemTypes() const;
 
@@ -63,6 +67,7 @@ public slots:
     void setIsTrillCueNote(bool v);
 
 signals:
+    void percussionPositionChanged();
     void isTrillCueNoteChanged(bool isTrillCueNote);
 
 private:

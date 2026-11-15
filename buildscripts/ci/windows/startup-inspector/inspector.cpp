@@ -20,6 +20,10 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QComboBox>
+#include <QScrollArea>
+#include <QTreeWidget>
+#include <QCheckBox>
+#include <QLineEdit>
 #include <QGroupBox>
 #include <QToolButton>
 #include <QJsonArray>
@@ -79,7 +83,7 @@ public:
                     else verifySaveChooser(window);
                 }
             });
-        } else if (mode == "keypad" || mode == "stems" || mode == "percussion") {
+        } else if (mode == "keypad" || mode == "stems" || mode == "percussion" || mode == "split") {
             QTimer::singleShot(4000, window, [window = QPointer<QQuickWindow>(window)] {
                 if (window && window->title() != "EvanScore") verifyKeypad(window);
             });
@@ -623,6 +627,40 @@ private:
         }
         qWarning() << "DYNAMICS INSPECTOR Return and keypad Enter commit velocities without extra score commands passed";
     }
+    static void checkKitBrowser(QQuickWindow* window) {
+        auto operated = std::make_shared<bool>(false);
+        QTimer::singleShot(300, window, [operated] {
+            QDialog* dialog = nullptr;
+            for (auto* widget : QApplication::topLevelWidgets())
+                if (widget->isVisible() && widget->findChild<QLineEdit*>("soundSearch")) dialog = qobject_cast<QDialog*>(widget);
+            if (!dialog) qFatal("KIT INSPECTOR browser unavailable");
+            auto* search = dialog->findChild<QLineEdit*>("soundSearch");
+            auto* mapped = dialog->findChild<QCheckBox*>("mappedSoundsOnly");
+            auto* tree = dialog->findChild<QTreeWidget*>("pitchList");
+            auto* audition = dialog->findChild<QPushButton*>("auditionSoundButton");
+            auto* buttons = dialog->findChild<QDialogButtonBox*>("buttonBox");
+            if (!search || !mapped || !tree || !audition || !buttons) qFatal("KIT INSPECTOR controls missing");
+            const auto visible = [tree] { int n=0;for(int i=0;i<tree->topLevelItemCount();++i)if(!tree->topLevelItem(i)->isHidden())++n;return n; };
+            const int original = visible();
+            search->setFocus();QTest::keyClicks(search,"__no_such_drumsound__");QTest::qWait(100);
+            if(visible()!=0 || audition->isEnabled()) qFatal("KIT INSPECTOR no-match search unsafe");
+            QTest::keyClick(search,Qt::Key_A,Qt::ControlModifier);QTest::keyClick(search,Qt::Key_Delete);QTest::qWait(100);
+            if(visible()!=original)qFatal("KIT INSPECTOR clearing search did not restore results");
+            if(mapped->isChecked())QTest::mouseClick(mapped,Qt::LeftButton,Qt::NoModifier,QPoint(10,mapped->height()/2));
+            if(visible()!=128)qFatal("KIT INSPECTOR all-MIDI-keys option lost entries");
+            search->setFocus();QTest::keyClicks(search,"60");QTest::qWait(100);
+            if(visible()!=1 || !tree->currentItem() || tree->currentItem()->text(0)!="60")qFatal("KIT INSPECTOR MIDI key search failed");
+            if(!audition->isEnabled())qFatal("KIT INSPECTOR valid staff context could not audition");
+            QTest::mouseClick(audition,Qt::LeftButton);QTest::qWait(200);
+            if(!dialog->grab().save(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")+".kit.png"))qFatal("KIT INSPECTOR capture failed");
+            *operated=true;
+            QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
+        });
+        dispatchMenu(window,"command://palette/open-customize-kit");
+        for(int i=0;i<80 && !*operated;++i)QTest::qWait(50);
+        if(!*operated)qFatal("KIT INSPECTOR interaction timed out");
+        QTest::qWait(150);
+    }
     static void checkTemporaryStaffDialog(QQuickWindow* window, int expected, bool change) {
         auto operated = std::make_shared<bool>(false);
         QTimer::singleShot(250, window, [expected, change, operated] {
@@ -730,6 +768,49 @@ private:
             qFatal("Native accent and owning chord voices disagree");
         dispatchMenu(window,"command://notation/undo");QTest::qWait(150);if(markCounts()!="1,0")qFatal("Accent move did not Undo in one step");
         dispatchMenu(window,"command://notation/redo");QTest::qWait(150);if(markCounts()!="0,1")qFatal("Accent move did not Redo");
+        evaluate("(function(){var c=curScore.newCursor();c.track=4;c.rewindToTick(0);return curScore.selection.select(c.element.notes[0]);})()");
+        QTest::qWait(200);
+        const auto noteState = [&debug] {
+            QMetaObject::invokeMethod(debug.data(), "refresh");
+            return QJsonDocument::fromJson(debug->property("report").toString().toUtf8()).object().value("sticking").toArray()[0].toObject().value("dynamics").toArray()[0].toObject();
+        };
+        const auto originalNote = noteState();
+        const auto clickPosition = [window](const QString& name) {
+            auto* button = findItem(window->contentItem(), "percussion-position-" + name);
+            if (!button || !button->isVisible() || !button->isEnabled()) qFatal("PERCUSSION POSITION INSPECTOR control unavailable");
+            reveal(button);
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, button->mapToScene({button->width()/2,button->height()/2}).toPoint());
+            QTest::qWait(150);
+        };
+        clickPosition("up");
+        const auto movedNote = noteState();
+        if (!movedNote.value("fixedPosition").toBool()
+            || movedNote.value("writtenLine").toInt() != originalNote.value("writtenLine").toInt()-1)
+            qFatal("PERCUSSION POSITION INSPECTOR Up did not move a line/space");
+        for (const auto* key : {"pitch", "velocity", "play", "overrideValue", "overrideMode"})
+            if (movedNote.value(key) != originalNote.value(key)) qFatal("PERCUSSION POSITION INSPECTOR changed playback");
+        dispatchMenu(window, "command://notation/undo"); QTest::qWait(100);
+        if (noteState() != originalNote) qFatal("PERCUSSION POSITION INSPECTOR Undo did not restore note");
+        dispatchMenu(window, "command://notation/redo"); QTest::qWait(100);
+        if (noteState() != movedNote) qFatal("PERCUSSION POSITION INSPECTOR Redo did not restore placement");
+        clickPosition("down");
+        if (noteState().value("writtenLine") != originalNote.value("writtenLine")) qFatal("PERCUSSION POSITION INSPECTOR Down failed");
+        clickPosition("reset");
+        if (noteState().value("fixedPosition").toBool()) qFatal("PERCUSSION POSITION INSPECTOR Reset failed");
+        for (int i=0;i<3;++i) { dispatchMenu(window,"command://notation/undo"); QTest::qWait(80); }
+        if (noteState() != originalNote) qFatal("PERCUSSION POSITION INSPECTOR grouped Undo changed sound/note");
+        clickPosition("up");
+        const auto positionCapture = qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE") + ".position.png";
+        if (!window->grabWindow().save(positionCapture)) qFatal("PERCUSSION POSITION INSPECTOR capture failed");
+        QFile positionProof(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE") + ".position.json");
+        if (!positionProof.open(QIODevice::WriteOnly)) qFatal("PERCUSSION POSITION INSPECTOR proof write failed");
+        positionProof.write(QJsonDocument(noteState()).toJson()); positionProof.close();
+        qWarning() << "PERCUSSION POSITION INSPECTOR real Up/Down/Reset, unchanged MIDI pitch/velocity, Undo/Redo passed";
+        const auto beforeKit=noteState();
+        checkKitBrowser(window);
+        if(noteState()!=beforeKit)qFatal("KIT INSPECTOR preview/Cancel changed the written note or playback values");
+        qWarning()<<"KIT INSPECTOR real search, no-match, all-keys, audition dispatch and Cancel passed";
+
         evaluate("curScore.startCmd();curScore.appendPart('marching-snare');curScore.appendPart('marching-cymbals');curScore.endCmd();");QTest::qWait(200);
         if(evaluate("curScore.nstaves").toInt()!=4)qFatal("Native template append did not create two staves");
         select(5);
@@ -803,6 +884,40 @@ private:
             dispatchMenu(window, "command://notation/select-all");
             qWarning() << "KEYPAD INSPECTOR actual floating-window Copy/Paste/Delete/Undo/Redo hotkeys passed";
         }
+        if (qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL") == "split") {
+            keypad->close();
+            QQmlComponent component(engine);
+            component.setData("import MuseScore.NotationScene; FeatureDebugModel {}", QUrl());
+            QScopedPointer<QObject> debug(component.create());
+            if (!debug || !QMetaObject::invokeMethod(debug.data(), "load")) qFatal("SPLIT INSPECTOR diagnostics unavailable");
+            QMetaObject::invokeMethod(debug.data(), "refresh");
+            const auto layout = QJsonDocument::fromJson(debug->property("report").toString().toUtf8()).object().value("staffLayout").toArray();
+            if (layout.size() != 3) qFatal("SPLIT INSPECTOR expected three forced systems, got %d", int(layout.size()));
+            double baseline = 0;
+            for (int si = 0; si < 3; ++si) {
+                const auto staves = layout[si].toObject().value("staves").toArray();
+                if (staves.size() != 2) qFatal("SPLIT INSPECTOR wrong staff count");
+                const auto aux = staves[0].toObject(), main = staves[1].toObject();
+                if (!aux.value("auxiliary").toBool() || aux.value("visible").toBool() != (si == 1)
+                    || aux.value("hasPartLabel").toBool() || !main.value("visible").toBool()
+                    || !main.value("hasPartLabel").toBool())
+                    qFatal("SPLIT INSPECTOR role/label/visibility failure: %s", QJsonDocument(layout).toJson(QJsonDocument::Compact).constData());
+                const double center = main.value("y").toDouble() + main.value("height").toDouble()/2;
+                if (std::abs(main.value("labelCenterY").toDouble()-center) > .1)
+                    qFatal("SPLIT INSPECTOR name drifted from main staff");
+                if (si == 0) baseline = main.value("y").toDouble();
+                if (si != 1 && (aux.value("height").toDouble() != 0 || std::abs(main.value("y").toDouble()-baseline) > .1))
+                    qFatal("SPLIT INSPECTOR empty split left reserved space");
+            }
+            evaluate("(function(){var c=curScore.newCursor();c.track=0;c.rewind(0);curScore.selection.select(c.element);})()");
+            checkTemporaryStaffDialog(window, 3, false);
+            QTest::mouseMove(window, QPoint(window->width()*3/4, window->height()/2));
+            QTest::qWait(300);
+            if (!window->grabWindow().save(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE"))) qFatal("SPLIT INSPECTOR capture failed");
+            qWarning() << "SPLIT INSPECTOR three systems, reclaimed first/last space, main label anchoring and saved role passed";
+            delete engine;
+            return;
+        }
         if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="percussion") {
             keypad->close();
             verifyPercussion(window, engine, evaluate);
@@ -845,7 +960,18 @@ private:
                         if(!capture.isEmpty() && !dialog->grab().save(capture+".style.png")) qFatal("Style capture failed");
                     } else {
                         if(spin->value()!=80 || shorten->isChecked()) qFatal("Native Styles lost the saved global stem settings");
-                        if(phase==1) {
+                        if (phase >= 3) {
+                            dialog->setProperty("currentPageCode", "text-styles"); QTest::qWait(150);
+                            auto* fonts = dialog->findChild<QPushButton*>("applyArialTextFontsButton");
+                            if (!fonts || !fonts->isVisible() || !fonts->isEnabled()) qFatal("FONT INSPECTOR Arial action unavailable");
+                            for (QWidget* parent=fonts->parentWidget();parent;parent=parent->parentWidget())
+                                if (auto* scroll=qobject_cast<QScrollArea*>(parent)) scroll->ensureWidgetVisible(fonts);
+                            QTest::mouseClick(fonts, Qt::LeftButton); QTest::qWait(150);
+                            if (phase == 4) {
+                                const auto capture=qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE");
+                                if (!dialog->grab().save(capture+".fonts.png")) qFatal("FONT INSPECTOR capture failed");
+                            }
+                        } else if(phase==1) {
                             auto* reset=dialog->findChild<QToolButton*>("resetStemLengthScale");
                             QTest::mouseClick(reset,Qt::LeftButton); QTest::qWait(50);
                             if(spin->value()!=100) qFatal("Stem scale reset did not restore 100 percent");
@@ -857,7 +983,7 @@ private:
                         }
                     }
                     operated=true;
-                    QTest::mouseClick(buttons->button(phase==1 ? QDialogButtonBox::Cancel : QDialogButtonBox::Ok),Qt::LeftButton);
+                    QTest::mouseClick(buttons->button((phase==1 || phase==3) ? QDialogButtonBox::Cancel : QDialogButtonBox::Ok),Qt::LeftButton);
                 });
                 dispatchMenu(window,"command://notation/open-edit-style");
                 for(int step=0;step<40 && !operated;++step) QTest::qWait(50);
@@ -883,6 +1009,34 @@ private:
                 +"/"+QCoreApplication::applicationName()+"/Styles/EvanScore-Default.mss"}}).toJson());
             styleIdentity.close();
             dispatchMenu(window,"command://project/save"); QTest::qWait(500);
+            const auto musicFaces = evaluate("JSON.stringify([curScore.style.value('dynamicsFontFace'),curScore.style.value('pedalFontFace'),curScore.style.value('musicalSymbolFont')])").toString();
+            evaluate(R"JS((function(){curScore.startCmd();curScore.style.setValue('longInstrumentFontFace','Times New Roman');
+                var c=curScore.newCursor();c.rewind(0);var t=newElement(elementTypes.STAFF_TEXT);
+                t.text='<font face="Times New Roman"/><b>Arial test</b> <sym>dynamicForte</sym>';c.add(t);curScore.endCmd();return true;})())JS");
+            const auto fontProof = [&evaluate] {
+                return evaluate(R"JS((function(){var c=curScore.newCursor();c.rewind(0);for(var a of c.segment.annotations)
+                    if(a.type===elementTypes.STAFF_TEXT&&a.text.indexOf('Arial test')>=0)return JSON.stringify({face:a.fontFace,text:a.text});return '';})())JS").toString();
+            };
+            const auto originalText = fontProof();
+            if(originalText.isEmpty()) qFatal("FONT INSPECTOR styled text fixture missing");
+            dialogEdit(3);
+            if (evaluate("curScore.style.value('longInstrumentFontFace')").toString()!="Times New Roman" || fontProof()!=originalText)
+                qFatal("FONT INSPECTOR Cancel did not restore original fonts/text");
+            dialogEdit(4);
+            const auto proof=QJsonDocument::fromJson(fontProof().toUtf8()).object();
+            if (evaluate("curScore.style.value('longInstrumentFontFace')").toString()!="Arial" || proof.value("text").toString().contains("Times New Roman")
+                || !proof.value("text").toString().contains("<b>") || !proof.value("text").toString().contains("<sym>dynamicForte</sym>"))
+                qFatal("FONT INSPECTOR font normalization lost bold/text/music glyphs");
+            if(evaluate("JSON.stringify([curScore.style.value('dynamicsFontFace'),curScore.style.value('pedalFontFace'),curScore.style.value('musicalSymbolFont')])").toString()!=musicFaces)
+                qFatal("FONT INSPECTOR changed a special notation font");
+            const auto appliedText = fontProof();
+            dispatchMenu(window,"command://notation/undo");QTest::qWait(100);
+            if (fontProof()!=originalText || evaluate("curScore.style.value('longInstrumentFontFace')").toString()!="Times New Roman")
+                qFatal("FONT INSPECTOR one Undo did not restore typefaces and inline text");
+            dispatchMenu(window,"command://notation/redo");QTest::qWait(100);
+            if(fontProof()!=appliedText) qFatal("FONT INSPECTOR Redo did not restore Arial text");
+            dispatchMenu(window,"command://project/save");QTest::qWait(300);
+            qWarning()<<"FONT INSPECTOR real Arial action, existing override reset, Cancel, bold and music glyph preservation passed";
             qWarning() << "STEMS INSPECTOR real Styles pointer/typing, independent shortening, all stems, cancel, reset, undo, redo, default and save passed";
             keypad->close(); return;
         }

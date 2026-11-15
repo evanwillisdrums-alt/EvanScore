@@ -17,6 +17,8 @@
 #include "engraving/dom/chord.h"
 #include "engraving/dom/articulation.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/system.h"
+#include "engraving/dom/instrumentname.h"
 #include "engraving/editing/editvoice.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
@@ -174,6 +176,7 @@ void FeatureDebugModel::refresh()
             const int velocity = !play ? 0 : note->userVelocity() ? note->customizeVelocity(base) : base;
             dynamics.append(QJsonObject {
                 { "pitch", note->pitch() },
+                { "writtenLine", note->line() }, { "fixedPosition", note->fixed() },
                 { "category", roles.at(std::clamp(DynamicsPlayback::role(note), 0, 9)) },
                 { "play", play },
                 { "dynamicsLocked", note->dynamicsLocked() },
@@ -202,6 +205,26 @@ void FeatureDebugModel::refresh()
                 : "pending VDL playback integration" }
         });
     }
+    QJsonArray staffLayout;
+    if (score) {
+        const auto& systems = score->systems();
+        for (size_t si = 0; si < std::min<size_t>(32, systems.size()); ++si) {
+            const auto* system = systems[si];
+            QJsonArray staves;
+            for (size_t i = 0; i < std::min<size_t>(64, system->staves().size()); ++i) {
+                const auto* ss = system->staff(i);
+                const auto* label = ss->name(InstrumentNameRole::PART);
+                QJsonObject row {
+                    { "staff", int(i) }, { "auxiliary", score->staff(i)->auxiliary() },
+                    { "visible", ss->show() }, { "y", ss->bbox().y() }, { "height", ss->bbox().height() },
+                    { "hasPartLabel", label != nullptr }
+                };
+                if (label) row.insert("labelCenterY", label->pos().y() + label->ldata()->bbox().center().y());
+                staves.append(row);
+            }
+            staffLayout.append(QJsonObject { { "system", int(si) }, { "staves", staves } });
+        }
+    }
     QJsonObject report {
         { "scoreOpen", score != nullptr },
         { "scope", m_fullScore ? "full score" : "selected notes" },
@@ -210,7 +233,8 @@ void FeatureDebugModel::refresh()
         { "sticking", rows },
         { "customDynamicsEnabled", score && DynamicsPlayback::enabled(score) },
         { "batterySeparationEnabled", score && DynamicsPlayback::profile(score).styleB(Sid::evanDynamicsBattery) },
-        { "reportVersion", 3 },
+        { "reportVersion", 4 },
+        { "staffLayout", staffLayout },
         { "percussionAccentsAbove", score && score->style().styleB(Sid::percussionAccentsAbove) },
         { "runtime", runtimeDiagnostics() },
         { "virtualDrumline", "Prepared Kontakt patch states and SnareLine Manual/LITE core routing implemented; other patch maps and licensed playback remain unverified" },

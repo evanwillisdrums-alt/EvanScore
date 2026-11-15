@@ -365,7 +365,7 @@ muse::io::paths_t AppShellConfiguration::parseSessionProjectsPaths(const QByteAr
 
 void AppShellConfiguration::initWorkspaceAppearance()
 {
-    static const Settings::Key applied(module_name, "evanscore/ui/workspaceAppearanceV2");
+    static const Settings::Key applied(module_name, "evanscore/ui/workspaceAppearanceV3");
     if (settings()->value(applied).toBool()) return;
     // Keep accessibility themes intact. This migration runs once, never on score opening.
     if (!uiConfiguration()->isHighContrast()) {
@@ -373,12 +373,12 @@ void AppShellConfiguration::initWorkspaceAppearance()
         uiConfiguration()->setIsDarkMode(true);
         using namespace muse::ui;
         const std::pair<ThemeStyleKey, const char*> colors[] = {
-            {BACKGROUND_PRIMARY_COLOR, "#515559"}, {BACKGROUND_SECONDARY_COLOR, "#5c6064"},
-            {BACKGROUND_TERTIARY_COLOR, "#666a6e"}, {BACKGROUND_QUARTERNARY_COLOR, "#72767a"},
-            {POPUP_BACKGROUND_COLOR, "#565a5e"}, {PROJECT_TAB_COLOR, "#686c70"},
-            {TEXT_FIELD_COLOR, "#414549"}, {BUTTON_COLOR, "#92979c"},
-            {STROKE_COLOR, "#878c91"}, {STROKE_SECONDARY_COLOR, "#707579"},
-            {ACCENT_COLOR, "#2797eb"}, {FONT_PRIMARY_COLOR, "#f6f7f8"}, {FONT_SECONDARY_COLOR, "#d4d8dc"}
+            {BACKGROUND_PRIMARY_COLOR, "#252b30"}, {BACKGROUND_SECONDARY_COLOR, "#30383f"},
+            {BACKGROUND_TERTIARY_COLOR, "#3b454e"}, {BACKGROUND_QUARTERNARY_COLOR, "#495660"},
+            {POPUP_BACKGROUND_COLOR, "#30383f"}, {PROJECT_TAB_COLOR, "#3a4852"},
+            {TEXT_FIELD_COLOR, "#1e2429"}, {BUTTON_COLOR, "#4a5a66"},
+            {STROKE_COLOR, "#697d8b"}, {STROKE_SECONDARY_COLOR, "#475660"},
+            {ACCENT_COLOR, "#287c9b"}, {FONT_PRIMARY_COLOR, "#f2f5f7"}, {FONT_SECONDARY_COLOR, "#bdcbd4"}
         };
         for (const auto& [key, color] : colors) uiConfiguration()->setCurrentThemeStyleValue(key, Val(QColor(color)));
     }

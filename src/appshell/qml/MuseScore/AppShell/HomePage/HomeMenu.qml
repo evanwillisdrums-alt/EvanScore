@@ -58,11 +58,13 @@ Item {
             visible: !root.iconsOnly
             StyledTextLabel {
                 text: "EvanScore"
-                font: ui.theme.headerBoldFont
+                font.family: ui.theme.bodyFont.family
+                font.pixelSize: 25
+                font.weight: Font.DemiBold
                 horizontalAlignment: Text.AlignLeft
             }
             StyledTextLabel {
-                text: qsTrc("appshell", "Score workspace")
+                text: qsTrc("appshell", "Notation · Performance")
                 color: ui.theme.fontSecondaryColor
                 horizontalAlignment: Text.AlignLeft
             }

@@ -21,6 +21,8 @@
  */
 
 #include "customizekitdialog.h"
+#include "notation/inotationnoteinput.h"
+#include "notation/inotationinteraction.h"
 
 #include "global/io/buffer.h"
 #include "global/io/file.h"
@@ -165,6 +167,11 @@ CustomizeKitDialog::CustomizeKitDialog(QWidget* parent)
     }
 
     connect(pitchList, &QTreeWidget::currentItemChanged, this, &CustomizeKitDialog::itemChanged);
+    connect(soundSearch, &QLineEdit::textChanged, this, &CustomizeKitDialog::filterSounds);
+    connect(mappedSoundsOnly, &QCheckBox::toggled, this, &CustomizeKitDialog::filterSounds);
+    connect(auditionSoundButton, &QPushButton::clicked, this, &CustomizeKitDialog::auditionSound);
+    connect(pitchList, &QTreeWidget::itemDoubleClicked, this, [this] { auditionSound(); });
+
     connect(buttonBox, &QDialogButtonBox::clicked, this, &CustomizeKitDialog::bboxClicked);
     connect(name, &QLineEdit::textChanged, this, &CustomizeKitDialog::nameChanged);
     connect(noteHead, &QComboBox::currentIndexChanged, this, &CustomizeKitDialog::valueChanged);
@@ -287,6 +294,7 @@ void CustomizeKitDialog::componentComplete()
     if (itemToSelect) {
         pitchList->setCurrentItem(itemToSelect);
     }
+    filterSounds();
 }
 
 //---------------------------------------------------------
@@ -411,6 +419,57 @@ void CustomizeKitDialog::initDrumsetAndKey()
 
     m_originDrumset = *inst->drumset();
     m_editedDrumset = m_originDrumset;
+}
+
+std::pair<staff_idx_t, const Segment*> CustomizeKitDialog::auditionContext() const
+{
+    if (!m_notation || globalContext()->currentNotation() != m_notation) return { muse::nidx, nullptr };
+    const auto interaction = m_notation->interaction();
+    if (!interaction || !interaction->noteInput()) return { muse::nidx, nullptr };
+    const auto hit = interaction->hitElementContext();
+    if (hit.staff && hit.element) {
+        return { hit.staff->idx(), hit.staff->score()->tick2segment(hit.element->tick()) };
+    }
+    const auto& state = interaction->noteInput()->state();
+    return state.track() == muse::nidx ? std::pair<staff_idx_t, const Segment*> { muse::nidx, nullptr }
+                                    : std::pair<staff_idx_t, const Segment*> { track2staff(state.track()), state.segment() };
+}
+
+void CustomizeKitDialog::filterSounds()
+{
+    const QString query = soundSearch->text().trimmed();
+    QTreeWidgetItem* first = nullptr;
+    for (int i = 0; i < pitchList->topLevelItemCount(); ++i) {
+        auto* item = pitchList->topLevelItem(i);
+        const int pitch = item->data(Column::PITCH, Qt::UserRole).toInt();
+        QString words;
+        for (int col = 0; col < pitchList->columnCount(); ++col) words += item->text(col) + ' ';
+        const bool visible = (!mappedSoundsOnly->isChecked() || m_editedDrumset.isValid(pitch))
+                             && (query.isEmpty() || words.contains(query, Qt::CaseInsensitive));
+        item->setHidden(!visible);
+        if (visible && !first) first = item;
+    }
+    if (!pitchList->currentItem() || pitchList->currentItem()->isHidden()) pitchList->setCurrentItem(first);
+    name->setEnabled(first != nullptr);
+    if (!first) setEnabledPitchControls(false);
+    const bool contextReady = auditionContext().second != nullptr;
+    auditionSoundButton->setEnabled(first != nullptr && contextReady);
+    auditionSoundButton->setToolTip(contextReady
+        ? muse::qtrc("palette", "Preview this MIDI sound through the staff's current instrument without changing the score.")
+        : muse::qtrc("palette", "Select a note or rest on a percussion staff before auditioning."));
+}
+
+void CustomizeKitDialog::auditionSound()
+{
+    auto* item = pitchList->currentItem();
+    if (!m_notation || globalContext()->currentNotation() != m_notation || !item || item->isHidden()) return;
+    const auto [staff, segment] = auditionContext();
+    if (!segment) return;
+    NoteVal value;
+    value.pitch = item->data(Column::PITCH, Qt::UserRole).toInt();
+    // Audition through the currently assigned sound source. This is not a
+    // cross-library catalogue and does not load files or alter the score.
+    playbackController()->playNotes({ value }, staff, segment);
 }
 
 void CustomizeKitDialog::apply()
@@ -651,6 +710,7 @@ void CustomizeKitDialog::load()
     fp.close();
     loadPitchesList();
     pitchList->setCurrentItem(pitchList->topLevelItem(0));
+    filterSounds();
 }
 
 //---------------------------------------------------------
@@ -682,7 +742,7 @@ void CustomizeKitDialog::save()
 
     const muse::Ret ret = File::writeFile(fname, outBuf.data());
     if (!ret) {
-        QString s = muse::qtrc("palette", "Writing file failed: %1").arg(ret.toString());
+        QString s = muse::qtrc("palette", "Writing file failed: %1").arg(QString::fromStdString(ret.toString()));
         interactive()->error(muse::trc("palette", "Write drumset"), s.toStdString());
         return;
     }

@@ -22,6 +22,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
 
 import MuseScore.PropertiesPanel
 import Muse.UiComponents
@@ -45,6 +46,53 @@ FocusableItem {
         width: parent.width
 
         spacing: 12
+
+        Column {
+            visible: root.headModel ? root.headModel.canMovePercussionPosition : false
+            width: parent.width
+            spacing: 6
+            StyledTextLabel {
+                width: parent.width
+                text: qsTrc("propertiespanel", "Staff position · same sound")
+                horizontalAlignment: Text.AlignLeft
+            }
+            RowLayout {
+                width: parent.width
+                FlatButton {
+                    objectName: "percussion-position-up"
+                    navigation.panel: root.navigationPanel
+                    navigation.row: root.navigationRowStart
+                    navigation.column: 0
+                    navigation.name: "PercussionPositionUp"
+                    icon: IconCode.ARROW_UP
+                    toolTipTitle: qsTrc("propertiespanel", "Move up one line or space; keep the sound")
+                    Layout.fillWidth: true
+                    onClicked: root.headModel.movePercussionPosition(-1)
+                }
+                FlatButton {
+                    objectName: "percussion-position-down"
+                    navigation.panel: root.navigationPanel
+                    navigation.row: root.navigationRowStart
+                    navigation.column: 1
+                    navigation.name: "PercussionPositionDown"
+                    icon: IconCode.ARROW_DOWN
+                    toolTipTitle: qsTrc("propertiespanel", "Move down one line or space; keep the sound")
+                    Layout.fillWidth: true
+                    onClicked: root.headModel.movePercussionPosition(1)
+                }
+                FlatButton {
+                    objectName: "percussion-position-reset"
+                    navigation.panel: root.navigationPanel
+                    navigation.row: root.navigationRowStart
+                    navigation.column: 2
+                    navigation.name: "PercussionPositionReset"
+                    icon: IconCode.UNDO
+                    toolTipTitle: qsTrc("propertiespanel", "Restore the drum map's staff position")
+                    Layout.fillWidth: true
+                    onClicked: root.headModel.resetPercussionPosition()
+                }
+            }
+        }
 
         FlatRadioButtonGroupPropertyView {
             id: noteHeadParenthesesView

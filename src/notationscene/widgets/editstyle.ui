@@ -13654,7 +13654,13 @@ followed by dashes</string>
           </widget>
          </widget>
         </item>
-       </layout>
+       <item row="1" column="0" colspan="3">
+ <widget class="QPushButton" name="applyArialTextFontsButton">
+  <property name="text"><string>Arial for score text</string></property>
+  <property name="toolTip"><string>Use Arial for ordinary text in this score and its parts, including font-face overrides. Preserve musical symbols, dynamics and pedal fonts. Cancel or Undo restores the previous fonts; Make Default Style saves the result for new scores.</string></property>
+ </widget>
+</item>
+</layout>
       </widget>
      </widget>
     </widget>

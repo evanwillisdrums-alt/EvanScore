@@ -20,6 +20,25 @@ This document separates intended work from shipped behavior.
   Test actual bounding boxes and name placement; a visibility checkbox alone is
   not acceptance. Manual system breaks and pagination must remain correct.
 
+## Additional implementation awaiting native verification
+
+- Same-sound written percussion position: Properties → Noteheads offers Up,
+  Down and Reset, changing fixed staff position without changing MIDI pitch.
+- Arial:70 ordinary text-style factory defaults; Styles → Text styles →
+  Arial for score text explicitly resets family overrides in an existing score.
+  Music fonts and embedded notation symbols remain, with Undo/Cancel support.
+  Existing files are not silently restyled on open; saved user styles still win.
+- Customize Kit: search current-kit name/pitch/shortcut, mapped-only toggle,
+  audition button and double-click preview through the staff's current sound.
+  Existing notehead mapping remains available. This is the first browser step;
+  cross-library indexing, external samples and timbre similarity remain pending.
+- Appearance: latest user direction is strong Logic inspiration with original
+  EvanScore identity, including useful rearrangement. Graphite/steel surfaces,
+  restrained teal-blue accent and EvanScore branding drafted; actual captures
+  still required. This is not a completed full application redesign.
+- Validation:15 focused engraving/percussion tests pass; expanded native Windows
+  interactions are compiled locally but have not run on the latest full binary.
+
 ## Additional queued requests
 
 - Move individual percussion notes among staff lines/spaces while preserving

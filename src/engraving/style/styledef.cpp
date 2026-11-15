@@ -137,7 +137,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(lyricsMaxDashCount,                         1),
     styleDef(lyricsCenterDashedSyllables,                false),
 
-    styleDef(lyricsOddFontFace,                          "Edwin"),
+    styleDef(lyricsOddFontFace,                          "Arial"),
     styleDef(lyricsOddFontSize,                          10.0),
     styleDef(lyricsOddLineSpacing,                       1.0),
     styleDef(lyricsOddFontSpatiumDependent,              true),
@@ -152,7 +152,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(lyricsOddFrameBgColor,                      Color::transparent),
     styleDef(lyricsOddPosition,                          AlignH::HCENTER),
 
-    styleDef(lyricsEvenFontFace,                         "Edwin"),
+    styleDef(lyricsEvenFontFace,                         "Arial"),
     styleDef(lyricsEvenFontSize,                         10.0),
     styleDef(lyricsEvenLineSpacing,                      1.0),
     styleDef(lyricsEvenFontSpatiumDependent,             true),
@@ -338,7 +338,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(hairpinHeight,                              1.15_sp),
     styleDef(hairpinContHeight,                          0.5_sp),
     styleDef(hairpinLineWidth,                           0.12_sp),
-    styleDef(hairpinFontFace,                            "Edwin"),
+    styleDef(hairpinFontFace,                            "Arial"),
     styleDef(hairpinFontSize,                            10.0),
     styleDef(hairpinLineSpacing,                         1.0),
     styleDef(hairpinFontSpatiumDependent,                true),
@@ -431,7 +431,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(nashvilleNumberPosAbove,                    PointF(.0, -2.5)),
     styleDef(nashvilleNumberPosBelow,                    PointF(.0, 3.5)),
 
-    styleDef(chordSymbolAFontFace,                       "Edwin"),
+    styleDef(chordSymbolAFontFace,                       "Arial"),
     styleDef(chordSymbolAFontSize,                       10.0),
     styleDef(chordSymbolALineSpacing,                    1.0),
     styleDef(chordSymbolAFontSpatiumDependent,           true),
@@ -445,7 +445,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(chordSymbolAFrameFgColor,                   PropertyValue::fromValue(Color::BLACK)),
     styleDef(chordSymbolAFrameBgColor,                   PropertyValue::fromValue(Color::transparent)),
 
-    styleDef(chordSymbolBFontFace,                       "Edwin"),
+    styleDef(chordSymbolBFontFace,                       "Arial"),
     styleDef(chordSymbolBFontSize,                       10.0),
     styleDef(chordSymbolBLineSpacing,                    1.0),
     styleDef(chordSymbolBFontSpatiumDependent,           true),
@@ -473,7 +473,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(romanNumeralFrameFgColor,                   PropertyValue::fromValue(Color::BLACK)),
     styleDef(romanNumeralFrameBgColor,                   PropertyValue::fromValue(Color::transparent)),
 
-    styleDef(nashvilleNumberFontFace,                    "Edwin"),
+    styleDef(nashvilleNumberFontFace,                    "Arial"),
     styleDef(nashvilleNumberFontSize,                    12.0),
     styleDef(nashvilleNumberLineSpacing,                 1.0),
     styleDef(nashvilleNumberFontSpatiumDependent,        true),
@@ -670,7 +670,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(voltaLineStyle,                             PropertyValue(LineType::SOLID)),
     styleDef(voltaDashLineLen,                           5.0),
     styleDef(voltaDashGapLen,                            5.0),
-    styleDef(voltaFontFace,                              "Edwin"),
+    styleDef(voltaFontFace,                              "Arial"),
     styleDef(voltaFontSize,                              11.0),
     styleDef(voltaLineSpacing,                           1.0),
     styleDef(voltaFontSpatiumDependent,                  true),
@@ -731,7 +731,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(ottavaDashLineLen,                          6.0),
     styleDef(ottavaDashGapLen,                           6.0),
     styleDef(ottavaNumbersOnly,                          true),
-    styleDef(ottavaFontFace,                             "Edwin"),
+    styleDef(ottavaFontFace,                             "Arial"),
     styleDef(ottavaFontSize,                             10.0),
     styleDef(ottavaLineSpacing,                          1.0),
     styleDef(ottavaFontSpatiumDependent,                 true),
@@ -777,7 +777,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(tupletDirection,                            DirectionV::AUTO),
     styleDef(tupletNumberType,                           int(TupletNumberType::SHOW_NUMBER)),
     styleDef(tupletBracketType,                          int(TupletBracketType::AUTO_BRACKET)),
-    styleDef(tupletFontFace,                             "Edwin"),
+    styleDef(tupletFontFace,                             "Arial"),
     styleDef(tupletFontSize,                             9.0),
     styleDef(tupletLineSpacing,                          1.0),
     styleDef(tupletFontSpatiumDependent,                 true),
@@ -859,7 +859,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(jumpPosAbove,                               PointF(.0, -2.0)),
     styleDef(markerPosAbove,                             PointF(.0, -2.0)),
 
-    styleDef(defaultFontFace,                            "Edwin"),
+    styleDef(defaultFontFace,                            "Arial"),
     styleDef(defaultFontSize,                            10.0),
     styleDef(defaultLineSpacing,                         1.0),
     styleDef(defaultFontSpatiumDependent,                true),
@@ -878,7 +878,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(defaultText,                                String()),
     styleDef(defaultPosition,                            AlignH::LEFT),
 
-    styleDef(titleFontFace,                              "Edwin"),
+    styleDef(titleFontFace,                              "Arial"),
     styleDef(titleFontSize,                              22.0),
     styleDef(titleLineSpacing,                           1.0),
     styleDef(titleFontSpatiumDependent,                  false),
@@ -895,7 +895,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(titleFrameBgColor,                          PropertyValue::fromValue(Color::transparent)),
     styleDef(titlePosition,                              AlignH::HCENTER),
 
-    styleDef(subTitleFontFace,                           "Edwin"),
+    styleDef(subTitleFontFace,                           "Arial"),
     styleDef(subTitleFontSize,                           14.0),
     styleDef(subTitleLineSpacing,                        1.0),
     styleDef(subTitleFontSpatiumDependent,               false),
@@ -912,7 +912,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(subTitleFrameBgColor,                       PropertyValue::fromValue(Color::transparent)),
     styleDef(subTitlePosition,                           AlignH::HCENTER),
 
-    styleDef(composerFontFace,                           "Edwin"),
+    styleDef(composerFontFace,                           "Arial"),
     styleDef(composerFontSize,                           10.0),
     styleDef(composerLineSpacing,                        1.0),
     styleDef(composerFontSpatiumDependent,               false),
@@ -929,7 +929,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(composerFrameBgColor,                       PropertyValue::fromValue(Color::transparent)),
     styleDef(composerPosition,                           AlignH::RIGHT),
 
-    styleDef(lyricistFontFace,                           "Edwin"),
+    styleDef(lyricistFontFace,                           "Arial"),
     styleDef(lyricistFontSize,                           10.0),
     styleDef(lyricistLineSpacing,                        1.0),
     styleDef(lyricistFontSpatiumDependent,               false),
@@ -946,7 +946,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(lyricistFrameBgColor,                       PropertyValue::fromValue(Color::transparent)),
     styleDef(lyricistPosition,                           AlignH::LEFT),
 
-    styleDef(fingeringFontFace,                          "Edwin"),
+    styleDef(fingeringFontFace,                          "Arial"),
     styleDef(fingeringFontSize,                          8.0),
     styleDef(fingeringLineSpacing,                       1.0),
     styleDef(fingeringFontSpatiumDependent,              true),
@@ -962,7 +962,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(fingeringOffset,                            PointF()),
     styleDef(fingeringPosition,                          AlignH::HCENTER),
 
-    styleDef(tabFretNumberFontFace,                      "FreeSans"),
+    styleDef(tabFretNumberFontFace,                      "Arial"),
     styleDef(tabFretNumberFontSize,                      9.0),
     styleDef(tabFretNumberLineSpacing,                   1.0),
     styleDef(tabFretNumberFontSpatiumDependent,          true),
@@ -977,7 +977,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(tabFretNumberFrameFgColor,                  PropertyValue::fromValue(Color::BLACK)),
     styleDef(tabFretNumberFrameBgColor,                  PropertyValue::fromValue(Color::transparent)),
 
-    styleDef(lhGuitarFingeringFontFace,                  "Edwin"),
+    styleDef(lhGuitarFingeringFontFace,                  "Arial"),
     styleDef(lhGuitarFingeringFontSize,                  8.0),
     styleDef(lhGuitarFingeringLineSpacing,               1.0),
     styleDef(lhGuitarFingeringFontSpatiumDependent,      true),
@@ -993,7 +993,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(lhGuitarFingeringOffset,                    PointF(-0.5, 0.0)),
     styleDef(lhGuitarFingeringPosition,                  AlignH::RIGHT),
 
-    styleDef(rhGuitarFingeringFontFace,                  "Edwin"),
+    styleDef(rhGuitarFingeringFontFace,                  "Arial"),
     styleDef(rhGuitarFingeringFontSize,                  8.0),
     styleDef(rhGuitarFingeringLineSpacing,               1.0),
     styleDef(rhGuitarFingeringFontSpatiumDependent,      true),
@@ -1009,7 +1009,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(rhGuitarFingeringOffset,                    PointF()),
     styleDef(rhGuitarFingeringPosition,                  AlignH::HCENTER),
 
-    styleDef(hammerOnPullOffTappingFontFace,                          "Edwin"),
+    styleDef(hammerOnPullOffTappingFontFace,                          "Arial"),
     styleDef(hammerOnPullOffTappingFontSize,                          8.0),
     styleDef(hammerOnPullOffTappingLineSpacing,                       1.0),
     styleDef(hammerOnPullOffTappingFontSpatiumDependent,              true),
@@ -1041,7 +1041,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(rhTappingSymbolNormalStave,                 RHTappingSymbol::PLUS),
     styleDef(rhTappingSymbolTab,                         RHTappingSymbol::T),
 
-    styleDef(stringNumberFontFace,                       "Edwin"),
+    styleDef(stringNumberFontFace,                       "Arial"),
     styleDef(stringNumberFontSize,                       8.0),
     styleDef(stringNumberLineSpacing,                    1.0),
     styleDef(stringNumberFontSpatiumDependent,           true),
@@ -1080,7 +1080,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(harpPedalDiagramMinDistance,                .5_sp),
     styleDef(harpPedalDiagramPosition,                   AlignH::HCENTER),
 
-    styleDef(harpPedalTextDiagramFontFace,               "Edwin"),
+    styleDef(harpPedalTextDiagramFontFace,               "Arial"),
     styleDef(harpPedalTextDiagramFontSize,               8.0),
     styleDef(harpPedalTextDiagramLineSpacing,            1.0),
     styleDef(harpPedalTextDiagramFontSpatiumDependent,   true),
@@ -1100,7 +1100,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(harpPedalTextDiagramMinDistance,            .5_sp),
     styleDef(harpPedalTextDiagramPosition,               AlignH::LEFT),
 
-    styleDef(articulationFontFace,                          "Edwin"),
+    styleDef(articulationFontFace,                          "Arial"),
     styleDef(articulationFontSize,                          8.0),
     styleDef(articulationLineSpacing,                       1.0),
     styleDef(articulationFontSpatiumDependent,              true),
@@ -1116,7 +1116,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(articulationOffset,                            PointF()),
     styleDef(articulationPosition,                          AlignH::LEFT),
 
-    styleDef(longInstrumentFontFace,                     "Edwin"),
+    styleDef(longInstrumentFontFace,                     "Arial"),
     styleDef(longInstrumentFontSize,                     10.0),
     styleDef(longInstrumentLineSpacing,                  1.0),
     styleDef(longInstrumentFontSpatiumDependent,         true),
@@ -1132,7 +1132,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(longInstrumentFrameBgColor,                 PropertyValue::fromValue(Color::transparent)),
     styleDef(longInstrumentPosition,                     AlignH::RIGHT),
 
-    styleDef(shortInstrumentFontFace,                    "Edwin"),
+    styleDef(shortInstrumentFontFace,                    "Arial"),
     styleDef(shortInstrumentFontSize,                    10.0),
     styleDef(shortInstrumentLineSpacing,                 1.0),
     styleDef(shortInstrumentFontSpatiumDependent,        true),
@@ -1148,7 +1148,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(shortInstrumentFrameBgColor,                PropertyValue::fromValue(Color::transparent)),
     styleDef(shortInstrumentPosition,                    AlignH::RIGHT),
 
-    styleDef(partInstrumentFontFace,                     "Edwin"),
+    styleDef(partInstrumentFontFace,                     "Arial"),
     styleDef(partInstrumentFontSize,                     14.0),
     styleDef(partInstrumentLineSpacing,                  1.0),
     styleDef(partInstrumentFontSpatiumDependent,         false),
@@ -1164,7 +1164,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(partInstrumentFrameBgColor,                 PropertyValue::fromValue(Color::transparent)),
     styleDef(partInstrumentPosition,                     AlignH::LEFT),
 
-    styleDef(groupBracketFontFace,                     "Edwin"),
+    styleDef(groupBracketFontFace,                     "Arial"),
     styleDef(groupBracketFontSize,                     10.0),
     styleDef(groupBracketLineSpacing,                  1.0),
     styleDef(groupBracketFontSpatiumDependent,         true),
@@ -1196,7 +1196,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(dynamicsFrameBgColor,                       PropertyValue::fromValue(Color::transparent)),
     styleDef(dynamicsPosition,                           AlignH::HCENTER),
 
-    styleDef(expressionFontFace,                         "Edwin"),
+    styleDef(expressionFontFace,                         "Arial"),
     styleDef(expressionFontSize,                         10.0),
     styleDef(expressionLineSpacing,                      1.0),
     styleDef(expressionFontSpatiumDependent,             true),
@@ -1216,7 +1216,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(expressionMinDistance,                      .5_sp),
     styleDef(expressionPosition,                         AlignH::LEFT),
 
-    styleDef(tempoFontFace,                              "Edwin"),
+    styleDef(tempoFontFace,                              "Arial"),
     styleDef(tempoFontSize,                              12.0),
     styleDef(tempoLineSpacing,                           1.0),
     styleDef(tempoFontSpatiumDependent,                  true),
@@ -1236,7 +1236,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(tempoFrameBgColor,                          PropertyValue::fromValue(Color::transparent)),
     styleDef(tempoPosition,                              AlignH::LEFT),
 
-    styleDef(tempoChangeFontFace,                        "Edwin"),
+    styleDef(tempoChangeFontFace,                        "Arial"),
     styleDef(tempoChangeFontSize,                        12.0),
     styleDef(tempoChangeLineSpacing,                     1.0),
     styleDef(tempoChangeFontSpatiumDependent,            true),
@@ -1260,7 +1260,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(tempoChangeDashLineLen,                     6.0),
     styleDef(tempoChangeDashGapLen,                      9.0),
 
-    styleDef(metronomeFontFace,                          "Edwin"),
+    styleDef(metronomeFontFace,                          "Arial"),
     styleDef(metronomeFontSize,                          12.0),
     styleDef(metronomeLineSpacing,                       1.0),
     styleDef(metronomeFontSpatiumDependent,              false),
@@ -1277,7 +1277,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(metronomeFrameBgColor,                      PropertyValue::fromValue(Color::transparent)),
     styleDef(metronomePosition,                          AlignH::LEFT),
 
-    styleDef(measureNumberFontFace,                      "Edwin"),
+    styleDef(measureNumberFontFace,                      "Arial"),
     styleDef(measureNumberFontSize,                      8.0),
     styleDef(measureNumberLineSpacing,                   1.0),
     styleDef(measureNumberFontSpatiumDependent,          false),
@@ -1301,7 +1301,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(measureNumberTextStyle,                     TextStyleType::MEASURE_NUMBER),
     styleDef(measureNumberAlignToBarline,                true),
 
-    styleDef(measureNumberAlternateFontFace,             "Edwin"),
+    styleDef(measureNumberAlternateFontFace,             "Arial"),
     styleDef(measureNumberAlternateFontSize,             10.0),
     styleDef(measureNumberAlternateLineSpacing,          1.0),
     styleDef(measureNumberAlternateFontSpatiumDependent, false),
@@ -1321,7 +1321,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(mmRestShowMeasureNumberRange,               false),
     styleDef(mmRestRangeBracketType,                     int(MMRestRangeBracketType::BRACKETS)),
 
-    styleDef(mmRestRangeFontFace,                        "Edwin"),
+    styleDef(mmRestRangeFontFace,                        "Arial"),
     styleDef(mmRestRangeFontSize,                        8.0),
     styleDef(mmRestRangeFontSpatiumDependent,            false),
     styleDef(mmRestRangeFontStyle,                       int(FontStyle::Italic)),
@@ -1342,7 +1342,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(mmRestRangeMinDistance,                     0.5_sp),
     styleDef(mmRestRangeTextStyle,                       TextStyleType::MMREST_RANGE),
 
-    styleDef(translatorFontFace,                         "Edwin"),
+    styleDef(translatorFontFace,                         "Arial"),
     styleDef(translatorFontSize,                         10.0),
     styleDef(translatorLineSpacing,                      1.0),
     styleDef(translatorFontSpatiumDependent,             false),
@@ -1358,7 +1358,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(translatorFrameBgColor,                     PropertyValue::fromValue(Color::transparent)),
     styleDef(translatorPosition,                         AlignH::LEFT),
 
-    styleDef(systemTextFontFace,                         "Edwin"),
+    styleDef(systemTextFontFace,                         "Arial"),
     styleDef(systemTextFontSize,                         10.0),
     styleDef(systemTextLineSpacing,                      1.0),
     styleDef(systemTextFontSpatiumDependent,             true),
@@ -1378,7 +1378,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(systemTextFrameBgColor,                     PropertyValue::fromValue(Color::transparent)),
     styleDef(systemTextPosition,                         AlignH::LEFT),
 
-    styleDef(staffTextFontFace,                          "Edwin"),
+    styleDef(staffTextFontFace,                          "Arial"),
     styleDef(staffTextFontSize,                          10.0),
     styleDef(staffTextLineSpacing,                       1.0),
     styleDef(staffTextFontSpatiumDependent,              true),
@@ -1398,7 +1398,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(staffTextFrameBgColor,                      PropertyValue::fromValue(Color::transparent)),
     styleDef(staffTextPosition,                          AlignH::LEFT),
 
-    styleDef(staveSharingLabelFontFace,                          "Edwin"),
+    styleDef(staveSharingLabelFontFace,                          "Arial"),
     styleDef(staveSharingLabelFontSize,                          10.0),
     styleDef(staveSharingLabelLineSpacing,                       1.0),
     styleDef(staveSharingLabelFontSpatiumDependent,              true),
@@ -1418,7 +1418,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(staveSharingLabelFrameBgColor,                      PropertyValue::fromValue(Color::transparent)),
     styleDef(staveSharingLabelPosition,                          AlignH::LEFT),
 
-    styleDef(fretDiagramFingeringFontFace,               "FreeSans"),
+    styleDef(fretDiagramFingeringFontFace,               "Arial"),
     styleDef(fretDiagramFingeringFontSize,               6.0),
     styleDef(fretDiagramFingeringLineSpacing,            1.0),
     styleDef(fretDiagramFingeringFontSpatiumDependent,   true),
@@ -1434,7 +1434,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(fretDiagramFingeringFrameBgColor,           PropertyValue::fromValue(Color::transparent)),
     styleDef(fretDiagramFingeringPosition,               AlignH::LEFT),
 
-    styleDef(fretDiagramFretNumberFontFace,              "FreeSans"),
+    styleDef(fretDiagramFretNumberFontFace,              "Arial"),
     styleDef(fretDiagramFretNumberFontSize,              6.0),
     styleDef(fretDiagramFretNumberLineSpacing,           1.0),
     styleDef(fretDiagramFretNumberFontSpatiumDependent,  true),
@@ -1450,7 +1450,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(fretDiagramFretNumberFrameBgColor,          PropertyValue::fromValue(Color::transparent)),
     styleDef(fretDiagramFretNumberPosition,              AlignH::LEFT),
 
-    styleDef(rehearsalMarkFontFace,                      "Edwin"),
+    styleDef(rehearsalMarkFontFace,                      "Arial"),
     styleDef(rehearsalMarkFontSize,                      14.0),
     styleDef(rehearsalMarkLineSpacing,                   1.0),
     styleDef(rehearsalMarkFontSpatiumDependent,          true),
@@ -1469,7 +1469,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(rehearsalMarkPosBelow,                      PointF(.0, 4.0)),
     styleDef(rehearsalMarkMinDistance,                   0.5_sp),
 
-    styleDef(repeatPlayCountFontFace,                    "Edwin"),
+    styleDef(repeatPlayCountFontFace,                    "Arial"),
     styleDef(repeatPlayCountFontSize,                    10.0),
     styleDef(repeatPlayCountLineSpacing,                 1.0),
     styleDef(repeatPlayCountFontSpatiumDependent,        true),
@@ -1488,7 +1488,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(repeatPlayCountPosBelow,                    PointF(.0, 4.0)),
     styleDef(repeatPlayCountMinDistance,                 0.5_sp),
 
-    styleDef(repeatLeftFontFace,                         "Edwin"),
+    styleDef(repeatLeftFontFace,                         "Arial"),
     styleDef(repeatLeftFontSize,                         10.0),
     styleDef(repeatLeftLineSpacing,                      1.0),
     styleDef(repeatLeftFontSpatiumDependent,             true),
@@ -1504,7 +1504,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(repeatLeftFrameBgColor,                     PropertyValue::fromValue(Color::transparent)),
     styleDef(repeatLeftPosition,                         AlignH::LEFT),
 
-    styleDef(repeatRightFontFace,                        "Edwin"),
+    styleDef(repeatRightFontFace,                        "Arial"),
     styleDef(repeatRightFontSize,                        10.0),
     styleDef(repeatRightLineSpacing,                     1.0),
     styleDef(repeatRightFontSpatiumDependent,            true),
@@ -1520,7 +1520,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(repeatRightFrameBgColor,                    PropertyValue::fromValue(Color::transparent)),
     styleDef(repeatRightPosition,                        AlignH::RIGHT),
 
-    styleDef(frameFontFace,                              "Edwin"),
+    styleDef(frameFontFace,                              "Arial"),
     styleDef(frameFontSize,                              10.0),
     styleDef(frameLineSpacing,                           1.0),
     styleDef(frameFontSpatiumDependent,                  false),
@@ -1536,7 +1536,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(frameFrameBgColor,                          PropertyValue::fromValue(Color::transparent)),
     styleDef(framePosition,                              AlignH::LEFT),
 
-    styleDef(textLineFontFace,                           "Edwin"),
+    styleDef(textLineFontFace,                           "Arial"),
     styleDef(textLineFontSize,                           10.0),
     styleDef(textLineLineSpacing,                        1.0),
     styleDef(textLineFontSpatiumDependent,               true),
@@ -1545,7 +1545,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(textLineTextAlign,                          Align(AlignH::LEFT, AlignV::VCENTER)),
     styleDef(textLineSystemFlag,                         false),
 
-    styleDef(systemTextLineFontFace,                     "Edwin"),
+    styleDef(systemTextLineFontFace,                     "Arial"),
     styleDef(systemTextLineFontSize,                     10.0),
     styleDef(systemTextLineLineSpacing,                  1.0),
     styleDef(systemTextLineFontSpatiumDependent,         true),
@@ -1555,7 +1555,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(systemTextLineSystemFlag,                   true),
 
     styleDef(noteLinePlacement,                         PlacementV::ABOVE),
-    styleDef(noteLineFontFace,                          "Edwin"),
+    styleDef(noteLineFontFace,                          "Arial"),
     styleDef(noteLineFontSize,                          PropertyValue(10.0)),
     styleDef(noteLineLineSpacing,                       1.0),
     styleDef(noteLineFontSpatiumDependent,              true),
@@ -1575,7 +1575,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(noteLineDashLineLen,                       5.0),
     styleDef(noteLineDashGapLen,                        5.0),
 
-    styleDef(glissandoFontFace,                          "Edwin"),
+    styleDef(glissandoFontFace,                          "Arial"),
     styleDef(glissandoFontSize,                          PropertyValue(8.0)),
     styleDef(glissandoLineSpacing,                       1.0),
     styleDef(glissandoFontSpatiumDependent,              true),
@@ -1600,7 +1600,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(glissandoDashGapLen,                        5.0),
     styleDef(glissandoShowText,                          true),
 
-    styleDef(bendFontFace,                               "Edwin"),
+    styleDef(bendFontFace,                               "Arial"),
     styleDef(bendFontSize,                               8.0),
     styleDef(bendLineSpacing,                            1.0),
     styleDef(bendFontSpatiumDependent,                   true),
@@ -1635,7 +1635,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(guitarDiveLineWidth,                       0.13_sp),
     styleDef(guitarDiveLineWidthTab,                    0.15_sp),
 
-    styleDef(headerFontFace,                             "Edwin"),
+    styleDef(headerFontFace,                             "Arial"),
     styleDef(headerFontSize,                             9.0),
     styleDef(headerLineSpacing,                          1.0),
     styleDef(headerFontSpatiumDependent,                 false),
@@ -1651,7 +1651,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(headerFrameBgColor,                         PropertyValue::fromValue(Color::transparent)),
     styleDef(headerPosition,                             AlignH::HCENTER),
 
-    styleDef(footerFontFace,                             "Edwin"),
+    styleDef(footerFontFace,                             "Arial"),
     styleDef(footerFontSize,                             9.0),
     styleDef(footerLineSpacing,                          1.0),
     styleDef(footerFontSpatiumDependent,                 false),
@@ -1668,7 +1668,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(footerPosition,                             AlignH::HCENTER),
 
     // New for 4.4 - defaults taken from footer
-    styleDef(copyrightFontFace,                          "Edwin"),
+    styleDef(copyrightFontFace,                          "Arial"),
     styleDef(copyrightFontSize,                          9.0),
     styleDef(copyrightLineSpacing,                       1.0),
     styleDef(copyrightFontSpatiumDependent,              false),
@@ -1685,7 +1685,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(copyrightPosition,                          AlignH::HCENTER),
 
     // New for 4.4 - defaults taken from pre-4.4 header
-    styleDef(pageNumberFontFace,                         "Edwin"),
+    styleDef(pageNumberFontFace,                         "Arial"),
     styleDef(pageNumberFontSize,                         11.0),
     styleDef(pageNumberLineSpacing,                      1.0),
     styleDef(pageNumberFontSpatiumDependent,             false),
@@ -1701,7 +1701,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(pageNumberFrameBgColor,                     PropertyValue::fromValue(Color::transparent)),
     styleDef(pageNumberPosition,                         AlignH::HCENTER),
 
-    styleDef(instrumentChangeFontFace,                   "Edwin"),
+    styleDef(instrumentChangeFontFace,                   "Arial"),
     styleDef(instrumentChangeFontSize,                   10.0),
     styleDef(instrumentChangeLineSpacing,                1.0),
     styleDef(instrumentChangeFontSpatiumDependent,       true),
@@ -1721,7 +1721,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(instrumentChangeFrameBgColor,               PropertyValue::fromValue(Color::transparent)),
     styleDef(instrumentChangePosition,                   AlignH::LEFT),
 
-    styleDef(stickingFontFace,                           "Edwin"),
+    styleDef(stickingFontFace,                           "Arial"),
     styleDef(stickingFontSize,                           10.0),
     styleDef(stickingLineSpacing,                        1.0),
     styleDef(stickingFontSpatiumDependent,               true),
@@ -1749,7 +1749,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(figuredBassColor,                           PropertyValue::fromValue(Color::BLACK)),
 
     styleDef(user1Name,                                  ""),
-    styleDef(user1FontFace,                              "Edwin"),
+    styleDef(user1FontFace,                              "Arial"),
     styleDef(user1FontSize,                              10.0),
     styleDef(user1LineSpacing,                           1.0),
     styleDef(user1FontSpatiumDependent,                  true),
@@ -1767,7 +1767,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user1Position,                              AlignH::LEFT),
 
     styleDef(user2Name,                                  ""),
-    styleDef(user2FontFace,                              "Edwin"),
+    styleDef(user2FontFace,                              "Arial"),
     styleDef(user2FontSize,                              10.0),
     styleDef(user2LineSpacing,                           1.0),
     styleDef(user2FontSpatiumDependent,                  true),
@@ -1785,7 +1785,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user2Position,                              AlignH::LEFT),
 
     styleDef(user3Name,                                  ""),
-    styleDef(user3FontFace,                              "Edwin"),
+    styleDef(user3FontFace,                              "Arial"),
     styleDef(user3FontSize,                              10.0),
     styleDef(user3LineSpacing,                           1.0),
     styleDef(user3FontSpatiumDependent,                  true),
@@ -1803,7 +1803,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user3Position,                              AlignH::LEFT),
 
     styleDef(user4Name,                                  ""),
-    styleDef(user4FontFace,                              "Edwin"),
+    styleDef(user4FontFace,                              "Arial"),
     styleDef(user4FontSize,                              10.0),
     styleDef(user4LineSpacing,                           1.0),
     styleDef(user4FontSpatiumDependent,                  true),
@@ -1821,7 +1821,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user4Position,                              AlignH::LEFT),
 
     styleDef(user5Name,                                  ""),
-    styleDef(user5FontFace,                              "Edwin"),
+    styleDef(user5FontFace,                              "Arial"),
     styleDef(user5FontSize,                              10.0),
     styleDef(user5LineSpacing,                           1.0),
     styleDef(user5FontSpatiumDependent,                  true),
@@ -1839,7 +1839,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user5Position,                              AlignH::LEFT),
 
     styleDef(user6Name,                                  ""),
-    styleDef(user6FontFace,                              "Edwin"),
+    styleDef(user6FontFace,                              "Arial"),
     styleDef(user6FontSize,                              10.0),
     styleDef(user6LineSpacing,                           1.0),
     styleDef(user6FontSpatiumDependent,                  true),
@@ -1857,7 +1857,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user6Position,                              AlignH::LEFT),
 
     styleDef(user7Name,                                  ""),
-    styleDef(user7FontFace,                              "Edwin"),
+    styleDef(user7FontFace,                              "Arial"),
     styleDef(user7FontSize,                              10.0),
     styleDef(user7LineSpacing,                           1.0),
     styleDef(user7FontSpatiumDependent,                  true),
@@ -1875,7 +1875,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user7Position,                              AlignH::LEFT),
 
     styleDef(user8Name,                                  ""),
-    styleDef(user8FontFace,                              "Edwin"),
+    styleDef(user8FontFace,                              "Arial"),
     styleDef(user8FontSize,                              10.0),
     styleDef(user8LineSpacing,                           1.0),
     styleDef(user8FontSpatiumDependent,                  true),
@@ -1893,7 +1893,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user8Position,                              AlignH::LEFT),
 
     styleDef(user9Name,                                  ""),
-    styleDef(user9FontFace,                              "Edwin"),
+    styleDef(user9FontFace,                              "Arial"),
     styleDef(user9FontSize,                              10.0),
     styleDef(user9LineSpacing,                           1.0),
     styleDef(user9FontSpatiumDependent,                  true),
@@ -1911,7 +1911,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user9Position,                              AlignH::LEFT),
 
     styleDef(user10Name,                                 ""),
-    styleDef(user10FontFace,                             "Edwin"),
+    styleDef(user10FontFace,                             "Arial"),
     styleDef(user10FontSize,                             10.0),
     styleDef(user10LineSpacing,                          1.0),
     styleDef(user10FontSpatiumDependent,                 true),
@@ -1929,7 +1929,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user10Position,                             AlignH::LEFT),
 
     styleDef(user11Name,                                 ""),
-    styleDef(user11FontFace,                             "Edwin"),
+    styleDef(user11FontFace,                             "Arial"),
     styleDef(user11FontSize,                             10.0),
     styleDef(user11LineSpacing,                          1.0),
     styleDef(user11FontSpatiumDependent,                 true),
@@ -1947,7 +1947,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user11Position,                             AlignH::LEFT),
 
     styleDef(user12Name,                                 ""),
-    styleDef(user12FontFace,                             "Edwin"),
+    styleDef(user12FontFace,                             "Arial"),
     styleDef(user12FontSize,                             10.0),
     styleDef(user12LineSpacing,                          1.0),
     styleDef(user12FontSpatiumDependent,                 true),
@@ -1964,7 +1964,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(user12FrameBgColor,                         PropertyValue::fromValue(Color::transparent)),
     styleDef(user12Position,                             AlignH::LEFT),
 
-    styleDef(letRingFontFace,                            "Edwin"),
+    styleDef(letRingFontFace,                            "Arial"),
     styleDef(letRingFontSize,                            10.0),
     styleDef(letRingLineSpacing,                         1.0),
     styleDef(letRingFontSpatiumDependent,                true),
@@ -1990,7 +1990,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(letRingEndHookType,                         HookType::HOOK_90T),
     styleDef(letRingOffset,                              PointF()),
 
-    styleDef(whammyBarFontFace,                            "Edwin"),
+    styleDef(whammyBarFontFace,                            "Arial"),
     styleDef(whammyBarFontSize,                            10.0),
     styleDef(whammyBarLineSpacing,                         1.0),
     styleDef(whammyBarFontSpatiumDependent,                true),
@@ -2016,7 +2016,7 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(whammyBarEndHookType,                         HookType::HOOK_90T),
     styleDef(whammyBarOffset,                              PointF()),
 
-    styleDef(palmMuteFontFace,                           "Edwin"),
+    styleDef(palmMuteFontFace,                           "Arial"),
     styleDef(palmMuteFontSize,                           10.0),
     styleDef(palmMuteLineSpacing,                        1.0),
     styleDef(palmMuteFontSpatiumDependent,               true),

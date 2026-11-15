@@ -23,6 +23,8 @@
 #include "noteheadsettingsmodel.h"
 
 #include "engraving/dom/note.h"
+#include "engraving/dom/staff.h"
+#include <algorithm>
 #include "engraving/dom/score.h"
 #include "engraving/editing/editparentheses.h"
 #include "engraving/editing/transaction/transaction.h"
@@ -123,6 +125,7 @@ void NoteheadSettingsModel::loadProperties()
 
     loadProperties(propertyIdSet);
     updateIsTrillCueNote();
+    emit percussionPositionChanged();
     updatemeasurementUnits();
 }
 
@@ -281,4 +284,39 @@ void NoteheadSettingsModel::setIsTrillCueNote(bool v)
 
     m_isTrillCueNote = v;
     emit isTrillCueNoteChanged(m_isTrillCueNote);
+}
+
+// Written percussion placement uses the existing fixed-line override. MIDI
+// pitch, sound mapping, notehead, velocity and sticking are left intact.
+bool NoteheadSettingsModel::canMovePercussionPosition() const
+{
+    return !m_elementList.empty() && std::all_of(m_elementList.begin(), m_elementList.end(), [](const EngravingItem* item) {
+        return item->isNote() && item->staff() && item->staff()->isDrumStaff(item->tick());
+    });
+}
+
+void NoteheadSettingsModel::movePercussionPosition(int steps)
+{
+    if (!canMovePercussionPosition() || (steps != -1 && steps != 1)) return;
+    beginCommand(TranslatableString("undoableAction", "Move percussion notation without changing sound"));
+    for (EngravingItem* item : m_elementList) {
+        Note* note = toNote(item);
+        const int line = std::clamp(note->line() + steps, -128, 128);
+        note->undoChangeProperty(Pid::FIXED_LINE, line);
+        note->undoChangeProperty(Pid::FIXED, true);
+    }
+    endCommand();
+    emit percussionPositionChanged();
+}
+
+void NoteheadSettingsModel::resetPercussionPosition()
+{
+    if (!canMovePercussionPosition()) return;
+    beginCommand(TranslatableString("undoableAction", "Restore percussion staff positions"));
+    for (EngravingItem* item : m_elementList) {
+        item->undoChangeProperty(Pid::FIXED, false);
+        item->undoChangeProperty(Pid::FIXED_LINE, 0);
+    }
+    endCommand();
+    emit percussionPositionChanged();
 }

@@ -38,7 +38,7 @@ Item {
         root.selected(uri);
     }
     function focusOnFirst() {
-        controls.children[0].navigation.requestActive();
+        homeButton.navigation.requestActive();
     }
 
     MainToolBarModel {
@@ -55,7 +55,29 @@ Item {
         id: controls
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
+        Item {
+            width: 92
+            height: 28
+            StyledTextLabel {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                text: "EvanScore"
+                font.family: ui.theme.bodyFont.family
+                font.pixelSize: 15
+                font.weight: Font.DemiBold
+                horizontalAlignment: Text.AlignLeft
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+                width: 22
+                height: 2
+                radius: 1
+                color: ui.theme.accentColor
+            }
+        }
         FlatButton {
+            id: homeButton
             objectName: "workspace-home"
             width: 28
             height: 28

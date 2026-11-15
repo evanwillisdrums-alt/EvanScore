@@ -126,6 +126,7 @@ private:
 
     void makeDefaultStyle();
     void applyDefaultStyle();
+    void applyArialTextFonts();
 
     void unhandledType(const StyleWidget);
     engraving::PropertyValue getValue(engraving::Sid idx);

@@ -27,3 +27,16 @@ assert len(markings) == 1 and markings[0].findtext('anchor') == '1', 'Manual Bel
 assert markings[0].findtext('direction') == 'down', 'Manual symbol direction was lost'
 assert not score.findall('.//LayoutBreak')
 print('Native accent attachment, notes, rhythm, manual placement/direction and create-only staff defaults persisted')
+
+# The written placement must survive independently of its original MIDI pitch.
+import json
+position = json.loads(Path("checks/score/feature-debug.png.position.json").read_text())
+with ZipFile(next(Path("checks/score").glob("*.mscz"))) as archive:
+    xml_name = next(n for n in archive.namelist() if n.endswith(".mscx"))
+    saved_root = ET.fromstring(archive.read(xml_name))
+saved_note = saved_root.find("Score/Staff[@id='2']/Measure/voice/Chord/Note")
+assert saved_note is not None
+assert saved_note.findtext("fixed") == "1"
+assert int(saved_note.findtext("fixedLine")) == position["writtenLine"]
+assert int(saved_note.findtext("pitch")) == position["pitch"]
+print("Saved percussion staff position retains its MIDI pitch")

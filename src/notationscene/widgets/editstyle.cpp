@@ -44,6 +44,10 @@
 
 #include "engraving/dom/figuredbass.h"
 #include "engraving/dom/masterscore.h"
+#include "engraving/dom/textbase.h"
+#include <set>
+#include <unordered_map>
+#include <string_view>
 #include "engraving/dom/stafftype.h"
 #include "engraving/style/textstyle.h"
 #include "engraving/types/symnames.h"
@@ -1178,6 +1182,8 @@ void EditStyle::classBegin()
     connect(styleName, &QLineEdit::textEdited, this, &EditStyle::editUserStyleName);
     connect(styleName, &QLineEdit::editingFinished, this, &EditStyle::endEditUserStyleName);
 
+    connect(applyArialTextFontsButton, &QPushButton::clicked, this, &EditStyle::applyArialTextFonts);
+
     // font face
     WidgetUtils::setWidgetIcon(resetTextStyleFontFace, IconCode::Code::UNDO);
     connect(resetTextStyleFontFace, &QToolButton::clicked, this, [this]() {
@@ -1734,6 +1740,40 @@ void EditStyle::makeDefaultStyle()
     QTimer::singleShot(2000, this, [this]() {
         buttonMakeDefaultStyle->setText(muse::qtrc("notation/editstyle", "Make Default Style"));
     });
+}
+
+void EditStyle::applyArialTextFonts()
+{
+    auto notation = globalContext()->currentNotation();
+    if (!notation) return;
+    auto* score = notation->elements()->msScore();
+    std::set<Sid> ordinaryFamilies;
+    std::unordered_map<Sid, PropertyValue> changes;
+    for (const auto& def : StyleDef::styleValues) {
+        if (std::string_view(def.xmlName).ends_with("FontFace") && def.valueType() == P_TYPE::STRING
+            && def.defaultValue.value<String>() == u"Arial") {
+            ordinaryFamilies.insert(def.sid);
+            changes.emplace(def.sid, String(u"Arial"));
+        }
+    }
+    for (auto* document : score->scoreList()) {
+        std::vector<TextBase*> texts;
+        document->scanElements([&](EngravingItem* item) {
+            if (item->isTextBase() && !item->generated()) {
+                auto* text = toTextBase(item);
+                if (ordinaryFamilies.contains(text->getPropertyStyle(Pid::FONT_FACE))) texts.push_back(text);
+            }
+        });
+        document->undoChangeStyleValues(changes);
+        for (auto* text : texts) {
+            text->createBlocks();
+            // Native reset removes only face overrides; it retains bold,
+            // italic, sizes, lyrics/text content and embedded SMuFL symbols.
+            text->undoChangeProperty(Pid::FONT_FACE, String(u"Arial"), PropertyFlags::STYLED);
+        }
+    }
+    notation->style()->styleChanged().notify();
+    setValues();
 }
 
 void EditStyle::applyDefaultStyle()
