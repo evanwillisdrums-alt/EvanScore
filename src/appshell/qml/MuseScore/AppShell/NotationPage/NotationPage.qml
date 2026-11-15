@@ -94,7 +94,7 @@ DockPage {
     readonly property int verticalPanelDefaultWidth: 280
 
     // Open compactly, then leave deliberate manual resizing to the user.
-    readonly property int horizontalPanelDefaultHeight: Math.max(140, Math.min(220, Math.round(root.height * .25)))
+    readonly property int horizontalPanelDefaultHeight: Math.max(156, Math.min(236, Math.round(root.height * .25) + 16))
     readonly property int horizontalPanelMinHeight: 100
     readonly property int horizontalPanelMaxHeight: 520
 
@@ -436,6 +436,7 @@ DockPage {
 
         DockPanel {
             id: mixerPanel
+            onPanelShown: Qt.callLater(root.openCompactPanel, mixerPanel)
 
             objectName: root.pageModel.mixerPanelName()
             title: qsTrc("appshell", "Mixer")
@@ -478,12 +479,6 @@ DockPage {
                     mixerPanel.resize(newWidth, Math.min(newHeight, root.horizontalPanelDefaultHeight))
                 }
 
-                Connections {
-                    target: mixerPanel
-                    function onPanelShown() {
-                        root.openCompactPanel(mixerPanel)
-                    }
-                }
             }
         },
 
@@ -578,6 +573,7 @@ DockPage {
 
         DockPanel {
             id: percussionPanel
+            onPanelShown: Qt.callLater(root.openCompactPanel, percussionPanel)
 
             objectName: root.pageModel.percussionPanelName()
             title: qsTrc("appshell", "Percussion")
@@ -618,12 +614,6 @@ DockPage {
                     percussionPanel.resize(newWidth, Math.min(newHeight, root.horizontalPanelDefaultHeight))
                 }
 
-                Connections {
-                    target: percussionPanel
-                    function onPanelShown() {
-                        root.openCompactPanel(percussionPanel)
-                    }
-                }
             }
         }
     ]

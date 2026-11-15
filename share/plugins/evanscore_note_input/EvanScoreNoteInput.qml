@@ -644,8 +644,15 @@ MuseScore {
                 }
             }
         }
-        Shortcut { sequence: "Ctrl+Z"; enabled: noteWindow.active && !picker.visible; onActivated: root.cmd("command://notation/undo") }
-        Shortcut { sequences: ["Ctrl+Y", "Ctrl+Shift+Z"]; enabled: noteWindow.active && !picker.visible; onActivated: root.cmd("command://notation/redo") }
+        // The keypad is a separate window: host-window shortcuts do not
+        // reliably reach the score while it owns focus.
+        readonly property bool scoreShortcutsEnabled: noteWindow.active && !picker.visible && !!root.curScore
+        Shortcut { sequence: StandardKey.Undo; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("command://notation/undo") }
+        Shortcut { sequences: [StandardKey.Redo, "Ctrl+Shift+Z"]; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("command://notation/redo") }
+        Shortcut { sequence: StandardKey.Copy; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("copy") }
+        Shortcut { sequence: StandardKey.Cut; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("cut") }
+        Shortcut { sequence: StandardKey.Paste; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("paste") }
+        Shortcut { sequence: "Delete"; enabled: noteWindow.scoreShortcutsEnabled; onActivated: root.cmd("delete") }
         Shortcut {
             sequence: "Escape"; enabled: noteWindow.active
             onActivated: {

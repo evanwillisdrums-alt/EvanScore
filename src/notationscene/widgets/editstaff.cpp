@@ -186,6 +186,7 @@ void EditStaff::setStaff(Staff* s, const Fraction& tick)
     mag->setValue(stt->userMag() * 100.0);
 
     hideSystemBarLine->setChecked(m_staff->hideSystemBarLine());
+    emptySystems->setCurrentIndex(m_orgStaff->auxiliary() ? 3 : int(m_staff->hideWhenEmpty()));
     mergeMatchingRests->setCurrentIndex(static_cast<int>(m_staff->mergeMatchingRests()));
     noReflectTranspositionInLinkedTab->setChecked(!m_staff->reflectTranspositionInLinkedTab());
 
@@ -626,8 +627,10 @@ std::vector<InstrumentKey> EditStaff::otherInstrumentsInSameGroup() const
 
 void EditStaff::applyStaffProperties()
 {
-    StaffConfig config;
+    StaffConfig config = notationParts()->staffConfig(m_orgStaff->id(), m_tick);
     config.visible = m_orgStaff->visible();
+    config.auxiliary = emptySystems->currentIndex() == 3;
+    config.hideWhenEmpty = config.auxiliary ? AutoOnOff::ON : static_cast<AutoOnOff>(emptySystems->currentIndex());
 
     config.userDistance = Spatium(spinExtraDistance->value());
     config.hideSystemBarline = hideSystemBarLine->isChecked();

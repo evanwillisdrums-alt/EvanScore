@@ -2944,6 +2944,9 @@ void TWrite::write(const Staff* item, XmlWriter& xml, WriteContext& ctx)
     if (item->showIfEntireSystemEmpty()) {
         xml.tag("showIfSystemEmpty", item->showIfEntireSystemEmpty());
     }
+    if (item->auxiliary()) {
+        xml.tag("evanAuxiliaryStaff", true);
+    }
     if (item->hideSystemBarLine()) {
         xml.tag("hideSystemBarLine", item->hideSystemBarLine());
     }

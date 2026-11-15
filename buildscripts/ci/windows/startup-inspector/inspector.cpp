@@ -11,6 +11,7 @@
 #endif
 #include <QCoreApplication>
 #include <QClipboard>
+#include <QMimeData>
 #include <QGuiApplication>
 #include <QApplication>
 #include <QDialog>
@@ -18,6 +19,7 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QComboBox>
 #include <QGroupBox>
 #include <QToolButton>
 #include <QJsonArray>
@@ -47,6 +49,7 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 #include <algorithm>
+#include <memory>
 
 class Inspector final : public QObject {
 public:
@@ -620,6 +623,33 @@ private:
         }
         qWarning() << "DYNAMICS INSPECTOR Return and keypad Enter commit velocities without extra score commands passed";
     }
+    static void checkTemporaryStaffDialog(QQuickWindow* window, int expected, bool change) {
+        auto operated = std::make_shared<bool>(false);
+        QTimer::singleShot(250, window, [expected, change, operated] {
+            QWidget* dialog = nullptr;
+            for (auto* widget : QApplication::topLevelWidgets())
+                if (widget->objectName() == "EditStaff" && widget->isVisible()) dialog = widget;
+            if (!dialog) qFatal("TEMPORARY STAFF INSPECTOR native properties unavailable");
+            auto* combo = dialog->findChild<QComboBox*>("emptySystems");
+            auto* buttons = dialog->findChild<QDialogButtonBox*>("buttonBox");
+            if (!combo || !buttons || combo->currentIndex() != expected)
+                qFatal("TEMPORARY STAFF INSPECTOR saved visibility choice incorrect");
+            if (change) {
+                combo->setFocus();
+                QTest::keyClick(combo, Qt::Key_Home);
+                QTest::keyClick(combo, Qt::Key_Down);
+                if (combo->currentIndex() != 1) qFatal("TEMPORARY STAFF INSPECTOR keyboard choice failed");
+            }
+            auto* button = buttons->button(change ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel);
+            if (!button) qFatal("TEMPORARY STAFF INSPECTOR dialog button unavailable");
+            *operated = true;
+            QTest::mouseClick(button, Qt::LeftButton);
+        });
+        dispatchMenu(window, "command://notation/open-staff-properties");
+        for (int i = 0; i < 80 && !*operated; ++i) QTest::qWait(50);
+        if (!*operated) qFatal("TEMPORARY STAFF INSPECTOR properties interaction timed out");
+        QTest::qWait(100);
+    }
     static void verifyPercussion(QQuickWindow* window, QQmlEngine* engine, const std::function<QVariant(const QString&)>& evaluate) {
         const auto select = [&evaluate](int track) {
             if(!evaluate(QString("(function(){var c=curScore.newCursor(); c.track=%1; c.rewindToTick(0); return curScore.selection.select(c.element.articulations[0]);})()").arg(track)).toBool())
@@ -642,7 +672,15 @@ private:
         if(rows.size()!=1 || rows[0].toObject().value("unpitchedPercussion").toBool()
            || rows[0].toObject().value("articulations").toArray()[0].toObject().value("effectiveAnchor").toInt()!=2)
             qFatal("Percussion default still overrides the pitched-staff accent");
-        select(4); rows=diagnostic();
+        select(4);
+        checkTemporaryStaffDialog(window, 0, true);
+        checkTemporaryStaffDialog(window, 1, false);
+        dispatchMenu(window, "command://notation/undo"); QTest::qWait(100);
+        checkTemporaryStaffDialog(window, 0, false);
+        dispatchMenu(window, "command://notation/redo"); QTest::qWait(100);
+        checkTemporaryStaffDialog(window, 1, false);
+        qWarning() << "TEMPORARY STAFF INSPECTOR real properties, visibility choice, Undo/Redo and reopen passed";
+        rows=diagnostic();
         if(rows.size()!=1 || !rows[0].toObject().value("unpitchedPercussion").toBool()
            || !rows[0].toObject().value("articulations").toArray()[0].toObject().value("renderedAbove").toBool())
             qFatal("Unpitched percussion did not retain its automatic above accent");
@@ -736,6 +774,35 @@ private:
             if (expression.hasError()) qFatal("Keypad expression failed: %s", qPrintable(expression.error().toString()));
             return value;
         };
+        if (qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL") == "keypad") {
+            const auto pitches = [&evaluate] {
+                return evaluate("(function(){var c=curScore.newCursor(),p=[];c.rewind(0);while(c.segment){if(c.element&&c.element.notes)for(var n of c.element.notes)p.push(n.pitch);c.next();}return JSON.stringify(p);})()").toString();
+            };
+            const auto original = pitches();
+            if (!evaluate("(function(){var c=curScore.newCursor();c.rewind(0);return curScore.selection.select(c.element.notes[0]);})()").toBool())
+                qFatal("KEYPAD INSPECTOR hotkey source unavailable");
+            keypad->requestActivate();
+            QTest::qWait(200);
+            QApplication::clipboard()->clear();
+            QTest::keyClick(keypad, Qt::Key_C, Qt::ControlModifier); QTest::qWait(150);
+            if (QApplication::clipboard()->mimeData()->formats().isEmpty())
+                qFatal("KEYPAD INSPECTOR Ctrl+C did not copy notation");
+            QTest::keyClick(keypad, Qt::Key_Delete); QTest::qWait(150);
+            if (pitches() == original) qFatal("KEYPAD INSPECTOR Delete did not affect selected notation");
+            evaluate("(function(){var c=curScore.newCursor();c.rewind(0);curScore.selection.select(c.element);})()");
+            QTest::keyClick(keypad, Qt::Key_V, Qt::ControlModifier); QTest::qWait(150);
+            if (pitches() != original) qFatal("KEYPAD INSPECTOR Ctrl+V did not restore copied notation");
+            QTest::keyClick(keypad, Qt::Key_Z, Qt::ControlModifier); QTest::qWait(150);
+            if (pitches() == original) qFatal("KEYPAD INSPECTOR paste Undo did not restore deletion");
+            QTest::keyClick(keypad, Qt::Key_Z, Qt::ControlModifier); QTest::qWait(150);
+            if (pitches() != original) qFatal("KEYPAD INSPECTOR Ctrl+Z did not restore notation");
+            QTest::keyClick(keypad, Qt::Key_Y, Qt::ControlModifier); QTest::qWait(150);
+            if (pitches() == original) qFatal("KEYPAD INSPECTOR Ctrl+Y did not redo deletion");
+            QTest::keyClick(keypad, Qt::Key_Z, Qt::ControlModifier); QTest::qWait(150);
+            if (pitches() != original) qFatal("KEYPAD INSPECTOR final hotkey Undo failed");
+            dispatchMenu(window, "command://notation/select-all");
+            qWarning() << "KEYPAD INSPECTOR actual floating-window Copy/Paste/Delete/Undo/Redo hotkeys passed";
+        }
         if(qEnvironmentVariable("EVANSCORE_LAYOUT_TRIAL")=="percussion") {
             keypad->close();
             verifyPercussion(window, engine, evaluate);

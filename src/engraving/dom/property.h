@@ -540,6 +540,7 @@ enum class Pid : short {
     DYNAMICS_END_VELOCITY,
     DYNAMICS_SMOOTH_ARTICULATIONS,
 
+    STAFF_AUXILIARY,
     END
 };
 

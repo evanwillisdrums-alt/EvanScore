@@ -4189,6 +4189,8 @@ bool TRead::readProperties(Staff* s, XmlReader& e, ReadContext& ctx)
         s->setCutaway(e.readInt());
     } else if (tag == "showIfSystemEmpty") {
         s->setShowIfEntireSystemEmpty(e.readInt());
+    } else if (tag == "evanAuxiliaryStaff") {
+        s->setAuxiliary(e.readBool());
     } else if (tag == "hideSystemBarLine") {
         s->setHideSystemBarLine(e.readInt());
     } else if (tag == "mergeMatchingRests") {

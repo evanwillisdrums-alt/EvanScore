@@ -115,6 +115,8 @@ public:
 
     bool show() const;
     bool stemless(const Fraction&) const;
+    bool auxiliary() const { return m_auxiliary; }
+    void setAuxiliary(bool value) { m_auxiliary = value; }
     bool cutaway() const { return m_cutaway; }
     void setCutaway(bool val) { m_cutaway = val; }
     bool showIfEntireSystemEmpty() const { return m_showIfEntireSystemEmpty; }
@@ -274,6 +276,7 @@ private:
     int m_barLineFrom = 0;              // line of start staff to draw the barline from (0 = staff top line, ...)
     int m_barLineTo = 0;                // line of end staff to draw the bar line to (0= staff bottom line, ...)
 
+    bool m_auxiliary = false;
     bool m_cutaway = false;
     bool m_showIfEntireSystemEmpty = false;             // show this staff if system is empty and hideEmptyStaves is true
     bool m_hideSystemBarLine = false;       // no system barline if not preceded by staff with barline

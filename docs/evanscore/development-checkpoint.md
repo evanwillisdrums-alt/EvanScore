@@ -1,5 +1,37 @@
 # Development checkpoint
 
+## Active workflow cycle — November14, 2026 (America/Chicago)
+
+Latest scope is in workflow-upgrade-plan.md. User clarified ordinary empty-staff
+hiding is insufficient: snare-split staves above main, no before/after/first-system
+space or names, main label remains centered on normal staves, arbitrary repeated
+auxiliaries. Also queued independent percussion note placement and sound search /
+audition / mapping. Do not claim the simple visibility combo completes this.
+
+Work in progress adds native STAFF_AUXILIARY (appended before Pid::END to preserve
+existing IDs), saved evanAuxiliaryStaff tag in500/460 readers, config/Undo and
+staff-role combo, renderer hiding and normal-staff label centering. Initial scope
+is additional staves within the same Part, not automatic separate-part linking.
+Keyboard forwarding/protection and deferred matching panel clamps are drafted.
+Two initial visibility/config/persistence tests passed BEFORE the auxiliary role
+was added; they are not layout/name proof. QML syntax and native .ui generation
+pass; Inspector compiled before its last small dialog-test follow-up.
+
+The local engraving library is rebuilding in /workspace/evanscore-build, output
+/workspace/evanscore-validation/20261115/engraving-build.log (session55899). Default
+reconfigure hit home dependency-cache restrictions; escalation was approved and
+LD_LIBRARY_PATH fixed the import scanner. Do not link new Staff-layout code
+against the old library: class layout changed. After rebuild, recompile the
+percussion harness and extend temporarystaff_tests.cpp for actual split layouts,
+label anchoring, first-system disappearance, Undo and save/reopen.
+
+Old build40938807679 completed Windows/portable successfully but its workspace
+watcher died on broken pipe before native save verification. Its artifact expired;
+no fresh download has been offered. Keep the save fix and automatic native-save
+job. New source needs fresh Windows checks and actual captures. Preserve dirty
+muse and cross-bar worktree. Official research pages are blocked403; accessible
+GitHub user feedback is recorded without pretending to establish popularity.
+
 ## Active saving repair — 2026-10-29
 
 The user clarified that **Save to computer closes the location chooser, then

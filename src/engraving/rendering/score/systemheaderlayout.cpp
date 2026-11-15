@@ -644,7 +644,9 @@ void SystemHeaderLayout::setInstrumentNamesVerticalPos(System* system, LayoutCon
     for (const Part* p : ctx.dom().parts()) {
         size_t nstaves = p->nstaves();
 
-        SysStaff* s = system->staff(staffIdx);
+        staff_idx_t nameStaff = staffIdx;
+        while (nameStaff < staffIdx + nstaves && ctx.dom().staff(nameStaff)->auxiliary()) ++nameStaff;
+        SysStaff* s = nameStaff < staffIdx + nstaves ? system->staff(nameStaff) : system->staff(staffIdx);
 
         InstrumentName* t = s->name(InstrumentNameRole::PART);
         if (!t || t->effectiveStaffIdx() == muse::nidx) {
@@ -656,6 +658,9 @@ void SystemHeaderLayout::setInstrumentNamesVerticalPos(System* system, LayoutCon
         double yCenter = 0.5 * (bbox.bottom() + bbox.top());
 
         std::vector<staff_idx_t> visibleStavesOfPart = system->visibleStavesOfPart(p);
+        visibleStavesOfPart.erase(std::remove_if(visibleStavesOfPart.begin(), visibleStavesOfPart.end(),
+            [&ctx](staff_idx_t index) { return ctx.dom().staff(index)->auxiliary(); }), visibleStavesOfPart.end());
+        if (visibleStavesOfPart.empty()) { staffIdx += nstaves; continue; }
         size_t visibleStavesCount = visibleStavesOfPart.size();
         DO_ASSERT(visibleStavesCount > 0);
 
@@ -1397,17 +1402,19 @@ void SystemHeaderLayout::setInstrumentNames(System* system, LayoutContext& ctx)
             continue;
         }
 
+        size_t nameStaff = 0;
+        while (nameStaff < partNstaves && part->staves()[nameStaff]->auxiliary()) ++nameStaff;
         for (size_t idxInPart = 0; idxInPart < partNstaves; ++idxInPart) {
             staff_idx_t globalIdx = staffIdx + idxInPart;
             const Staff* staff = ctx.dom().staff(globalIdx);
 
             InstrumentLabelVisibility visibility = resolveInstrumentLabelVisibility(staff, tick, ctx, firstSystem);
             InstrumentNameType staffNameType = resolveInstrumentNameType(visibility);
-            bool hide = visibility == InstrumentLabelVisibility::HIDE;
+            bool hide = visibility == InstrumentLabelVisibility::HIDE || staff->auxiliary();
             bool staffLongName = staffNameType == InstrumentNameType::LONG;
 
             String instrumentName;
-            if (idxInPart == 0 && part->show() && visibleStavesCount > 0 && !hide) {
+            if (idxInPart == nameStaff && part->show() && visibleStavesCount > 0 && !hide) {
                 instrumentName = formattedInstrumentName(system, part, tick, staffLongName);
             }
             updateName(system, globalIdx, ctx, instrumentName, staffNameType, InstrumentNameRole::PART);

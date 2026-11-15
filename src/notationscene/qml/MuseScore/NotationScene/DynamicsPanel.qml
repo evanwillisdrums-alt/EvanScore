@@ -78,7 +78,10 @@ Item {
         // Return shortcut can insert a system break in the selected score.
         Keys.onShortcutOverride: function(event) {
             if (!activeFocus && !contentItem.activeFocus) return
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+            if (event.matches(StandardKey.Undo) || event.matches(StandardKey.Redo)
+                    || event.matches(StandardKey.Copy) || event.matches(StandardKey.Cut)
+                    || event.matches(StandardKey.Paste) || event.matches(StandardKey.SelectAll)
+                    || event.key === Qt.Key_Return || event.key === Qt.Key_Enter
                 || event.key === Qt.Key_Escape || event.key === Qt.Key_Backspace
                 || event.key === Qt.Key_Delete || event.key === Qt.Key_Left
                 || event.key === Qt.Key_Right || event.key === Qt.Key_Up

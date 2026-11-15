@@ -1359,6 +1359,39 @@
             </item>
            </layout>
           </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="emptySystemsLabel">
+            <property name="text">
+             <string>Staff role / visibility:</string>
+            </property>
+            <property name="buddy">
+             <cstring>emptySystems</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1" colspan="4">
+           <widget class="QComboBox" name="emptySystems">
+            <property name="toolTip">
+             <string>Hide this staff on systems containing no music and reclaim its vertical space. Useful for temporary solo and divisi staves; existing system visibility overrides still apply.</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>Follow score setting</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Hide empty systems (solo/divisi)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Always show</string>
+             </property>
+            </item>
+            <item><property name="text"><string>Solo/split staff (no instrument label)</string></property></item>
+</widget>
+          </item>
          </layout>
         </widget>
        </item>

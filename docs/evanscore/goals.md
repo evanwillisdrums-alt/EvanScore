@@ -4,6 +4,8 @@ Updated 2026-10-29. Battery is the primary focus; keyboard percussion receives i
 
 ## Current priorities
 
+November14 workflow cycle: see [workflow-upgrade-plan.md](workflow-upgrade-plan.md). Prioritize editing-hotkey reliability, genuine snare-split staves with reclaimed space and stable main-staff labels, matching compact percussion/mixer panels, independent percussion note positions, and the requested sound browser. Research-derived extras remain candidates until audited.
+
 1. **Fix first Save / Save As before another download.** The user reports that Save to computer closes the location chooser and nothing follows. The released Windows39517465407 reproduces it: the native file picker opens then immediately hides during the chooser's close callback. Earlier gates saved existing fixture files and missed this path. Verify actual first save, Save As, both cancellation stages, retry, saved contents and reopening on Windows. Keep cross-bar work separate while saving is repaired.
 2. Integrate the user's existing Kontakt-based VDL 2.5.5 library: Player setup, every instrument's documented maps, staff-text techniques, and automatic Muse Drumline conversion.
 3. Reuse the implemented shared sticking reader and feature diagnostics for actual hand-specific VDL playback; recognition alone is not sample routing.

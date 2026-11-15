@@ -1176,6 +1176,7 @@ void Staff::init(const Staff* s)
     m_barLineTo         = s->m_barLineTo;
     m_hideWhenEmpty     = s->m_hideWhenEmpty;
     m_cutaway           = s->m_cutaway;
+    m_auxiliary         = s->m_auxiliary;
     m_showIfEntireSystemEmpty = s->m_showIfEntireSystemEmpty;
     m_hideSystemBarLine = s->m_hideSystemBarLine;
     m_mergeMatchingRests = s->m_mergeMatchingRests;
@@ -1458,6 +1459,8 @@ PropertyValue Staff::getProperty(Pid id) const
         return visible();
     case Pid::STAFF_CUTAWAY:
         return cutaway();
+    case Pid::STAFF_AUXILIARY:
+        return auxiliary();
     case Pid::STAFF_HIDE_SYSTEM_BARLINE:
         return hideSystemBarLine();
     case Pid::STAFF_MERGE_MATCHING_RESTS:
@@ -1557,6 +1560,9 @@ bool Staff::setProperty(Pid id, const PropertyValue& v)
     case Pid::STAFF_CUTAWAY:
         setCutaway(v.toBool());
         break;
+    case Pid::STAFF_AUXILIARY:
+        setAuxiliary(v.toBool());
+        break;
     case Pid::STAFF_HIDE_SYSTEM_BARLINE:
         setHideSystemBarLine(v.toBool());
         break;
@@ -1609,6 +1615,7 @@ PropertyValue Staff::propertyDefault(Pid id) const
         return true;
     case Pid::STAFF_CUTAWAY:
         return false;
+    case Pid::STAFF_AUXILIARY:
     case Pid::STAFF_HIDE_SYSTEM_BARLINE:
         return false;
     case Pid::STAFF_MERGE_MATCHING_RESTS:

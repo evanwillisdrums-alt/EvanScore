@@ -598,6 +598,12 @@ static StaffHideMode computeHideMode(const System* system, const Staff* staff, c
         return StaffHideMode::HIDE_WHEN_STAFF_EMPTY;
     }
 
+    // Split staves are temporary even on the first system and when the
+    // main instrument is playing. They never reserve an empty system slot.
+    if (staff->auxiliary()) {
+        return StaffHideMode::HIDE_WHEN_STAFF_EMPTY;
+    }
+
     // Check for system-specific overrides
     bool hasSystemSpecificOverrideHide = false;
     bool hasSystemSpecificOverrideDontHide = false;
@@ -777,10 +783,10 @@ void SystemLayout::hideEmptyStaves(System* system, LayoutContext& ctx, bool isFi
     if (systemIsEmpty) {
         for (const Staff* staff : ctx.dom().staves()) {
             SysStaff* ss  = system->staff(staff->idx());
-            if (staff->showIfEntireSystemEmpty() && !ss->show()) {
+            if (!staff->auxiliary() && staff->showIfEntireSystemEmpty() && !ss->show()) {
                 ss->setShow(true);
                 systemIsEmpty = false;
-            } else if (!firstVisible && staff->show()) {
+            } else if (!firstVisible && staff->show() && !staff->auxiliary()) {
                 firstVisible = staff;
             }
         }
