@@ -21,6 +21,7 @@
      <item><widget class="QPushButton" name="auditionSoundButton"><property name="text"><string>Audition</string></property><property name="toolTip"><string>Preview the selected MIDI sound using this staff's current instrument. This does not change the score.</string></property></widget></item>
     </layout>
    </item>
+   <item><widget class="QLabel" name="soundSearchStatus"><property name="text"><string>Search sounds in the current kit.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <item>

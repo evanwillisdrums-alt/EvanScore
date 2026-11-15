@@ -1,8 +1,14 @@
 # EvanScore goals
 
-Updated 2026-10-29. Battery is the primary focus; keyboard percussion receives its own detailed visualizer. Use the supplied Drive videos/images and the existing EvanScore styling for every interface. This is the complete roadmap, not a claim that every feature ships.
+Updated 2026-11-15. Battery is the primary focus; keyboard percussion receives its own detailed visualizer. Use the supplied Drive videos/images and the existing EvanScore styling for every interface. This is the complete roadmap, not a claim that every feature ships.
 
 ## Current priorities
+
+Workflow continuation: [workflow-tools.md](workflow-tools.md) records command
+search, mixer views/FX accessibility/dock sizing, template Arial defaults and
+current-kit browsing. These are implemented locally; matching desktop release
+checks remain pending. Cross-library samples, full UI/mixer/spatial redesign and
+remaining larger engine work stay on this roadmap.
 
 November14 workflow cycle: see [workflow-upgrade-plan.md](workflow-upgrade-plan.md). Prioritize editing-hotkey reliability, genuine snare-split staves with reclaimed space and stable main-staff labels, matching compact percussion/mixer panels, independent percussion note positions, and the requested sound browser. Research-derived extras remain candidates until audited.
 

@@ -3130,8 +3130,8 @@ static const std::vector<CommandInfo> s_commandInfos = {
 
     CommandInfo {
         SHOW_SEARCH_COMMAND,
-        TranslatableString("action", "Show search"),
-        TranslatableString("action", "Show search"),
+        TranslatableString("action", "Find / commands…"),
+        TranslatableString("action", "Find score content or run a command"),
         InputSchema(),
         Decoration()
     },

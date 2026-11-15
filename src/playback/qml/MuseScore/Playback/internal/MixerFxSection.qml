@@ -31,6 +31,7 @@ MixerPanelSection {
     id: root
 
     property bool resourcePickingActive: false
+    property bool controlsAlwaysVisible: false
 
     //: FX is an abbreviation of "effects".
     headerTitle: qsTrc("playback", "Audio FX")
@@ -64,6 +65,7 @@ MixerPanelSection {
                 anchors.horizontalCenter: content.horizontalCenter
 
                 resourceItemModel: modelData
+                controlsAlwaysVisible: root.controlsAlwaysVisible
 
                 navigationPanel: content.channelItem.panel
                 navigationRowStart: root.navigationRowStart + index * 3 // NOTE: 3 - because AudioResourceControl have 3 controls

@@ -25,6 +25,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQml.Models
 
 import Muse.Ui
 import Muse.UiComponents
@@ -34,12 +35,14 @@ import "internal"
 
 ColumnLayout {
     id: root
+    objectName: "evanscore-mixer-content"
 
     property NavigationSection navigationSection: null
     property int contentNavigationPanelOrderStart: 1
 
     property alias contextMenuModel: contextMenuModel
     property Component toolbarComponent: MixerPanelToolbar {
+        viewModel: contextMenuModel
         navigation.section: root.navigationSection
         navigation.order: root.contentNavigationPanelOrderStart
     }
@@ -58,9 +61,7 @@ ColumnLayout {
         }
     }
 
-    onImplicitHeightChanged: {
-        root.resizePanelToContentHeight()
-    }
+    // A view/FX change must not resize the user's dock or steal score space.
 
     QtObject {
         id: prv
@@ -102,24 +103,24 @@ ColumnLayout {
         navigationSection: root.navigationSection
         navigationOrderStart: root.contentNavigationPanelOrderStart + 1 // +1 for toolbar
 
-        onModelReset: {
-            Qt.callLater(setupConnections)
-        }
+    }
 
-        function setupConnections() {
-            for (let i = 0; i < mixerPanelModel.rowCount(); i++) {
-                let item = mixerPanelModel.get(i)
-                item.channelItem.panel.navigationEvent.connect(function(event) {
-                    if (event.type === NavigationEvent.AboutActive) {
-                        if (Boolean(prv.currentNavigateControlIndex)) {
-                            event.setData("controlIndex", [prv.currentNavigateControlIndex.row, prv.currentNavigateControlIndex.column])
-                            event.setData("controlOptional", true)
-                        }
-
-                        prv.isPanelActivated = true
-                        scrollToFocusedItem(i)
-                    }
-                })
+    // One managed connection per current channel. Reconnecting anonymous
+    // callbacks on every model reset accumulated handlers on reused channels.
+    Instantiator {
+        model: mixerPanelModel
+        delegate: Connections {
+            required property MixerChannelItem channelItem
+            required property int index
+            target: channelItem.panel
+            function onNavigationEvent(event) {
+                if (event.type !== NavigationEvent.AboutActive) return
+                if (Boolean(prv.currentNavigateControlIndex)) {
+                    event.setData("controlIndex", [prv.currentNavigateControlIndex.row, prv.currentNavigateControlIndex.column])
+                    event.setData("controlOptional", true)
+                }
+                prv.isPanelActivated = true
+                root.scrollToFocusedItem(index)
             }
         }
     }
@@ -221,6 +222,7 @@ ColumnLayout {
 
             MixerFxSection {
                 id: fxSection
+                controlsAlwaysVisible: contextMenuModel.activeView === "effects"
 
                 visible: contextMenuModel.audioFxSectionVisible
                 headerVisible: contextMenuModel.labelsSectionVisible

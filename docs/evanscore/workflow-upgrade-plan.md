@@ -39,6 +39,16 @@ This document separates intended work from shipped behavior.
 - Validation:15 focused engraving/percussion tests pass; expanded native Windows
   interactions are compiled locally but have not run on the latest full binary.
 
+## Continuation: implemented locally
+
+See [workflow-tools.md](workflow-tools.md) for use and exact limits. Added native
+command search in Find, four persistent Mixer views with a compact picker,
+visible FX controls, removal of view-triggered dock resizing and managed mixer
+navigation subscriptions. New-score text defaults now cover explicit bundled
+template families too, respecting saved user defaults. Kit search explains its
+current-instrument scope and no-match state.24 focused tests pass; real Windows
+checks and capture review remain necessary on a matching new build.
+
 ## Additional queued requests
 
 - Move individual percussion notes among staff lines/spaces while preserving

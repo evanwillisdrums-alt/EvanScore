@@ -439,6 +439,7 @@ void CustomizeKitDialog::filterSounds()
 {
     const QString query = soundSearch->text().trimmed();
     QTreeWidgetItem* first = nullptr;
+    int visibleCount = 0;
     for (int i = 0; i < pitchList->topLevelItemCount(); ++i) {
         auto* item = pitchList->topLevelItem(i);
         const int pitch = item->data(Column::PITCH, Qt::UserRole).toInt();
@@ -447,9 +448,13 @@ void CustomizeKitDialog::filterSounds()
         const bool visible = (!mappedSoundsOnly->isChecked() || m_editedDrumset.isValid(pitch))
                              && (query.isEmpty() || words.contains(query, Qt::CaseInsensitive));
         item->setHidden(!visible);
+        if (visible) ++visibleCount;
         if (visible && !first) first = item;
     }
     if (!pitchList->currentItem() || pitchList->currentItem()->isHidden()) pitchList->setCurrentItem(first);
+    soundSearchStatus->setText(visibleCount
+        ? muse::qtrc("palette", "%1 sounds shown · current instrument only").arg(visibleCount)
+        : muse::qtrc("palette", "No matching sounds in this kit. Try another name or turn off Mapped sounds only."));
     name->setEnabled(first != nullptr);
     if (!first) setEnabledPitchControls(false);
     const bool contextReady = auditionContext().second != nullptr;

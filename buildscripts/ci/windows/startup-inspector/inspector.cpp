@@ -322,6 +322,7 @@ public:
                                 verifyColumn();
                                 qWarning() << "DYNAMICS INSPECTOR general panel and resize checks passed";
                                 verifyMixer(window);
+                                verifyCommandSearch(window);
                                 // The preceding View checks activate other sidebar tabs.
                                 // Reopen Dynamics and reacquire any recreated content
                                 // before sending real keyboard events to its editor.
@@ -1542,6 +1543,49 @@ private:
         }
         qWarning() << "DYNAMICS INSPECTOR transport pointer toggle, alignment and format checks passed";
     }
+    static void verifyCommandSearch(QQuickWindow* window) {
+        dispatchMenu(window,"command://notation/view/show-search");
+        QTest::qWait(150);
+        auto* input = findItem(window->contentItem(),"notation-find-command-input");
+        QObject* model = nullptr;
+        for (auto* object : objects(window)) if (object->objectName()=="evanscore-command-search-model") model=object;
+        if (!input || !model || !input->isVisible()) qFatal("Command search UI missing");
+        QSignalSpy executed(model,SIGNAL(commandExecuted(QString)));
+        auto enter = [window,input](const QString& text) {
+            QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,input->mapToScene(QPointF(input->width()/2,input->height()/2)).toPoint());
+            QTest::keyClick(window,Qt::Key_A,Qt::ControlModifier);
+            for (const QChar ch : text) {
+                QKeyEvent press(QEvent::KeyPress,Qt::Key_unknown,Qt::NoModifier,QString(ch));
+                QKeyEvent release(QEvent::KeyRelease,Qt::Key_unknown,Qt::NoModifier,QString(ch));
+                QCoreApplication::sendEvent(window,&press); QCoreApplication::sendEvent(window,&release);
+            }
+            QTest::qWait(100);
+        };
+        enter("> __no_such_action__");
+        if (!model->property("commandResults").toList().empty()) qFatal("Command search no-match failed");
+        QTest::keyClick(window,Qt::Key_Return); QTest::qWait(50);
+        if (!executed.empty()) qFatal("Empty command search dispatched an action");
+        auto* mode = findItem(window->contentItem(),"search-commands-mode");
+        if (!mode) qFatal("Command search mode switch unavailable");
+        // Prefix mode -> ordinary Find -> explicit Commands. Typing after the
+        // mode click must not overwrite a selected '>' and switch modes back.
+        for (int click=0;click<2;++click) {
+            QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,mode->mapToScene(QPointF(mode->width()/2,mode->height()/2)).toPoint());
+            QTest::qWait(50);
+        }
+        enter("find");
+        const auto rows=model->property("commandResults").toList(); int chosen=-1;
+        for(int i=0;i<rows.size();++i) if(rows[i].toMap().value("code").toString()=="find" && rows[i].toMap().value("enabled").toBool()) chosen=i;
+        if(chosen<0) qFatal("Native Find command unavailable in command search");
+        window->grabWindow().save(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE")+".commands.png");
+        auto* result=findItem(window->contentItem(),"command-result-"+QString::number(chosen));
+        if(!result || !result->isVisible()) qFatal("Command search result is not clickable");
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,result->mapToScene(QPointF(result->width()/2,result->height()/2)).toPoint());
+        if(!QTest::qWaitFor([&]{return executed.size()==1;},1500) || executed.front().front().toString()!="find") qFatal("Command result did not invoke its normal action");
+        QTest::qWait(100); enter("> __no_such_action__"); QTest::keyClick(window,Qt::Key_Escape); QTest::qWait(100);
+        if(input->isVisible()) qFatal("Command search Escape did not close");
+        qWarning()<<"DYNAMICS INSPECTOR command search typing, no-match, pointer dispatch and Escape passed";
+    }
     static void verifyMixer(QQuickWindow* window) {
         const bool wasOpen = dockOpen(window, "mixerPanel");
         if (!wasOpen) dispatchMenu(window, "command://app/dock/toggle-mixer");
@@ -1560,6 +1604,32 @@ private:
             return result;
         };
         const auto initial = diagnostics();
+        // Exercise the visible view controls, not only invokable model methods.
+        QVariantMap savedSections;
+        for (const auto property : {"labelsSectionVisible", "soundSectionVisible", "audioFxSectionVisible", "balanceSectionVisible", "volumeSectionVisible", "faderSectionVisible", "muteAndSoloSectionVisible", "titleSectionVisible"})
+            savedSections.insert(property, menu->property(property));
+        auto* content = findItem(window->contentItem(), "evanscore-mixer-content");
+        if (!content) qFatal("Mixer content geometry unavailable");
+        const qreal retainedHeight = content->height();
+        for (const QString view : {"mix", "sounds", "effects", "all", "mix"}) {
+            auto* button = findItem(window->contentItem(), "mixer-view-" + view);
+            if (!button || !button->isVisible() || !button->isEnabled()) qFatal("Mixer view button unavailable");
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
+            QTest::qWait(100);
+            if (menu->property("activeView").toString() != view) qFatal("Mixer pointer view did not apply");
+            if (qAbs(content->height() - retainedHeight) > 2) qFatal("Mixer view resized the user dock");
+            if (diagnostics().value("channels") != initial.value("channels")) qFatal("Mixer view rebuilt audio channel ownership");
+        }
+        window->grabWindow().save(qEnvironmentVariable("EVANSCORE_FEATURE_DEBUG_CAPTURE") + ".mixer.png");
+        // Restore the user's original per-section choices through normal commands.
+        const QMap<QString, QString> sectionNames {{"labelsSectionVisible","labels"},{"soundSectionVisible","sound"},{"audioFxSectionVisible","audio-fx"},{"balanceSectionVisible","balance"},{"volumeSectionVisible","volume"},{"faderSectionVisible","fader"},{"muteAndSoloSectionVisible","mute-and-solo"},{"titleSectionVisible","title"}};
+        for (auto it = savedSections.begin(); it != savedSections.end(); ++it) {
+            if (menu->property(it.key().toUtf8()) != it.value()) {
+                const QString command = "command://playback/toggle-mixer-section?section=" + sectionNames.value(it.key());
+                QMetaObject::invokeMethod(menu,"handleMenuItem",Q_ARG(QString,command));
+            }
+        }
+        qWarning() << "DYNAMICS INSPECTOR mixer view pointer controls and retained dock size passed";
         auto dispatchMixer = [menu](const char* command) {
             if (!QMetaObject::invokeMethod(menu, "handleMenuItem", Qt::DirectConnection,
                                           Q_ARG(QString, QString::fromUtf8(command))))

@@ -617,8 +617,8 @@ const UiActionList NotationUiActions::s_actions = {
     UiAction("find",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             TranslatableString("action", "&Find / Go to"),
-             TranslatableString("action", "Find / Go to")
+             TranslatableString("action", "&Find / commands…"),
+             TranslatableString("action", "Find score content or run a command")
              ),
     UiAction("staff-properties",
              mu::context::UiCtxProjectOpened,

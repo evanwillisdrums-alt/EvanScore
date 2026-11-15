@@ -26,6 +26,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/mocks/playbackmock.h
     ${CMAKE_CURRENT_LIST_DIR}/playbackcontrollertests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/vdlrouting_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mixerview_tests.cpp
 
     # NOTE The playback module uses this utility, but it lives in notationscene,
     # and linking the whole notationscene would drag the UI stack into the tests

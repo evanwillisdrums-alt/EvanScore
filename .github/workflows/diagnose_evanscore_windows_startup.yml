@@ -28,6 +28,8 @@ on:
           - feature-debug.png.position.png
           - feature-debug.png.fonts.png
           - feature-debug.png.kit.png
+          - feature-debug.png.mixer.png
+          - feature-debug.png.commands.png
         default: desktop.png
       image_scope:
         description: Workspace capture to review
@@ -376,7 +378,7 @@ jobs:
           from io import BytesIO
           from PIL import Image
           image_name = os.environ.get('INSPECT_IMAGE_NAME') or 'desktop.png'
-          if image_name not in ('desktop.png', 'feature-debug.png', 'feature-debug.png.style.png', 'feature-debug.png.position.png', 'feature-debug.png.fonts.png', 'feature-debug.png.kit.png'):
+          if image_name not in ('desktop.png', 'feature-debug.png', 'feature-debug.png.style.png', 'feature-debug.png.position.png', 'feature-debug.png.fonts.png', 'feature-debug.png.kit.png', 'feature-debug.png.mixer.png', 'feature-debug.png.commands.png'):
               raise RuntimeError('Unsupported capture name')
           files = sorted(Path('checks').rglob(image_name))
           if files:
@@ -637,7 +639,7 @@ jobs:
               ./buildscripts/ci/windows/check_evanscore_gui.ps1 -InstallRoot downloaded-app -OutputDirectory checks/drum-score -ScorePath buildscripts/ci/windows/fixtures/ff-snare.mscx -MinimumOpenSeconds $interactionTime
               foreach ($folder in @('score', 'drum-score')) {
                 $logs = (Get-ChildItem "checks/$folder" -Filter '*.log' | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-                foreach ($marker in @('transport pointer toggle, alignment and format checks passed', 'mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mixer visibility and ownership checks passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'native note lock, save default, apply default, unlock and undo checks passed', 'mapping save requested')) {
+                foreach ($marker in @('transport pointer toggle, alignment and format checks passed', 'mapping restored after native undo', 'repeated mixed edits: 12 cycles, 36 edits and 36 undo passed', 'general panel and resize checks passed', 'mixer visibility and ownership checks passed', 'mixer view pointer controls and retained dock size passed', 'command search typing, no-match, pointer dispatch and Escape passed', 'feature diagnostics real report, scope, copy, resize and close passed', 'native note lock, save default, apply default, unlock and undo checks passed', 'mapping save requested')) {
                   if (-not $logs.Contains("DYNAMICS INSPECTOR $marker")) {
                     throw "The native interaction check did not complete in ${folder}: $marker"
                   }

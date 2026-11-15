@@ -36,6 +36,19 @@ using namespace muse::audio;
 
 static const QString VIEW_MENU_ID("view-menu");
 
+// Views change presentation only. Sound sources, FX, automation and track
+// ownership are deliberately untouched; the existing visibility settings persist.
+static bool sectionInView(const QString& view, MixerSectionType section)
+{
+    if (view == "all" || section == MixerSectionType::Labels || section == MixerSectionType::Title
+        || section == MixerSectionType::MuteAndSolo || section == MixerSectionType::Volume) {
+        return true;
+    }
+    if (view == "mix") return section == MixerSectionType::Balance || section == MixerSectionType::Fader;
+    if (view == "sounds") return section == MixerSectionType::Sound;
+    return section == MixerSectionType::AudioFX;
+}
+
 static TranslatableString mixerSectionTitle(MixerSectionType type)
 {
     switch (type) {
@@ -118,6 +131,7 @@ void MixerPanelContextMenuModel::load()
         setViewMenuItemChecked(query, newVisibilityValue);
 
         emit auxSendsSectionVisibleChanged();
+        emit activeViewChanged();
     });
 
     configuration()->isAuxChannelVisibleChanged().onReceive(this, [this](aux_channel_idx_t auxChannelIndex, bool newVisibilityValue) {
@@ -130,6 +144,7 @@ void MixerPanelContextMenuModel::load()
         setViewMenuItemChecked(query, newVisibilityValue);
 
         emitMixerSectionVisibilityChanged(sectionType);
+        emit activeViewChanged();
     });
 
     MenuItemList viewMenuItems {
@@ -158,6 +173,35 @@ void MixerPanelContextMenuModel::load()
     };
 
     setItems(items);
+}
+
+QString MixerPanelContextMenuModel::activeView() const
+{
+    for (const QString& view : { QStringLiteral("mix"), QStringLiteral("sounds"), QStringLiteral("effects"), QStringLiteral("all") }) {
+        bool matches = true;
+        for (MixerSectionType section : allMixerSectionTypes()) {
+            matches &= isSectionVisible(section) == sectionInView(view, section);
+        }
+        for (aux_channel_idx_t idx = 0; idx < AUX_CHANNEL_NUM; ++idx) {
+            matches &= configuration()->isAuxSendVisible(idx) == (view == "effects" || view == "all");
+        }
+        if (matches) return view;
+    }
+    return QStringLiteral("custom");
+}
+
+void MixerPanelContextMenuModel::selectView(const QString& view)
+{
+    if (view != "mix" && view != "sounds" && view != "effects" && view != "all") return;
+    for (MixerSectionType section : allMixerSectionTypes()) {
+        const bool visible = sectionInView(view, section);
+        if (isSectionVisible(section) != visible) configuration()->setMixerSectionVisible(section, visible);
+    }
+    for (aux_channel_idx_t idx = 0; idx < AUX_CHANNEL_NUM; ++idx) {
+        const bool visible = view == "effects" || view == "all";
+        if (configuration()->isAuxSendVisible(idx) != visible) configuration()->setAuxSendVisible(idx, visible);
+    }
+    emit activeViewChanged();
 }
 
 bool MixerPanelContextMenuModel::isSectionVisible(MixerSectionType sectionType) const

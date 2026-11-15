@@ -1,5 +1,27 @@
 # Development checkpoint
 
+## Workflow continuation — November15 UTC
+
+Latest pushed source before this batch:581a48f33ca29c4dfe23ccc71a4a58ac88ade96d.
+Windows43680378923 is successful, including windows, portable and native-save
+jobs. GitHub API and repository access briefly returned401/no credentials, then
+recovered; do not assume that earlier failure is still current. This binary does
+not include the continuation below, so run a matching fresh build before release.
+
+Local continuation adds command search in existing Find, persistent Mixer views
+and compact picker, always-visible FX controls in Effects view, no dock resizing
+on view change, and managed navigation connections replacing reset accumulation.
+Also covers Arial families after bundled templates and clearer kit-search scope.
+Read workflow-tools.md for exact use and limitations.24 focused tests pass,
+including a synchronous model-destruction dispatch case. Inspector and source
+syntax checks pass; real Windows UI gates/captures on the new source are pending.
+
+Preserve dirty muse. Commit/push the coherent batch, record the replacement build,
+then run keypad/percussion/split/stems/fonts/dynamics+workflow/mallet gates on that
+same binary. Full Windows build already includes first-save checks automatically.
+Do not claim arbitrary-library/sample browsing, the entire mixer/spatial roadmap,
+complete app redesign or commercial-library audio testing are finished.
+
 ## Active workflow cycle — November14, 2026 (America/Chicago)
 
 Latest scope and evidence: workflow-upgrade-plan.md. User's app-navigation

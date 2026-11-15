@@ -26,6 +26,7 @@
 #include <QFile>
 #include "io/buffer.h"
 #include <algorithm>
+#include <string_view>
 #include "engraving/dom/dynamicsplayback.h"
 
 #include "log.h"
@@ -33,6 +34,7 @@
 #include "translation.h"
 
 #include "engraving/style/defaultstyle.h"
+#include "engraving/style/styledef.h"
 #include "engraving/iengravingconfiguration.h"
 #include "notation/styledefaultssettings.h"
 #include "engraving/style/pagestyle.h"
@@ -355,6 +357,20 @@ void MasterNotation::applyOptions(mu::engraving::MasterScore* score, const Score
         }
     }
     if (percussion) score->style().set(Sid::percussionAccentsAbove, true);
+    if (savedStyle.empty()) {
+        // Bundled templates carry explicit legacy families, so factory defaults
+        // alone do not cover new scores. Apply the current default text families
+        // after the template/percussion style, never while opening an old file.
+        // User-saved default styles remain authoritative.
+        for (Score* document : score->scoreList()) {
+            for (const auto& def : StyleDef::styleValues) {
+                if (std::string_view(def.xmlName).ends_with("FontFace") && def.valueType() == P_TYPE::STRING
+                    && def.defaultValue.value<String>() == u"Arial") {
+                    document->style().set(def.sid, DefaultStyle::defaultStyle().value(def.sid));
+                }
+            }
+        }
+    }
     const auto dynamicsDefault = settings()->value(SAVED_DEFAULT_DYNAMICS_PATH).toPath();
     if (dynamicsDefault.empty()) {
         const bool hasBattery = std::any_of(score->staves().begin(), score->staves().end(), [](const Staff* staff) {
